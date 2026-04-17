@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json.schemastore.org/package.json",
+  "name": "my-bot",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "deploy": "tsx --env-file=../.env src/util/deploy.js"
+  },
+  "dependencies": {
+    "@discordjs/core": "^2.3.0",
+    "discord.js": "^14.24.0"
+  },
+  "devDependencies": {
+    "@sapphire/ts-config": "^5.0.1",
+    "@types/node": "^22.18.8",
+    "prettier": "^3.6.2",
+    "typescript": "~5.9.3",
+    "zod": "^3.25.76",
+    "tsx": "^4.21.0"
+  },
+  "engines": {
+    "node": ">=22.12.0"
+  }
+}
