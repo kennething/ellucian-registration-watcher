@@ -1,5 +1,8 @@
 {
   "type": "module",
+  "scripts": {
+    "postinstall": "npx playwright install"
+  },
   "dependencies": {
     "bcrypt": "^6.0.0",
     "better-sqlite3": "^12.9.0",
