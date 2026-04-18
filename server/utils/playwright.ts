@@ -1,4 +1,4 @@
-import { chromium, Request } from "playwright";
+import { firefox, Request } from "playwright";
 import { fetchUrl } from "./fetch";
 
 /** Container for the session ID cookie */
@@ -27,7 +27,7 @@ export class Cookie {
 
   /** Gets a new cookie and updates `Cookie.value` */
   private static async getValue(): Promise<void> {
-    const browser = await chromium.launch({ headless: true });
+    const browser = await firefox.launch({ headless: true });
     const context = await browser.newContext();
     const page = await context.newPage();
 
