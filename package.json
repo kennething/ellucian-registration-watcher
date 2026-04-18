@@ -7,7 +7,7 @@
     "preinstall": "npm install --prefix bot && npm install --prefix server",
     "serve": "tsx index.ts"
   },
-  "devDependencies": {
+  "dependencies": {
     "tsx": "^4.21.0"
   }
 }
