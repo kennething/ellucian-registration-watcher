@@ -1,7 +1,7 @@
 {
   "type": "module",
   "scripts": {
-    "postinstall": "npx playwright install && sudo npx playwright install-deps -S"
+    "postinstall": "npx playwright install && npx playwright install-deps --with-deps"
   },
   "dependencies": {
     "bcrypt": "^6.0.0",
