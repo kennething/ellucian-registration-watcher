@@ -1,0 +1,9 @@
+{
+  "type": "module",
+  "scripts": {
+    "serve": "tsx index.ts"
+  },
+  "devDependencies": {
+    "tsx": "^4.21.0"
+  }
+}
