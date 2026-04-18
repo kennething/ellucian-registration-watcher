@@ -1,8 +1,8 @@
 import { Cookie } from "./playwright";
 import { ClassData } from "./types";
 
-type Success<T> = [data: T, error: never];
-type Failure<E> = [data: never, error: E];
+export type Success<T> = [data: T, error: never];
+export type Failure<E> = [data: never, error: E];
 export type Result<T, E = Error> = Success<T> | Failure<E>;
 
 /** Implements try/catch for a given promise.
@@ -12,7 +12,7 @@ export type Result<T, E = Error> = Success<T> | Failure<E>;
  * @template E the type of error to return. Defaults to `Error`.
  * @param promise the promise to implement try/catch for.
  * @example
- * const { data, error } = await tryCatch(getData());
+ * const [data, error] = await tryCatch(getData());
  * if (error) return; // handle the error
  * doSomething(data); // data can now be used
  */

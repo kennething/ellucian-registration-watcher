@@ -1,10 +1,4 @@
-import sqlite3 from "sqlite3";
-import { open } from "sqlite";
+import Database from "better-sqlite3";
 
-// you would have to import / invoke this in another file
-export async function openDb() {
-  return open({
-    filename: "./server/db.sqlite3",
-    driver: sqlite3.cached.Database
-  });
-}
+export const db = new Database("./server/db.sqlite3");
+db.pragma("journal_mode = WAL");
