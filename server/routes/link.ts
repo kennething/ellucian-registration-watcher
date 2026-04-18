@@ -4,7 +4,7 @@ import { CLIENT } from "../../bot/src/common";
 import bcrypt from "bcrypt";
 import { db } from "../utils/sqlite";
 import { Database } from "better-sqlite3";
-import { tryCatch } from "../utils/functions";
+import { tryCatch } from "../utils/fetch";
 
 const router = Router();
 

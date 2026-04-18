@@ -3,11 +3,10 @@ import cors from "cors";
 import path from "path";
 import "dotenv/config";
 import fs from "fs";
-import { Cookie } from "./utils/playwright";
-import { fetchClasses } from "./utils/fetch";
+import { Cookie } from "./utils/cookie";
+import { fetchClasses, tryCatch } from "./utils/fetch";
 import { CLIENT } from "../bot/src/common";
 import { db } from "./utils/sqlite";
-import { tryCatch } from "./utils/functions";
 
 const termStrings = {
   "10": "Winter",
@@ -33,7 +32,7 @@ export async function startServer() {
   const port = Number(process.env.PORT) || 6969;
   app.listen(port, "0.0.0.0", () => console.log(`Server is up on port ${port}`));
 
-  await Cookie.getCookie();
+  await Cookie.refreshCookie();
 
   const currentOffset = Math.ceil(Date.now() / 1000) % 1800; // 30m interval
   setTimeout(() => {
