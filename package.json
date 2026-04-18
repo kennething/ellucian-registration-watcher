@@ -1,6 +1,7 @@
 {
   "type": "module",
   "scripts": {
+    "preinstall": "npm install --prefix bot && npm install --prefix server",
     "serve": "tsx index.ts"
   },
   "devDependencies": {
