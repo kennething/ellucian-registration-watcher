@@ -8,7 +8,7 @@ import { tryCatch } from "../utils/fetch";
 
 const router = Router();
 
-router.post("/confirm-link/:code", async (req, res) => {
+router.put("/confirm-link/:code", async (req, res) => {
   const code = req.params.code;
   if (!code || typeof code !== "string") return res.status(400).json({ error: "Invalid route parameters" });
 
@@ -22,11 +22,11 @@ router.post("/confirm-link/:code", async (req, res) => {
   const user = await CLIENT.client?.users.fetch(discordId);
   if (user) user.send({ content: "Your account has been linked to a new client." });
 
-  res.sendStatus(200);
+  res.status(200).json({ uuid });
 });
 
 /** Creates a new user. To be called by an application command by the user on discord */
-router.post("/link/:discordId", async (req, res) => {
+router.put("/link/:discordId", async (req, res) => {
   const discordId = req.params.discordId;
   if (!discordId || discordId.length < 17 || discordId.length > 19 || typeof discordId !== "string" || Number.isNaN(Number(discordId)))
     return res.status(400).json({ error: "Invalid route parameters" });
