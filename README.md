@@ -1,6 +1,8 @@
 ## Backend Setup
 
-1. Create a `.env` file in the `backend` directory:
+1. Place the `dev.sqlite3` file in the `backend/server` directory.
+
+2. Create a `.env` file in the `backend` directory:
 
    ```sh
    DISCORD_TOKEN=
@@ -11,13 +13,13 @@
    ADMIN_PASSWORD=
    ```
 
-2. Install dependencies:
+3. Install dependencies:
 
    ```sh
    npm install
    ```
 
-3. Start the bot and server:
+4. Start the bot and server:
 
    ```sh
    npm run serve
