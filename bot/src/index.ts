@@ -1,7 +1,7 @@
-import process from "node:process";
-import { URL } from "node:url";
 import { Client, GatewayIntentBits } from "discord.js";
 import { loadEvents } from "./util/loaders.ts";
+import process from "node:process";
+import { URL } from "node:url";
 
 export async function startBot() {
   // Initialize the client

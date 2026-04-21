@@ -1,6 +1,6 @@
-import { Events } from "discord.js";
 import type { Event } from "./index.ts";
 import { CLIENT } from "../common.ts";
+import { Events } from "discord.js";
 
 export default {
   name: Events.ClientReady,

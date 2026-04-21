@@ -38,19 +38,23 @@
 
 1. Ensure you have a `APPLICATION_ID` in your `.env` file.
 
-2. Select the `bot` directory:
-
-   ```sh
-   cd bot
-   ```
-
-3. Register the commands:
+2. Register the commands:
 
    ```sh
    npm run deploy
    ```
 
 You only need to register commands if you change the command's data. Changing the command's behavior (i.e. editing the `execute` function) does not require re-registering.
+
+## Unregistering Bot Commands
+
+1. Ensure you have a `APPLICATION_ID` in your `.env` file.
+
+2. Unregister the commands:
+
+   ```sh
+   npm run undeploy
+   ```
 
 ## Deploying to DigitalOcean
 

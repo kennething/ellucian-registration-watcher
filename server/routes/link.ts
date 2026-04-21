@@ -9,8 +9,9 @@ import bcrypt from "bcrypt";
 const router = Router();
 
 router.put("/confirm-link/:code", async (req, res) => {
-  const code = req.params.code;
+  let code = req.params.code;
   if (!code || typeof code !== "string") return res.status(400).json({ error: "Invalid route parameters" });
+  code = decodeURIComponent(code);
 
   const [data, error] = tryCatch<{ discord_id: string; uuid: string }>(() => db.prepare("SELECT discord_id, uuid FROM users WHERE pairing_code = ?").get(decodeURIComponent(code)) as any);
   if (error || data === undefined) return res.status(404).json({ error: "Invalid or expired pairing code" });
@@ -47,20 +48,17 @@ router.put("/link/:discordId", async (req, res) => {
 
 const pairingCodeTimers = new Map<string, symbol>();
 async function generatePairingCode(db: Database, discordId: string, uuid: string) {
-  const hash = await bcrypt.hash(discordId, 8);
+  const hash = (await bcrypt.hash(discordId, 8)).slice(7);
 
   db.prepare("UPDATE users SET pairing_code = ? WHERE uuid = ?").run(hash, uuid);
 
   const symbol = Symbol();
   pairingCodeTimers.set(uuid, symbol);
-  setTimeout(
-    async () => {
-      if (pairingCodeTimers.get(uuid) !== symbol) return;
-      db.prepare("UPDATE users SET pairing_code = NULL WHERE uuid = ?").run(uuid);
-      pairingCodeTimers.delete(uuid);
-    },
-    5 * 60 * 1000
-  );
+  setTimeout(async () => {
+    if (pairingCodeTimers.get(uuid) !== symbol) return;
+    db.prepare("UPDATE users SET pairing_code = NULL WHERE uuid = ?").run(uuid);
+    pairingCodeTimers.delete(uuid);
+  }, 300 * 1000);
 
   return hash;
 }

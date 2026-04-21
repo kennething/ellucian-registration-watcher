@@ -1,6 +1,5 @@
 import { ClassData } from "./types";
 import { Cookie } from "./cookie";
-import { off } from "cluster";
 
 export type Success<T> = [data: T, error: never];
 export type Failure<E> = [data: never, error: E];

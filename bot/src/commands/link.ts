@@ -11,7 +11,7 @@ export default {
   async execute(interaction) {
     await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
-    const res = await fetch(`${process.env.BACKEND_URL}/link/${interaction.user.id}`, { method: "POST" });
+    const res = await fetch(`${process.env.BACKEND_URL}/link/${interaction.user.id}`, { method: "PUT" });
     const data = (await res.json()) as { code: string };
 
     interaction.editReply({

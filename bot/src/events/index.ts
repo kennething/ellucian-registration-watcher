@@ -1,6 +1,6 @@
+import type { StructurePredicate } from "../util/loaders.ts";
 import type { ClientEvents } from "discord.js";
 import { z } from "zod";
-import type { StructurePredicate } from "../util/loaders.ts";
 
 /**
  * Defines the structure of an event.
