@@ -1,11 +1,11 @@
-import type { PathLike } from "node:fs";
-import { glob, stat } from "node:fs/promises";
-import { resolve } from "node:path";
-import { fileURLToPath } from "node:url";
-import type { Command } from "../commands/index.ts";
 import { predicate as commandPredicate } from "../commands/index.ts";
-import type { Event } from "../events/index.ts";
 import { predicate as eventPredicate } from "../events/index.ts";
+import { fileURLToPath, pathToFileURL } from "node:url";
+import type { Command } from "../commands/index.ts";
+import type { Event } from "../events/index.ts";
+import { glob, stat } from "node:fs/promises";
+import type { PathLike } from "node:fs";
+import { resolve } from "node:path";
 
 /**
  * A predicate to check if the structure is valid
@@ -44,7 +44,7 @@ export async function loadStructures<Structure>(dir: PathLike, predicate: Struct
     }
 
     // Import the structure dynamically from the file
-    const { default: structure } = await import(file);
+    const { default: structure } = await import(pathToFileURL(file).href);
 
     // If the default export is a valid structure, add it
     if (predicate(structure)) {

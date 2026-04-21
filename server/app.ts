@@ -6,6 +6,7 @@ import { db } from "./utils/sqlite";
 import cors from "cors";
 import path from "path";
 import fs from "fs";
+import { pathToFileURL } from "url";
 
 const termStrings = {
   "10": "Winter",
@@ -24,7 +25,7 @@ export async function startServer() {
     if (!file.endsWith(".ts")) return;
 
     const routePath = path.join(routesDir, file);
-    const router = (await import(routePath)).default as Router;
+    const router = (await import(pathToFileURL(routePath).href)).default as Router;
     app.use("/", router);
   });
 
@@ -33,7 +34,8 @@ export async function startServer() {
 
   await Cookie.refreshCookie();
 
-  const currentOffset = Math.ceil(Date.now() / 1000) % 1800; // 30m interval
+  const interval = 300 as const; // 5m interval
+  const currentOffset = Math.ceil(Date.now() / 1000) % interval;
   setTimeout(() => {
     setInterval(async () => {
       const mostRecentTerms = Cookie.getMostRecentTerms();
@@ -63,7 +65,7 @@ export async function startServer() {
           content: `# Class Available!\nThe following classes are now available:\n${availableClasses.map((c) => `- ${c.subject} ${c.courseNumber} - ${c.courseTitle}`).join("\n")}`
         });
       }
-    }, 1800 * 1000);
+    }, interval * 1000);
   }, currentOffset * 1000);
 
   setTimeout(
