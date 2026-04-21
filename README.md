@@ -1,25 +1,32 @@
 ## Backend Setup
 
-1. Place the `dev.sqlite3` file in the `backend/server` directory.
-
-2. Create a `.env` file in the `backend` directory:
+1. Select the `backend` directory:
 
    ```sh
-   DISCORD_TOKEN=
-   APPLICATION_ID=
-   BACKEND_URL= # dont append /
-   FRONTEND_URL= # dont append /
-   PORT= # optional, defaults to 6969
-   ADMIN_PASSWORD=
+   cd backend
    ```
 
-3. Install dependencies:
+2. Place the `dev.sqlite3` file in the `backend/server` directory.
+
+3. Create a `.env` file in the `backend` directory:
+
+   ```sh
+   BACKEND_URL= # dont append /
+   FRONTEND_URL= # dont append /
+   PORT= # (optional) defaults to 6969
+   NODE_ENV= # (optional) defaults to development, set to production when deploying
+   DISCORD_TOKEN= # (optional) can be omitted to only run the server
+   APPLICATION_ID= # (optional) can be ommitted if you dont need to register bot commands
+   ADMIN_PASSWORD= # (optional) can be ommitted if you dont need the admin routes
+   ```
+
+4. Install dependencies:
 
    ```sh
    npm install
    ```
 
-4. Start the bot and server:
+5. Start the bot and server:
 
    ```sh
    npm run serve
@@ -31,13 +38,19 @@
 
 1. Ensure you have a `APPLICATION_ID` in your `.env` file.
 
-2. Register the commands:
+2. Select the `bot` directory:
+
+   ```sh
+   cd bot
+   ```
+
+3. Register the commands:
 
    ```sh
    npm run deploy
    ```
 
-You only need to register commands if you change the command's data. Changing the command's behavior (i.e. `execute`) does not require re-registering.
+You only need to register commands if you change the command's data. Changing the command's behavior (i.e. editing the `execute` function) does not require re-registering.
 
 ## Deploying to DigitalOcean
 

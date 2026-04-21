@@ -1,6 +1,6 @@
-import { CookieJar } from "tough-cookie";
-import axios, { AxiosInstance } from "axios";
 import { wrapper } from "axios-cookiejar-support";
+import axios, { AxiosInstance } from "axios";
+import { CookieJar } from "tough-cookie";
 
 export class Cookie {
   static requestClient: AxiosInstance;

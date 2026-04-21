@@ -1,10 +1,10 @@
-import { Router } from "express";
-import { v6 as uuidv6 } from "uuid";
 import { CLIENT } from "../../bot/src/common";
-import bcrypt from "bcrypt";
-import { db } from "../utils/sqlite";
 import { Database } from "better-sqlite3";
 import { tryCatch } from "../utils/fetch";
+import { db } from "../utils/sqlite";
+import { v6 as uuidv6 } from "uuid";
+import { Router } from "express";
+import bcrypt from "bcrypt";
 
 const router = Router();
 
@@ -20,8 +20,9 @@ router.put("/confirm-link/:code", async (req, res) => {
   pairingCodeTimers.delete(uuid);
 
   const user = await CLIENT.client?.users.fetch(discordId);
-  if (user) user.send({ content: "Your account has been linked to a new client." });
+  if (!user) return res.status(404).json({ error: "App not installed on user's account" });
 
+  user.send({ content: "Your account has been linked to a new client." });
   res.status(200).json({ uuid });
 });
 

@@ -1,5 +1,5 @@
-import { Router } from "express";
 import { CLIENT } from "../../bot/src/common";
+import { Router } from "express";
 
 const router = Router();
 

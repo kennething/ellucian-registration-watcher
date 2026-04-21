@@ -1,5 +1,6 @@
 import { ClassData } from "./types";
 import { Cookie } from "./cookie";
+import { off } from "cluster";
 
 export type Success<T> = [data: T, error: never];
 export type Failure<E> = [data: never, error: E];
@@ -25,18 +26,27 @@ export function tryCatch<T, E = Error>(fn: () => T): Result<T, E> {
   }
 }
 
-/** Fetches the specified classes and automatically refreshes the cookie if needed */
-export async function fetchClasses(term: string, crns: string[], isRetry = false): Promise<ClassData[] | undefined> {
+async function getClasses(term: string, crns: string[], offset = 0, classes: ClassData[] = [], isRetry = false): Promise<ClassData[]> {
   const data = (
-    await Cookie.requestClient.get<{ data: ClassData[] | null }>(
-      `https://ssb.cc.binghamton.edu:8484/StudentRegistrationSsb/ssb/searchResults/searchResults?pageOffset=0&pageMaxSize=100&txt_term=${term}&txt_keywordany=${crns.join("%20OR%20")}`
+    await Cookie.requestClient.get<{ data: ClassData[] | null; totalCount: number }>(
+      `https://ssb.cc.binghamton.edu:8484/StudentRegistrationSsb/ssb/searchResults/searchResults?pageOffset=${offset}&pageMaxSize=500&txt_term=${term}&txt_keywordany=${crns.join("%20OR%20")}`
     )
   ).data;
 
   if (data.data === null && !isRetry) {
     await Cookie.refreshCookie();
-    return fetchClasses(term, crns, true);
-  } else if (data.data === null) return;
+    return await getClasses(term, crns, offset, classes, true);
+  } else if (data.data === null) return classes;
 
-  return data.data;
+  classes.push(...data.data);
+  if (data.totalCount > offset + 500) return await getClasses(term, crns, offset + 500, classes, isRetry);
+  return classes;
+}
+
+/** Fetches the specified classes and automatically refreshes the cookie if needed */
+export async function fetchClasses(term: string, crns: Set<string>): Promise<ClassData[]> {
+  const uniqueCrns = Array.from(crns);
+  const classes = await getClasses(term, uniqueCrns);
+
+  return classes;
 }

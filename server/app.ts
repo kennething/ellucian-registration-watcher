@@ -1,12 +1,11 @@
-import express, { Router } from "express";
-import cors from "cors";
-import path from "path";
-import "dotenv/config";
-import fs from "fs";
-import { Cookie } from "./utils/cookie";
 import { fetchClasses, tryCatch } from "./utils/fetch";
 import { CLIENT } from "../bot/src/common";
+import express, { Router } from "express";
+import { Cookie } from "./utils/cookie";
 import { db } from "./utils/sqlite";
+import cors from "cors";
+import path from "path";
+import fs from "fs";
 
 const termStrings = {
   "10": "Winter",
@@ -40,23 +39,23 @@ export async function startServer() {
       const mostRecentTerms = Cookie.getMostRecentTerms();
       if (!mostRecentTerms) return;
 
-      const [watchers, error] = tryCatch<
-        {
-          owner_uuid: string;
-          term_id: string;
-          crn_list: string;
-        }[]
-      >(() => db.prepare(`SELECT owner_uuid, term_id, crn_list FROM watchers WHERE term_id IN (${mostRecentTerms?.map(() => "?").join(", ")})`).all(...mostRecentTerms) as any);
+      const [watchers, error] = tryCatch<{ owner_uuid: string; term_id: string; crn_list: string }[]>(
+        () => db.prepare(`SELECT owner_uuid, term_id, crn_list FROM watchers WHERE term_id IN (${mostRecentTerms?.map(() => "?").join(", ")})`).all(...mostRecentTerms) as any
+      );
       if (error) return;
 
+      const terms = Array.from(new Set(watchers.map((watcher) => watcher.term_id)));
+      const classes = await Promise.all(
+        terms.map(async (term) => await fetchClasses(term, new Set(watchers.filter((watcher) => watcher.term_id === term).flatMap((watcher) => JSON.parse(watcher.crn_list) as string[]))))
+      );
+
       for (const watcher of watchers) {
-        await new Promise((resolve) => setTimeout(resolve, 5000 + Math.floor(Math.random() * 5000)));
+        const crnList = JSON.parse(watcher.crn_list) as string[];
+        const termIndex = terms.findIndex((term) => term === watcher.term_id);
+        const watchedClasses = classes[termIndex]?.filter((c) => crnList.includes(c.courseReferenceNumber));
+        if (!watchedClasses) continue;
 
-        const crns = JSON.parse(watcher.crn_list) as string[];
-        const classes = await fetchClasses(watcher.term_id, crns);
-        if (!classes) continue;
-
-        const availableClasses = classes.filter((c) => c.seatsAvailable > 0);
+        const availableClasses = watchedClasses.filter((c) => c.seatsAvailable > 0);
         if (availableClasses.length === 0) continue;
 
         const user = await CLIENT.client?.users.fetch(watcher.owner_uuid);
