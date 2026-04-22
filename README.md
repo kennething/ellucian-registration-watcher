@@ -1,14 +1,16 @@
 ## Backend Setup
 
-1. Select the `backend` directory:
+1. Ensure [Node.js](https://nodejs.org) is installed
+
+2. Select the `backend` directory:
 
    ```sh
    cd backend
    ```
 
-2. Place the `dev.sqlite3` file in the `backend/server` directory.
+3. Place the `dev.sqlite3` file in the `backend/server` directory.
 
-3. Create a `.env` file in the `backend` directory:
+4. Create a `.env` file in the `backend` directory:
 
    ```sh
    BACKEND_URL= # dont append /
@@ -20,13 +22,13 @@
    ADMIN_PASSWORD= # (optional) can be ommitted if you dont need the admin routes
    ```
 
-4. Install dependencies:
+5. Install dependencies:
 
    ```sh
    npm install
    ```
 
-5. Start the bot and server:
+6. Start the bot and server:
 
    ```sh
    npm run serve

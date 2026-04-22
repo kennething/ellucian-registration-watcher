@@ -1,11 +1,22 @@
+import { fetchClasses, tryCatch } from "../utils/fetch";
 import { toCamelCase } from "../utils/functions";
-import { tryCatch } from "../utils/fetch";
+import { ClassData } from "../utils/types";
 import { db } from "../utils/sqlite";
 import { Router } from "express";
 
 const router = Router();
 
 router.post("/init", async (req, res) => {
+  type TruncatedClassData = {
+    term: ClassData["term"];
+    courseReferenceNumber: ClassData["courseReferenceNumber"];
+    seatsAvailable: ClassData["seatsAvailable"];
+    subject: ClassData["subject"];
+    courseNumber: ClassData["courseNumber"];
+    waitCount: ClassData["waitCount"];
+    waitCapacity: ClassData["waitCapacity"];
+  };
+
   const uuid: string = req.body.uuid;
   if (!uuid || typeof uuid !== "string") return res.sendStatus(404);
 
@@ -14,7 +25,33 @@ router.post("/init", async (req, res) => {
   );
   if (error) return res.sendStatus(500);
 
-  res.status(200).json(toCamelCase(watchers));
+  const terms = Array.from(new Set(watchers.map((watcher) => watcher.term_id)));
+  const classes = await Promise.all(
+    terms.map(async (term) => {
+      const data = await fetchClasses(term, new Set(watchers.filter((watcher) => watcher.term_id === term).map((watcher) => watcher.crn)));
+      const classMap = new Map<string, TruncatedClassData>(); // Map<CRN, TruncatedClassData>
+
+      data.forEach((c) =>
+        classMap.set(c.courseReferenceNumber, {
+          term: c.term,
+          courseReferenceNumber: c.courseReferenceNumber,
+          seatsAvailable: c.seatsAvailable,
+          subject: c.subject,
+          courseNumber: c.courseNumber,
+          waitCount: c.waitCount,
+          waitCapacity: c.waitCapacity
+        })
+      );
+      return classMap;
+    })
+  );
+
+  const watchersWithData = watchers.map((watcher) => ({
+    ...toCamelCase(watcher),
+    ...classes[terms.findIndex((term) => term === watcher.term_id)]?.get(watcher.crn)
+  }));
+
+  res.status(200).json(toCamelCase(watchersWithData));
 });
 
 export default router;

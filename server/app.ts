@@ -7,8 +7,9 @@ import path from "path";
 import fs from "fs";
 
 export async function startServer() {
-  const app = express();
-  app.use(cors()).use(express.json());
+  const app = express()
+    .use(cors({ origin: process.env.FRONTEND_URL, optionsSuccessStatus: 200 }))
+    .use(express.json());
 
   const projectRoot = process.cwd();
   const routesDir = path.join(projectRoot, "server", "routes");
