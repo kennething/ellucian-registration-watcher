@@ -3,6 +3,7 @@ import { toCamelCase } from "../utils/functions";
 
 const router = Router();
 
+// TODO: validate term is valid
 router.get("/class/search", async (req, res) => {
   const { term, crn, subject, courseNumber, time, attribute, professor, creditHours, openSections, waitlistOpen, professorRating } = req.body as {
     term: string;

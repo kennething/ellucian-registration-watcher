@@ -21,10 +21,10 @@
     "express": "^5.2.1",
     "tough-cookie": "^6.0.1",
     "typescript": "^6.0.2",
-    "uuid": "^13.0.0"
+    "uuid": "^13.0.0",
+    "tsx": "^4.21.0"
   },
   "devDependencies": {
-    "tsx": "^4.21.0",
     "@sapphire/ts-config": "^5.0.1",
     "typescript": "~5.9.3",
     "@types/bcrypt": "^6.0.0",

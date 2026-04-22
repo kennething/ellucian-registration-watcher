@@ -3,6 +3,7 @@ import { fetchClasses, tryCatch } from "../utils/fetch";
 import { toCamelCase } from "../utils/functions";
 import { db } from "../utils/sqlite";
 import { Router } from "express";
+import { Cookie } from "../utils/cookie";
 
 const router = Router();
 
@@ -57,7 +58,7 @@ router.post("/init", async (req, res) => {
     ...classes[terms.findIndex((term) => term === watcher.term_id)]?.get(watcher.crn)
   }));
 
-  res.status(200).json(toCamelCase(watchersWithData));
+  res.status(200).json({ validTerms: Cookie.getMostRecentTerms(), watchers: toCamelCase(watchersWithData) });
 });
 
 export default router;

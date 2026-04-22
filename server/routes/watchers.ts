@@ -3,10 +3,11 @@ import { tryCatch } from "../utils/fetch";
 import { db } from "../utils/sqlite";
 import { v6 as uuidv6 } from "uuid";
 import { Router } from "express";
+import { Cookie } from "../utils/cookie";
 
 const router = Router();
 
-const WATCHER_LIMIT = 420 as const;
+const WATCHER_LIMIT = 67 as const;
 
 router.delete("/watchers/delete", async (req, res) => {
   const { uuid, watcherUuids } = req.body as { uuid: string; watcherUuids: string[] };
@@ -64,6 +65,9 @@ router.patch("/watchers/update", async (req, res) => {
 
 /** Verifies a user exists and returns their data */
 router.post("/watchers/create", async (req, res) => {
+  const validTerms = Cookie.getMostRecentTerms();
+  if (!validTerms) return res.sendStatus(500);
+
   const { uuid, watchers } = req.body as { uuid: string; watchers: { term: string; crn: string; priority: number; notifyWhen: NotificationType; notifyWhenValue: number }[] };
   if (
     !uuid ||
@@ -74,6 +78,7 @@ router.post("/watchers/create", async (req, res) => {
       (watcher) =>
         typeof watcher.term !== "string" ||
         watcher.term.length !== 6 ||
+        !validTerms.includes(watcher.term) ||
         typeof watcher.crn !== "string" ||
         typeof watcher.priority !== "number" ||
         ![0, 1].includes(watcher.priority) ||
