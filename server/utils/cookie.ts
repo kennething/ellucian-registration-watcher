@@ -9,7 +9,7 @@ export class Cookie {
   static async refreshCookie() {
     const jar = new CookieJar();
     Cookie.requestClient = wrapper(axios.create({ jar }));
-    Cookie.setup();
+    await Cookie.setup();
   }
 
   static getMostRecentTerms(): [offSemester: string, realSemester: string] | [latest: string] | null {
@@ -28,7 +28,6 @@ export class Cookie {
     const terms = (
       await Cookie.requestClient.get<{ code: string; description: string }[]>("https://ssb.cc.binghamton.edu:8484/StudentRegistrationSsb/ssb/classSearch/getTerms?searchTerm=&offset=1&max=2")
     ).data;
-
     Cookie.mostRecentTerms = terms.map((term) => term.code) as [string, string];
 
     const formData = new FormData();

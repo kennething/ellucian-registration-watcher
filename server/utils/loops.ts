@@ -1,7 +1,7 @@
 import { ComponentType, MessageFlags } from "discord.js";
+import { ClassData, NotificationType } from "./types";
 import { fetchClasses, tryCatch } from "./fetch";
 import { CLIENT } from "../../bot/src/common";
-import { ClassData } from "./types";
 import { Cookie } from "./cookie";
 import { db } from "./sqlite";
 
@@ -30,8 +30,11 @@ export function watchClassesLoop(): void {
     const mostRecentTerms = Cookie.getMostRecentTerms();
     if (!mostRecentTerms) return;
 
-    const [watchers, error] = tryCatch<{ owner_uuid: string; term_id: string; crn: string; notification_priority: number }[]>(
-      () => db.prepare(`SELECT owner_uuid, term_id, crn, notification_priority FROM watchers WHERE term_id IN (${mostRecentTerms?.map(() => "?").join(", ")})`).all(...mostRecentTerms) as any
+    const [watchers, error] = tryCatch<{ owner_uuid: string; term_id: string; crn: string; notification_priority: number; notify_when: NotificationType; notify_when_value: number }[]>(
+      () =>
+        db
+          .prepare(`SELECT owner_uuid, term_id, crn, notification_priority, notify_when, notify_when_value FROM watchers WHERE term_id IN (${mostRecentTerms?.map(() => "?").join(", ")})`)
+          .all(...mostRecentTerms) as any
     );
     if (error) return;
 
@@ -60,12 +63,18 @@ export function watchClassesLoop(): void {
       const termIndex = terms.findIndex((term) => term === watcher.term_id);
 
       const classData = classes[termIndex]?.get(watcher.crn);
-      if (!classData || classData.seatsAvailable <= 0 || classData.waitCount > 0) continue;
-
-      if (!notificationsToSend.has(watcher.owner_uuid)) notificationsToSend.set(watcher.owner_uuid, []);
-      notificationsToSend
-        .get(watcher.owner_uuid)
-        ?.push({ ...classes[termIndex].get(watcher.crn), notification_priority: watcher.notification_priority } as TruncatedClassData & { notification_priority: number });
+      if (
+        classData &&
+        ((watcher.notify_when === NotificationType.SEAT_GREATER_THAN && classData.seatsAvailable >= watcher.notify_when_value) ||
+          (watcher.notify_when === NotificationType.SEAT_LESS_THAN && classData.seatsAvailable <= watcher.notify_when_value) ||
+          (watcher.notify_when === NotificationType.WAIT_GREATER_THAN && classData.waitCount >= watcher.notify_when_value) ||
+          (watcher.notify_when === NotificationType.WAIT_LESS_THAN && classData.waitCount <= watcher.notify_when_value))
+      ) {
+        if (!notificationsToSend.has(watcher.owner_uuid)) notificationsToSend.set(watcher.owner_uuid, []);
+        notificationsToSend
+          .get(watcher.owner_uuid)
+          ?.push({ ...classes[termIndex].get(watcher.crn), notification_priority: watcher.notification_priority } as TruncatedClassData & { notification_priority: number });
+      }
     }
 
     for (const [uuid, availableClasses] of notificationsToSend) {
@@ -73,7 +82,7 @@ export function watchClassesLoop(): void {
       user?.send({
         embeds: [
           {
-            title: "Class Available!",
+            title: `Class${availableClasses.length > 1 ? "es" : ""} Available!`,
             description: `${availableClasses.length > 1 ? availableClasses.length : "A"} class${availableClasses.length > 1 ? "es" : ""} you've been watching ${availableClasses.length > 1 ? "are" : "is"} now available:\n${availableClasses.map((c) => `- ${c.subject} ${c.courseNumber} - ${c.seatsAvailable} seats left`).join("\n")}`,
             color: 0x6befa2,
             timestamp: new Date().toISOString()

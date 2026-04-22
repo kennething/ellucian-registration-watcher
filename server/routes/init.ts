@@ -1,6 +1,6 @@
+import { ClassData, NotificationType } from "../utils/types";
 import { fetchClasses, tryCatch } from "../utils/fetch";
 import { toCamelCase } from "../utils/functions";
-import { ClassData } from "../utils/types";
 import { db } from "../utils/sqlite";
 import { Router } from "express";
 
@@ -10,9 +10,12 @@ router.post("/init", async (req, res) => {
   type TruncatedClassData = {
     term: ClassData["term"];
     courseReferenceNumber: ClassData["courseReferenceNumber"];
-    seatsAvailable: ClassData["seatsAvailable"];
     subject: ClassData["subject"];
     courseNumber: ClassData["courseNumber"];
+    courseTitle: ClassData["courseTitle"];
+    sequenceNumber: ClassData["sequenceNumber"];
+    seatsAvailable: ClassData["seatsAvailable"];
+    maximumEnrollment: ClassData["maximumEnrollment"];
     waitCount: ClassData["waitCount"];
     waitCapacity: ClassData["waitCapacity"];
   };
@@ -20,7 +23,7 @@ router.post("/init", async (req, res) => {
   const uuid: string = req.body.uuid;
   if (!uuid || typeof uuid !== "string") return res.sendStatus(404);
 
-  const [watchers, error] = tryCatch<{ uuid: string; owner_uuid: string; term_id: string; crn: string; notification_priority: number }[]>(
+  const [watchers, error] = tryCatch<{ uuid: string; owner_uuid: string; term_id: string; crn: string; notification_priority: number; notify_when: NotificationType; notify_when_value: number }[]>(
     () => db.prepare("SELECT * FROM watchers WHERE owner_uuid = ?").all(uuid) as any
   );
   if (error) return res.sendStatus(500);
@@ -35,9 +38,12 @@ router.post("/init", async (req, res) => {
         classMap.set(c.courseReferenceNumber, {
           term: c.term,
           courseReferenceNumber: c.courseReferenceNumber,
-          seatsAvailable: c.seatsAvailable,
           subject: c.subject,
           courseNumber: c.courseNumber,
+          courseTitle: c.courseTitle,
+          sequenceNumber: c.sequenceNumber,
+          seatsAvailable: c.seatsAvailable,
+          maximumEnrollment: c.maximumEnrollment,
           waitCount: c.waitCount,
           waitCapacity: c.waitCapacity
         })

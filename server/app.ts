@@ -21,10 +21,10 @@ export async function startServer() {
     app.use("/", router);
   });
 
+  await Cookie.refreshCookie();
+
   const port = Number(process.env.PORT) || 6969;
   app.listen(port, "0.0.0.0", () => console.log(`Server is up on port ${port}`));
-
-  await Cookie.refreshCookie();
 
   loops.watchClassesLoop();
   loops.purgeWatchersLoop();

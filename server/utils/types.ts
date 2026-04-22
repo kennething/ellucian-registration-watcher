@@ -1,3 +1,14 @@
+export enum NotificationType {
+  /** class.seatsAvailable >= X */
+  SEAT_GREATER_THAN,
+  /** class.seatsAvailable <= X */
+  SEAT_LESS_THAN,
+  /** class.waitCount >= X */
+  WAIT_GREATER_THAN,
+  /** class.waitCount <= X */
+  WAIT_LESS_THAN
+}
+
 export type ClassData = {
   id: number;
   term: string;
@@ -8,7 +19,7 @@ export type ClassData = {
   courseDisplay: string;
   subject: string;
   subjectDescription: string;
-  sequenceNumber: number;
+  sequenceNumber: string;
   campusDescription: string;
   scheduleTypeDescription: string;
   courseTitle: string;
@@ -23,8 +34,8 @@ export type ClassData = {
   crossListCapacity: any; // TODO:
   crossListCount: any; // TODO:
   crossListAvailable: any; // TODO:
-  creditHourHigh: 4;
-  creditHourLow: 0;
+  creditHourHigh: number;
+  creditHourLow: number;
   creditHourIndicator: string;
   openSection: boolean;
   linkIdentifier: string;
