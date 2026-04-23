@@ -24,10 +24,13 @@ router.post("/init", async (req, res) => {
   const uuid: string = req.body.uuid;
   if (!uuid || typeof uuid !== "string") return res.sendStatus(404);
 
-  const [watchers, error] = tryCatch<{ uuid: string; owner_uuid: string; term_id: string; crn: string; notification_priority: number; notify_when: NotificationType; notify_when_value: number }[]>(
+  const [user, error] = tryCatch(() => db.prepare("SELECT * FROM users WHERE uuid = ?").get(uuid) as any);
+  if (error || !user) return res.sendStatus(404);
+
+  const [watchers, error2] = tryCatch<{ uuid: string; owner_uuid: string; term_id: string; crn: string; notification_priority: number; notify_when: NotificationType; notify_when_value: number }[]>(
     () => db.prepare("SELECT * FROM watchers WHERE owner_uuid = ?").all(uuid) as any
   );
-  if (error) return res.sendStatus(500);
+  if (error2) return res.sendStatus(500);
 
   const terms = Array.from(new Set(watchers.map((watcher) => watcher.term_id)));
   const classes = await Promise.all(
