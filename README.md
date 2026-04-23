@@ -87,7 +87,9 @@ You only need to register commands if you change the command's data. Changing th
 6. Open the console on the DigitalOcean app and get the prod database from your local server:
 
    ```sh
-   wget <NGROK_URL>/admin/get-db/<ADMIN_PASSWORD> -o server/prod.sqlite3
+   cd server
+   wget <NGROK_URL>/admin/get-db/<ADMIN_PASSWORD>
+   mv <WGET_OUTPUT_FILE> prod.sqlite3
    ```
 
-   Place the `prod.sqlite3` file in the `backend/server` directory.
+   The `prod.sqlite3` file should be in the `backend/server` directory.
