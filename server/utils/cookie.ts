@@ -5,6 +5,8 @@ import { CookieJar } from "tough-cookie";
 export class Cookie {
   static requestClient: AxiosInstance;
   private static mostRecentTerms: [latest: string, secondLatest: string] | null = null;
+  static subjects: { code: string; name: string }[] | null = null;
+  static attributes: { code: string; name: string }[] | null = null;
 
   static async refreshCookie() {
     const jar = new CookieJar();
@@ -29,6 +31,20 @@ export class Cookie {
       await Cookie.requestClient.get<{ code: string; description: string }[]>("https://ssb.cc.binghamton.edu:8484/StudentRegistrationSsb/ssb/classSearch/getTerms?searchTerm=&offset=1&max=2")
     ).data;
     Cookie.mostRecentTerms = terms.map((term) => term.code) as [string, string];
+
+    const subjects = (
+      await Cookie.requestClient.get<{ code: string; description: string }[]>(
+        `https://ssb.cc.binghamton.edu:8484/StudentRegistrationSsb/ssb/classSearch/get_subject?searchTerm=&term=${terms[0].code}&offset=1&max=50`
+      )
+    ).data;
+    Cookie.subjects = subjects.map((subject) => ({ code: subject.code, name: subject.description }));
+
+    const attributes = (
+      await Cookie.requestClient.get<{ code: string; description: string }[]>(
+        `https://ssb.cc.binghamton.edu:8484/StudentRegistrationSsb/ssb/classSearch/get_attribute?searchTerm=&term=${terms[0].code}&offset=1&max=50`
+      )
+    ).data;
+    Cookie.attributes = attributes.map((attribute) => ({ code: attribute.code, name: attribute.description }));
 
     const formData = new FormData();
     formData.append("term", terms[0].code);

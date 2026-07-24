@@ -24,8 +24,9 @@ export function watchClassesLoop(): void {
     waitCapacity: ClassData["waitCapacity"];
   };
 
-  const interval = 600 as const; // 6m interval
+  const interval = 600 as const; // 10m interval
 
+  // TODO: fix
   waitForInterval(interval, async () => {
     const mostRecentTerms = Cookie.getMostRecentTerms();
     if (!mostRecentTerms) return;
@@ -37,6 +38,8 @@ export function watchClassesLoop(): void {
           .all(...mostRecentTerms) as any
     );
     if (error) return;
+
+    console.log("loops l41 ", new Date().toLocaleString());
 
     const terms = Array.from(new Set(watchers.map((watcher) => watcher.term_id)));
     const classes = await Promise.all(

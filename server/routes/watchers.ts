@@ -1,18 +1,24 @@
-import { NotificationType } from "../utils/types";
 import { tryCatch } from "../utils/fetch";
-import { db } from "../utils/sqlite";
-import { v6 as uuidv6 } from "uuid";
-import { Router } from "express";
 import { Cookie } from "../utils/cookie";
+import { db } from "../utils/sqlite";
+import { v7 as uuidv7 } from "uuid";
+import { Router } from "express";
+import * as z from "zod";
 
 const router = Router();
 
 const WATCHER_LIMIT = 67 as const;
 
 router.delete("/watchers/delete", async (req, res) => {
-  const { uuid, watcherUuids } = req.body as { uuid: string; watcherUuids: string[] };
-  if (!uuid || typeof uuid !== "string" || !watcherUuids || !Array.isArray(watcherUuids) || watcherUuids.some((wUuid) => typeof wUuid !== "string"))
-    return res.status(400).json({ error: "Invalid body" });
+  const { data, error: parseError } = z
+    .object({
+      uuid: z.string(),
+      watcherUuids: z.array(z.string())
+    })
+    .safeParse(req.body);
+  if (parseError) return res.status(400).json({ error: "Invalid body" });
+
+  const { uuid, watcherUuids } = data;
 
   const [user, error] = tryCatch<{ uuid: string }>(() => db.prepare("SELECT uuid FROM users WHERE uuid = ?").get(uuid) as any);
   if (error) return res.sendStatus(500);
@@ -31,23 +37,22 @@ router.delete("/watchers/delete", async (req, res) => {
 });
 
 router.patch("/watchers/update", async (req, res) => {
-  const { uuid, watchers } = req.body as { uuid: string; watchers: { uuid: string; newNotificationPriority: number; notifyWhen: NotificationType; notifyWhenValue: number }[] };
-  if (
-    !uuid ||
-    typeof uuid !== "string" ||
-    !watchers ||
-    !Array.isArray(watchers) ||
-    watchers.some(
-      (watcher) =>
-        typeof watcher.uuid !== "string" ||
-        typeof watcher.newNotificationPriority !== "number" ||
-        ![0, 1].includes(watcher.newNotificationPriority) ||
-        typeof watcher.notifyWhen !== "number" ||
-        ![0, 1, 2, 3].includes(watcher.notifyWhen) ||
-        typeof watcher.notifyWhenValue !== "number"
-    )
-  )
-    return res.status(400).json({ error: "Invalid body" });
+  const { data, error: parseError } = z
+    .object({
+      uuid: z.string(),
+      watchers: z.array(
+        z.object({
+          uuid: z.string(),
+          newNotificationPriority: z.number().int().min(0).max(1),
+          notifyWhen: z.number().int().min(0).max(3),
+          notifyWhenValue: z.number().int()
+        })
+      )
+    })
+    .safeParse(req.body);
+  if (parseError) return res.status(400).json({ error: "Invalid body" });
+
+  const { uuid, watchers } = data;
 
   const [user, error] = tryCatch<{ uuid: string }>(() => db.prepare("SELECT uuid FROM users WHERE uuid = ?").get(uuid) as any);
   if (error) return res.sendStatus(500);
@@ -68,26 +73,23 @@ router.post("/watchers/create", async (req, res) => {
   const validTerms = Cookie.getMostRecentTerms();
   if (!validTerms) return res.sendStatus(500);
 
-  const { uuid, watchers } = req.body as { uuid: string; watchers: { term: string; crn: string; priority: number; notifyWhen: NotificationType; notifyWhenValue: number }[] };
-  if (
-    !uuid ||
-    typeof uuid !== "string" ||
-    !watchers ||
-    !Array.isArray(watchers) ||
-    watchers.some(
-      (watcher) =>
-        typeof watcher.term !== "string" ||
-        watcher.term.length !== 6 ||
-        !validTerms.includes(watcher.term) ||
-        typeof watcher.crn !== "string" ||
-        typeof watcher.priority !== "number" ||
-        ![0, 1].includes(watcher.priority) ||
-        typeof watcher.notifyWhen !== "number" ||
-        ![0, 1, 2, 3].includes(watcher.notifyWhen) ||
-        typeof watcher.notifyWhenValue !== "number"
-    )
-  )
-    return res.status(400).json({ error: "Invalid body" });
+  const { data, error: parseError } = z
+    .object({
+      uuid: z.string(),
+      watchers: z.array(
+        z.object({
+          term: z.string(),
+          crn: z.string(),
+          priority: z.number().int().min(0).max(1),
+          notifyWhen: z.number().int().min(0).max(3),
+          notifyWhenValue: z.number().int()
+        })
+      )
+    })
+    .safeParse(req.body);
+  if (parseError) return res.status(400).json({ error: "Invalid body" });
+
+  const { uuid, watchers } = data;
 
   const [user, error] = tryCatch<{ uuid: string; num_watchers: number }>(() => db.prepare("SELECT uuid, num_watchers FROM users WHERE uuid = ?").get(uuid) as any);
   if (error) return res.sendStatus(500);
@@ -108,7 +110,7 @@ router.post("/watchers/create", async (req, res) => {
   const [, error3] = tryCatch(() =>
     db
       .prepare(`INSERT INTO watchers (uuid, owner_uuid, term_id, crn, notification_priority, notify_when, notify_when_value) VALUES ${watchers.map(() => "(?, ?, ?, ?, ?, ?, ?)").join(", ")}`)
-      .run(...watchers.flatMap((watcher) => [uuidv6(), uuid, watcher.term, watcher.crn, watcher.priority, watcher.notifyWhen, watcher.notifyWhenValue]))
+      .run(...watchers.flatMap((watcher) => [uuidv7(), uuid, watcher.term, watcher.crn, watcher.priority, watcher.notifyWhen, watcher.notifyWhenValue]))
   );
   if (error3) return res.sendStatus(500);
 
