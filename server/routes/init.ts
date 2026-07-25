@@ -1,6 +1,7 @@
 import { ClassData, NotificationType } from "../utils/types";
 import { fetchClasses, tryCatch } from "../utils/fetch";
 import { toCamelCase } from "../utils/functions";
+import { CLIENT } from "../../bot/src/common";
 import { Cookie } from "../utils/cookie";
 import { db } from "../utils/sqlite";
 import { Router } from "express";
@@ -31,8 +32,10 @@ router.post("/init", async (req, res) => {
   const uuid: string = req.body.uuid;
   if (!uuid || typeof uuid !== "string") return res.sendStatus(404);
 
-  const [user, error] = tryCatch(() => db.prepare("SELECT * FROM users WHERE uuid = ?").get(uuid) as any);
-  if (error || !user) return res.sendStatus(404);
+  const [{ discord_id: discordId }, error] = tryCatch<{ discord_id: string }>(() => db.prepare("SELECT discord_id FROM users WHERE uuid = ?").get(uuid) as any);
+  if (error || !discordId) return res.sendStatus(404);
+  const user = await CLIENT.client?.users.fetch(discordId);
+  if (!user) return res.sendStatus(404);
 
   const [watchers, error2] = tryCatch<{ uuid: string; owner_uuid: string; term_id: string; crn: string; notification_priority: number; notify_when: NotificationType; notify_when_value: number }[]>(
     () => db.prepare("SELECT * FROM watchers WHERE owner_uuid = ?").all(uuid) as any
@@ -83,7 +86,18 @@ router.post("/init", async (req, res) => {
     ...classes[terms.findIndex((term) => term === watcher.term_id)]?.get(watcher.crn)
   }));
 
-  res.status(200).json({ validTerms: Cookie.getMostRecentTerms(), attributes: Cookie.attributes, subjects: Cookie.subjects, watchers: toCamelCase(watchersWithData) });
+  res.status(200).json({
+    discord: {
+      id: discordId,
+      displayName: user.displayName,
+      username: user.username,
+      avatar: user.avatar
+    },
+    validTerms: Cookie.getMostRecentTerms(),
+    attributes: Cookie.attributes,
+    subjects: Cookie.subjects,
+    watchers: toCamelCase(watchersWithData)
+  });
 });
 
 export default router;
