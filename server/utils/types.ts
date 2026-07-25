@@ -15,14 +15,14 @@ export type ClassData = {
   termDesc: string;
   courseReferenceNumber: string; // CRN
   partOfTerm: number;
-  courseNumber: string;
-  courseDisplay: string;
-  subject: string;
-  subjectDescription: string;
-  sequenceNumber: string;
+  courseNumber: string; // "350"
+  courseDisplay: string; // "350"
+  subject: string; // "CS"
+  subjectDescription: string; // "CS - Computer Science"
+  sequenceNumber: string; // section number
   campusDescription: string;
   scheduleTypeDescription: string;
-  courseTitle: string;
+  courseTitle: string; // "Operating Systems"
   creditHours: number;
   maximumEnrollment: number;
   enrollment: number;
@@ -37,12 +37,12 @@ export type ClassData = {
   creditHourHigh: number;
   creditHourLow: number;
   creditHourIndicator: string;
-  openSection: boolean;
+  openSection: boolean; // is the section open
   linkIdentifier: string;
   isSectionLinked: boolean;
-  subjectCourse: string;
+  subjectCourse: string; // "CS350"
   faculty: {
-    bannerId: string;
+    bannerId: string; // professor id
     category: any; // TODO:
     class: string;
     courseReferenceNumber: string; // CRN

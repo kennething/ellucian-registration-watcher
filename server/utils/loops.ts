@@ -2,15 +2,18 @@ import { ComponentType, MessageFlags } from "discord.js";
 import { ClassData, NotificationType } from "./types";
 import { fetchClasses, tryCatch } from "./fetch";
 import { CLIENT } from "../../bot/src/common";
+import { getRMPData } from "./rmp";
 import { Cookie } from "./cookie";
 import { db } from "./sqlite";
+import Fuse from "fuse.js";
 
 /** Waits for a specified interval and then calls the callback function
  * @param interval The interval in seconds at which to call the callback function. The first call will be aligned to the nearest interval.
  */
 function waitForInterval(interval: number, callback: () => Promise<void>): void {
-  const currentOffset = Math.ceil(Date.now() / 1000) % interval;
-  setTimeout(() => setInterval(callback, interval * 1000), currentOffset * 1000);
+  // const currentOffset = Math.ceil(Date.now() / 1000) % interval;
+  // setTimeout(() => setInterval(callback, interval * 1000), currentOffset * 1000);
+  callback();
 }
 
 /** Handles class watchers on a 10-minute interval */
@@ -165,5 +168,63 @@ export function purgeWatchersLoop(): void {
         ]
       });
     }
+  });
+}
+
+export function fetchProfessorsLoop(): void {
+  const interval = 86400 * 7; // 7d interval
+
+  waitForInterval(interval, async () => {
+    const rmpProfessors = (await getRMPData()).map((professor) => ({
+      ...professor,
+      sortedName: professor.name
+        .replaceAll(/,|\.|\-/g, " ")
+        .split(" ")
+        .filter((w) => w.length > 1)
+        .sort()
+        .join(" ")
+    }));
+    // ! bing professor id isnt consistent ??
+    const bingProfessors = (
+      await Cookie.requestClient.get<{ code: string; description: string }[]>(
+        "https://ssb.cc.binghamton.edu:8484/StudentRegistrationSsb/ssb/classSearch/get_instructor?searchTerm=&term=202690&offset=1&max=2000"
+      )
+    ).data.map((professor) => ({
+      ...professor,
+      sortedName: professor.description
+        .replaceAll(/,|\.|\-|\([A-Za-z]{1,3}\/[A-Za-z]{1,3}\)/g, " ")
+        .split(" ")
+        .filter((w) => w.length > 1)
+        .sort()
+        .join(" ")
+    }));
+
+    const searcher = new Fuse(rmpProfessors, { useTokenSearch: true, tokenMatch: "all", keys: ["name"], threshold: 0.25, shouldSort: true, ignoreDiacritics: true });
+
+    const finalProfessors = bingProfessors.map((professor) => {
+      const result = searcher.search(professor.description);
+      const match = result[0]?.item;
+
+      return {
+        bing_id: professor.code,
+        bing_name: professor.description,
+        rmp_id: match?.id ?? null,
+        rmp_name: match?.name ?? null,
+        overall_rating: match?.overall_rating ?? null,
+        num_ratings: match?.num_ratings ?? null,
+        percent_take_again: match?.percent_take_again ?? null,
+        level_of_difficulty: match?.level_of_difficulty ?? null
+      };
+    });
+
+    db.transaction(() => {
+      db.prepare("DELETE FROM professors").run();
+
+      const columns = Object.keys(finalProfessors[0]);
+      const statement = db.prepare(`INSERT INTO professors (${columns.join(", ")}) VALUES (${columns.map((c) => `@${c}`).join(", ")})`);
+      for (const professor of finalProfessors) statement.run(professor);
+    })();
+
+    console.log(`${new Date().toLocaleString()}: Fetched ${finalProfessors.length} professors from RMP and Binghamton`);
   });
 }

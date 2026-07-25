@@ -19,6 +19,13 @@ router.post("/init", async (req, res) => {
     maximumEnrollment: ClassData["maximumEnrollment"];
     waitCount: ClassData["waitCount"];
     waitCapacity: ClassData["waitCapacity"];
+    professorId: ClassData["faculty"][number]["bannerId"];
+    professorName: ClassData["faculty"][number]["displayName"];
+    rmpId: number | null;
+    rmpRating: number | null;
+    rmpNumRatings: number | null;
+    rmpDifficulty: number | null;
+    rmpTakeAgain: number | null;
   };
 
   const uuid: string = req.body.uuid;
@@ -38,7 +45,15 @@ router.post("/init", async (req, res) => {
       const data = await fetchClasses(term, new Set(watchers.filter((watcher) => watcher.term_id === term).map((watcher) => watcher.crn)));
       const classMap = new Map<string, TruncatedClassData>(); // Map<CRN, TruncatedClassData>
 
-      data.forEach((c) =>
+      data.forEach((c) => {
+        const professor = c.faculty.find((f) => f.primaryIndicator);
+        const [rmpData, error] = professor
+          ? tryCatch<{ rmp_id: number; overall_rating: number; num_ratings: number; percent_take_again: number; level_of_difficulty: number }>(
+              () => db.prepare("SELECT rmp_id, overall_rating, num_ratings, percent_take_again, level_of_difficulty FROM professors WHERE bing_name = ?").get(professor.displayName) as any
+            )
+          : [];
+        if (error) return console.error(error);
+
         classMap.set(c.courseReferenceNumber, {
           term: c.term,
           courseReferenceNumber: c.courseReferenceNumber,
@@ -49,9 +64,16 @@ router.post("/init", async (req, res) => {
           seatsAvailable: c.seatsAvailable,
           maximumEnrollment: c.maximumEnrollment,
           waitCount: c.waitCount,
-          waitCapacity: c.waitCapacity
-        })
-      );
+          waitCapacity: c.waitCapacity,
+          professorId: professor?.bannerId ?? "",
+          professorName: professor?.displayName ?? "",
+          rmpId: rmpData?.rmp_id ?? null,
+          rmpRating: rmpData?.overall_rating ?? null,
+          rmpNumRatings: rmpData?.num_ratings ?? null,
+          rmpTakeAgain: rmpData?.percent_take_again ?? null,
+          rmpDifficulty: rmpData?.level_of_difficulty ?? null
+        });
+      });
       return classMap;
     })
   );

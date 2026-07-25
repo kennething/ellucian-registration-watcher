@@ -28,4 +28,5 @@ export async function startServer() {
 
   // loops.watchClassesLoop();
   // loops.purgeWatchersLoop();
+  // loops.fetchProfessorsLoop();
 }
