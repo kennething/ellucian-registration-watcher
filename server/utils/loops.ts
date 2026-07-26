@@ -1,7 +1,7 @@
-import { ComponentType, MessageFlags } from "discord.js";
 import { ClassData, NotificationType } from "./types";
 import { fetchClasses, tryCatch } from "./fetch";
 import { CLIENT } from "../../bot/src/common";
+import { ComponentType } from "discord.js";
 import { getRMPData } from "./rmp";
 import { Cookie } from "./cookie";
 import { db } from "./sqlite";
@@ -9,51 +9,65 @@ import Fuse from "fuse.js";
 
 /** Waits for a specified interval and then calls the callback function
  * @param interval The interval in seconds at which to call the callback function. The first call will be aligned to the nearest interval.
+ * @param offset offset in seconds
  */
-function waitForInterval(interval: number, callback: () => Promise<void>): void {
-  // const currentOffset = Math.ceil(Date.now() / 1000) % interval;
-  // setTimeout(() => setInterval(callback, interval * 1000), currentOffset * 1000);
-  callback();
+function waitForInterval(interval: number, offset: number, callback: () => Promise<void>): void {
+  const intervalMs = interval * 1000;
+  const timeUntilInterval = intervalMs - (Date.now() % intervalMs);
+
+  setTimeout(
+    () => {
+      callback();
+      setInterval(callback, intervalMs);
+    },
+    timeUntilInterval + offset * 1000
+  );
 }
 
 /** Handles class watchers on a 10-minute interval */
 export function watchClassesLoop(): void {
-  type TruncatedClassData = {
+  type NotificationData = {
     courseReferenceNumber: ClassData["courseReferenceNumber"];
     seatsAvailable: ClassData["seatsAvailable"];
+    sequenceNumber: ClassData["sequenceNumber"];
     subject: ClassData["subject"];
     courseNumber: ClassData["courseNumber"];
     waitCount: ClassData["waitCount"];
     waitCapacity: ClassData["waitCapacity"];
-  };
+  } & Partial<{
+    notifyWhen: NotificationType;
+    notifyWhenValue: number;
+  }>;
 
+  const NOTIFICATION_COOLDOWN = 86400 / 2; // 12h
   const interval = 600 as const; // 10m interval
+  const offset = 120 as const; // 2m offset
 
   // TODO: fix
-  waitForInterval(interval, async () => {
+  waitForInterval(interval, offset, async () => {
     const mostRecentTerms = Cookie.getMostRecentTerms();
+
     if (!mostRecentTerms) return;
 
-    const [watchers, error] = tryCatch<{ owner_uuid: string; term_id: string; crn: string; notification_priority: number; notify_when: NotificationType; notify_when_value: number }[]>(
+    const [watchers, error] = tryCatch<{ owner_uuid: string; last_notified: number | null; term_id: string; crn: string; notify_when: NotificationType; notify_when_value: number }[]>(
       () =>
         db
-          .prepare(`SELECT owner_uuid, term_id, crn, notification_priority, notify_when, notify_when_value FROM watchers WHERE term_id IN (${mostRecentTerms?.map(() => "?").join(", ")})`)
+          .prepare(`SELECT owner_uuid, last_notified, term_id, crn, notify_when, notify_when_value FROM watchers WHERE term_id IN (${mostRecentTerms?.map(() => "?").join(", ")})`)
           .all(...mostRecentTerms) as any
     );
     if (error) return;
-
-    console.log("loops l41 ", new Date().toLocaleString());
 
     const terms = Array.from(new Set(watchers.map((watcher) => watcher.term_id)));
     const classes = await Promise.all(
       terms.map(async (term) => {
         const data = await fetchClasses(term, new Set(watchers.filter((watcher) => watcher.term_id === term).map((watcher) => watcher.crn)));
-        const classMap = new Map<string, TruncatedClassData>(); // Map<CRN, TruncatedClassData>
+        const classMap = new Map<string, NotificationData>(); // Map<CRN, NotificationData>
 
         data.forEach((c) =>
           classMap.set(c.courseReferenceNumber, {
             courseReferenceNumber: c.courseReferenceNumber,
             seatsAvailable: c.seatsAvailable,
+            sequenceNumber: c.sequenceNumber,
             subject: c.subject,
             courseNumber: c.courseNumber,
             waitCount: c.waitCount,
@@ -64,11 +78,16 @@ export function watchClassesLoop(): void {
       })
     );
 
-    const notificationsToSend = new Map<string, (TruncatedClassData & { notification_priority: number })[]>();
+    const notificationsToSend = new Map<string, NotificationData[]>();
+    const updateLastNotified = db.transaction((crn: string, ownerUuid: string, term: string) =>
+      tryCatch(() => db.prepare("UPDATE watchers SET last_notified = ? WHERE crn = ? AND owner_uuid = ? AND term_id = ?").run(Math.floor(Date.now() / 1000), crn, ownerUuid, term))
+    );
     for (const watcher of watchers) {
-      const termIndex = terms.findIndex((term) => term === watcher.term_id);
+      if (watcher.last_notified && Date.now() / 1000 - watcher.last_notified < NOTIFICATION_COOLDOWN) continue;
 
+      const termIndex = terms.findIndex((term) => term === watcher.term_id);
       const classData = classes[termIndex]?.get(watcher.crn);
+
       if (
         classData &&
         ((watcher.notify_when === NotificationType.SEAT_GREATER_THAN && classData.seatsAvailable >= watcher.notify_when_value) ||
@@ -77,20 +96,29 @@ export function watchClassesLoop(): void {
           (watcher.notify_when === NotificationType.WAIT_LESS_THAN && classData.waitCount <= watcher.notify_when_value))
       ) {
         if (!notificationsToSend.has(watcher.owner_uuid)) notificationsToSend.set(watcher.owner_uuid, []);
-        notificationsToSend
-          .get(watcher.owner_uuid)
-          ?.push({ ...classes[termIndex].get(watcher.crn), notification_priority: watcher.notification_priority } as TruncatedClassData & { notification_priority: number });
+        updateLastNotified(watcher.crn, watcher.owner_uuid, watcher.term_id);
+        notificationsToSend.get(watcher.owner_uuid)?.push({ ...classes[termIndex].get(watcher.crn), notifyWhen: watcher.notify_when, notifyWhenValue: watcher.notify_when_value } as NotificationData);
       }
     }
 
     for (const [uuid, availableClasses] of notificationsToSend) {
-      const user = await CLIENT.client?.users.fetch(uuid);
+      const [{ discord_id: discordId }, error] = tryCatch<{ discord_id: string }>(() => db.prepare("SELECT discord_id FROM users WHERE uuid = ?").get(uuid) as any);
+      if (error) return;
+
+      const user = await CLIENT.client?.users.fetch(discordId);
       user?.send({
         embeds: [
           {
-            title: `Class${availableClasses.length > 1 ? "es" : ""} Available!`,
-            description: `${availableClasses.length > 1 ? availableClasses.length : "A"} class${availableClasses.length > 1 ? "es" : ""} you've been watching ${availableClasses.length > 1 ? "are" : "is"} now available:\n${availableClasses.map((c) => `- ${c.subject} ${c.courseNumber} - ${c.seatsAvailable} seats left`).join("\n")}`,
-            color: 0x6befa2,
+            title: `Watcher${availableClasses.length > 1 ? "s" : ""} Triggered`,
+            description:
+              availableClasses
+                .map(
+                  (c) =>
+                    `- **${c.subject} ${c.courseNumber} - ${c.sequenceNumber}** has ${c.notifyWhen! < 2 ? c.seatsAvailable : c.waitCount} ${c.notifyWhen! < 2 ? `seat${c.seatsAvailable === 1 ? "" : "s"} available` : `waitlist spot${c.waitCount === 1 ? "" : "s"} taken`}`
+                )
+                .join("\n") +
+              `\nTh${availableClasses.length > 1 ? "ese" : "is"} watcher${availableClasses.length > 1 ? "s" : ""} will not notify you again until <t:${Math.floor((Date.now() + NOTIFICATION_COOLDOWN * 1000) / 1000)}>`,
+            color: 0x065942,
             timestamp: new Date().toISOString()
           }
         ],
@@ -100,14 +128,14 @@ export function watchClassesLoop(): void {
             components: [
               {
                 type: ComponentType.Button,
-                label: `Remove Watcher${availableClasses.length > 1 ? "s" : ""}`,
+                label: `Edit Watcher${availableClasses.length > 1 ? "s" : ""}`,
                 style: 5,
-                url: `${process.env.FRONTEND_URL}/watch?delete=${encodeURIComponent(availableClasses.map((c) => c.courseReferenceNumber).join(","))}`
+                url: `${process.env.FRONTEND_URL}/watch`
               }
             ]
           }
-        ],
-        flags: availableClasses.every((c) => c.notification_priority === 0) ? MessageFlags.SuppressNotifications : undefined
+        ]
+        // flags: availableClasses.every((c) => c.notification_priority === 0) ? MessageFlags.SuppressNotifications : undefined
       });
     }
   });
@@ -125,7 +153,7 @@ export function purgeWatchersLoop(): void {
   } as const;
 
   const termsToDelete = new Map<string, number>(); // Map<termId, timestampToDelete>
-  waitForInterval(interval, async () => {
+  waitForInterval(interval, 0, async () => {
     const mostRecentTerms = Cookie.getMostRecentTerms();
     if (!mostRecentTerms) return;
     const mostRecentTermStrings: `${(typeof termStrings)[keyof typeof termStrings]} ${number}`[] = mostRecentTerms.map(
@@ -133,12 +161,15 @@ export function purgeWatchersLoop(): void {
     ) as any;
 
     if (termsToDelete.size) {
+      let count = 0;
       for (const [termId, deleteTimestamp] of termsToDelete) {
         if (Date.now() >= deleteTimestamp * 1000) {
           db.prepare("DELETE FROM watchers WHERE term_id = ?").run(termId);
           termsToDelete.delete(termId);
+          count++;
         }
       }
+      console.log(`${new Date().toLocaleString()}: Purged ${count} outdated watchers for terms: ${mostRecentTermStrings.join(", ")}`);
       return;
     }
 
@@ -155,7 +186,10 @@ export function purgeWatchersLoop(): void {
     if (error2) return;
 
     for (const user of usersToNotify) {
-      const discordUser = await CLIENT.client?.users.fetch(user.owner_uuid);
+      const [{ discord_id: discordId }, error] = tryCatch<{ discord_id: string }>(() => db.prepare("SELECT discord_id FROM users WHERE uuid = ?").get(user.owner_uuid) as any);
+      if (error) return;
+
+      const discordUser = await CLIENT.client?.users.fetch(discordId);
       discordUser?.send({
         embeds: [
           {
@@ -168,13 +202,15 @@ export function purgeWatchersLoop(): void {
         ]
       });
     }
+
+    console.log(`${new Date().toLocaleString()}: Purging ${outdatedTerms.join(", ")} in 7 days`);
   });
 }
 
 export function fetchProfessorsLoop(): void {
   const interval = 86400 * 7; // 7d interval
 
-  waitForInterval(interval, async () => {
+  waitForInterval(interval, 0, async () => {
     const rmpProfessors = (await getRMPData()).map((professor) => ({
       ...professor,
       sortedName: professor.name

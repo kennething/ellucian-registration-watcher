@@ -1,5 +1,6 @@
 import { ClassData, NotificationType } from "../utils/types";
 import { fetchClasses, tryCatch } from "../utils/fetch";
+import { authController } from "../controllers/auth";
 import { toCamelCase } from "../utils/functions";
 import { CLIENT } from "../../bot/src/common";
 import { Cookie } from "../utils/cookie";
@@ -8,7 +9,7 @@ import { Router } from "express";
 
 const router = Router();
 
-router.post("/init", async (req, res) => {
+router.get("/init", authController, async (req, res) => {
   type TruncatedClassData = {
     term: ClassData["term"];
     courseReferenceNumber: ClassData["courseReferenceNumber"];
@@ -20,6 +21,15 @@ router.post("/init", async (req, res) => {
     maximumEnrollment: ClassData["maximumEnrollment"];
     waitCount: ClassData["waitCount"];
     waitCapacity: ClassData["waitCapacity"];
+    credits: ClassData["meetingsFaculty"][number]["meetingTime"]["creditHourSession"];
+    meeting: {
+      building: ClassData["meetingsFaculty"][number]["meetingTime"]["building"];
+      buildingDescription: ClassData["meetingsFaculty"][number]["meetingTime"]["buildingDescription"];
+      room: ClassData["meetingsFaculty"][number]["meetingTime"]["room"];
+      campus: ClassData["meetingsFaculty"][number]["meetingTime"]["campus"];
+      time: [start: ClassData["meetingsFaculty"][number]["meetingTime"]["beginTime"], end: ClassData["meetingsFaculty"][number]["meetingTime"]["endTime"]];
+      days: [sun: boolean, mon: boolean, tue: boolean, wed: boolean, thu: boolean, fri: boolean, sat: boolean];
+    };
     professorId: ClassData["faculty"][number]["bannerId"];
     professorName: ClassData["faculty"][number]["displayName"];
     rmpId: number | null;
@@ -29,16 +39,11 @@ router.post("/init", async (req, res) => {
     rmpTakeAgain: number | null;
   };
 
-  const uuid: string = req.body.uuid;
-  if (!uuid || typeof uuid !== "string") return res.sendStatus(404);
-
-  const [{ discord_id: discordId }, error] = tryCatch<{ discord_id: string }>(() => db.prepare("SELECT discord_id FROM users WHERE uuid = ?").get(uuid) as any);
-  if (error || !discordId) return res.sendStatus(404);
-  const user = await CLIENT.client?.users.fetch(discordId);
+  const user = await CLIENT.client?.users.fetch(req.user.discordId);
   if (!user) return res.sendStatus(404);
 
-  const [watchers, error2] = tryCatch<{ uuid: string; owner_uuid: string; term_id: string; crn: string; notification_priority: number; notify_when: NotificationType; notify_when_value: number }[]>(
-    () => db.prepare("SELECT * FROM watchers WHERE owner_uuid = ?").all(uuid) as any
+  const [watchers, error2] = tryCatch<{ uuid: string; owner_uuid: string; term_id: string; crn: string; notify_when: NotificationType; notify_when_value: number }[]>(
+    () => db.prepare("SELECT * FROM watchers WHERE owner_uuid = ?").all(req.user.uuid) as any
   );
   if (error2) return res.sendStatus(500);
 
@@ -68,6 +73,23 @@ router.post("/init", async (req, res) => {
           maximumEnrollment: c.maximumEnrollment,
           waitCount: c.waitCount,
           waitCapacity: c.waitCapacity,
+          credits: c.meetingsFaculty[0]?.meetingTime.creditHourSession ?? 0,
+          meeting: {
+            building: c.meetingsFaculty[0]?.meetingTime.building ?? "",
+            buildingDescription: c.meetingsFaculty[0]?.meetingTime.buildingDescription ?? "",
+            room: c.meetingsFaculty[0]?.meetingTime.room ?? "",
+            campus: c.meetingsFaculty[0]?.meetingTime.campus ?? "",
+            time: [c.meetingsFaculty[0]?.meetingTime.beginTime ?? "", c.meetingsFaculty[0]?.meetingTime.endTime ?? ""],
+            days: [
+              c.meetingsFaculty[0]?.meetingTime.sunday ?? false,
+              c.meetingsFaculty[0]?.meetingTime.monday ?? false,
+              c.meetingsFaculty[0]?.meetingTime.tuesday ?? false,
+              c.meetingsFaculty[0]?.meetingTime.wednesday ?? false,
+              c.meetingsFaculty[0]?.meetingTime.thursday ?? false,
+              c.meetingsFaculty[0]?.meetingTime.friday ?? false,
+              c.meetingsFaculty[0]?.meetingTime.saturday ?? false
+            ]
+          },
           professorId: professor?.bannerId ?? "",
           professorName: professor?.displayName ?? "",
           rmpId: rmpData?.rmp_id ?? null,
@@ -88,7 +110,7 @@ router.post("/init", async (req, res) => {
 
   res.status(200).json({
     discord: {
-      id: discordId,
+      id: req.user.discordId,
       displayName: user.displayName,
       username: user.username,
       avatar: user.avatar

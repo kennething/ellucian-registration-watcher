@@ -1,4 +1,5 @@
 import express, { Router } from "express";
+import cookieParser from "cookie-parser";
 import { Cookie } from "./utils/cookie";
 import * as loops from "./utils/loops";
 import { pathToFileURL } from "url";
@@ -8,7 +9,8 @@ import fs from "fs";
 
 export async function startServer() {
   const app = express()
-    .use(cors({ origin: process.env.FRONTEND_URL, optionsSuccessStatus: 200 }))
+    .use(cors({ origin: process.env.FRONTEND_URL, optionsSuccessStatus: 200, credentials: true }))
+    .use(cookieParser())
     .use(express.json());
 
   const projectRoot = process.cwd();
@@ -26,7 +28,8 @@ export async function startServer() {
   const port = Number(process.env.PORT) || 6969;
   app.listen(port, "0.0.0.0", () => console.log(`Server is up on port ${port}`));
 
-  // loops.watchClassesLoop();
+  // loops.watchClassesLoop(); // TODO: update class history
   // loops.purgeWatchersLoop();
   // loops.fetchProfessorsLoop();
+  // TODO: purge users that dont have bot
 }

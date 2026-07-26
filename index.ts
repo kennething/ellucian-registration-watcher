@@ -8,11 +8,5 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 dotenv.config({ path: resolve(__dirname, ".env") });
 
-(function main() {
-  try {
-    if (process.env.DISCORD_TOKEN) startBot();
-    startServer();
-  } catch (error) {
-    console.error("error in index.ts: ", error);
-  }
-})();
+if (process.env.DISCORD_TOKEN) startBot();
+startServer();

@@ -1,3 +1,4 @@
+import { authController } from "../controllers/auth";
 import { searchClasses } from "../utils/fetch";
 import { Router } from "express";
 import * as z from "zod";
@@ -24,7 +25,7 @@ const Schema = z
   .required({ term: true });
 export type ClassSearchParams = z.infer<typeof Schema>;
 
-router.post("/class/search", async (req, res) => {
+router.post("/class/search", authController, async (req, res) => {
   const { data, error } = Schema.safeParse(req.body);
   if (error) return res.status(400).json({ error: "Invalid body" });
 

@@ -1,7 +1,7 @@
 import type { RESTPostAPIApplicationCommandsJSONBody, CommandInteraction } from "discord.js";
 import type { StructurePredicate } from "../util/loaders.ts";
 import { z } from "zod";
-
+// TODO: add list watchers command
 /**
  * Defines the structure of a command
  */
