@@ -1,3 +1,4 @@
+import { CLIENT } from "../../bot/src/common";
 import { tryCatch } from "../utils/fetch";
 import { db } from "../utils/sqlite";
 import { v6 as uuidv6 } from "uuid";
@@ -51,7 +52,9 @@ router.get("/auth/discord/callback", async (req, res) => {
 
     const jwtToken = jwt.sign({ uuid, discordId }, process.env.JWT_SECRET as string, { expiresIn: "7d" });
     res.cookie("token", jwtToken, { httpOnly: true, secure: process.env.NODE_ENV === "production", sameSite: process.env.NODE_ENV === "production" ? "none" : "lax" });
-    res.redirect(`${process.env.FRONTEND_URL}/setup?sixseven=67`);
+
+    const existingUser = await CLIENT.client?.users.fetch(discordId);
+    res.redirect(existingUser ? `${process.env.FRONTEND_URL}/watch` : `${process.env.FRONTEND_URL}/setup?sixseven=67`);
   } catch (error) {
     res.sendStatus(500);
   }

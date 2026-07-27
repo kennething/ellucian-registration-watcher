@@ -21,6 +21,11 @@ router.get("/init", authController, async (req, res) => {
     maximumEnrollment: ClassData["maximumEnrollment"];
     waitCount: ClassData["waitCount"];
     waitCapacity: ClassData["waitCapacity"];
+    lastUpdated: number | null;
+    seat24h: number | null;
+    seat28d: number | null;
+    wait24h: number | null;
+    wait28d: number | null;
     credits: ClassData["meetingsFaculty"][number]["meetingTime"]["creditHourSession"];
     meeting: {
       building: ClassData["meetingsFaculty"][number]["meetingTime"]["building"];
@@ -62,6 +67,18 @@ router.get("/init", authController, async (req, res) => {
           : [];
         if (error) return console.error(error);
 
+        const [history, error2] = tryCatch<{
+          seat_24h: string;
+          seat_24h_time: number;
+          seat_28d: string;
+          seat_28d_time: number;
+          wait_24h: string | null;
+          wait_24h_time: number | null;
+          wait_28d: string | null;
+          wait_28d_time: number | null;
+        }>(() => db.prepare("SELECT * FROM course_history WHERE term_id = ? AND crn = ?").get(c.term, c.courseReferenceNumber) as any);
+        if (error2) return console.error(error2);
+
         classMap.set(c.courseReferenceNumber, {
           term: c.term,
           courseReferenceNumber: c.courseReferenceNumber,
@@ -73,6 +90,13 @@ router.get("/init", authController, async (req, res) => {
           maximumEnrollment: c.maximumEnrollment,
           waitCount: c.waitCount,
           waitCapacity: c.waitCapacity,
+
+          lastUpdated: history ? Math.max(history.seat_24h_time, history.seat_28d_time, history.wait_24h_time ?? 0, history.wait_28d_time ?? 0) : null,
+          seat24h: history ? JSON.parse(history.seat_24h) : null,
+          seat28d: history ? JSON.parse(history.seat_28d) : null,
+          wait24h: history?.wait_24h ? JSON.parse(history.wait_24h) : null,
+          wait28d: history?.wait_28d ? JSON.parse(history.wait_28d) : null,
+
           credits: c.meetingsFaculty[0]?.meetingTime.creditHourSession ?? 0,
           meeting: {
             building: c.meetingsFaculty[0]?.meetingTime.building ?? "",
@@ -90,6 +114,7 @@ router.get("/init", authController, async (req, res) => {
               c.meetingsFaculty[0]?.meetingTime.saturday ?? false
             ]
           },
+
           professorId: professor?.bannerId ?? "",
           professorName: professor?.displayName ?? "",
           rmpId: rmpData?.rmp_id ?? null,

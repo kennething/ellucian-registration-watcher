@@ -11,14 +11,14 @@ const router = Router();
 const WATCHER_LIMIT = 67 as const;
 
 router.delete("/watcher/delete", authController, async (req, res) => {
-  const { data: watcherUuid, error: parseError } = z
+  const { data: watcher, error: parseError } = z
     .object({
-      watcherUuid: z.string()
+      uuid: z.string()
     })
     .safeParse(req.body);
   if (parseError) return res.status(400).json({ error: "Invalid body" });
 
-  const [, error2] = tryCatch(() => db.prepare(`DELETE FROM watchers WHERE uuid = ? AND owner_uuid = ?`).run(watcherUuid, req.user.uuid));
+  const [, error2] = tryCatch(() => db.prepare(`DELETE FROM watchers WHERE uuid = ? AND owner_uuid = ?`).run(watcher.uuid, req.user.uuid));
   if (error2) return res.sendStatus(500);
 
   const [, error3] = tryCatch(() => db.prepare("UPDATE users SET num_watchers = num_watchers - 1 WHERE uuid = ?").run(req.user.uuid));

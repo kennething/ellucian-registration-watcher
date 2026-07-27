@@ -7,7 +7,6 @@
     "module": "NodeNext",
     "moduleResolution": "NodeNext",
     "target": "ESNext",
-    "rootDir": "src",
     "skipLibCheck": true,
     "allowImportingTsExtensions": true,
     "noEmit": true

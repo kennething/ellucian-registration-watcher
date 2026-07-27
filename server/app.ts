@@ -28,7 +28,7 @@ export async function startServer() {
   const port = Number(process.env.PORT) || 6969;
   app.listen(port, "0.0.0.0", () => console.log(`Server is up on port ${port}`));
 
-  // loops.watchClassesLoop(); // TODO: update class history
+  loops.watchClassesLoop();
   // loops.purgeWatchersLoop();
   // loops.fetchProfessorsLoop();
   // TODO: purge users that dont have bot

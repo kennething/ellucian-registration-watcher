@@ -3,6 +3,9 @@ import { loadCommands } from "./loaders.ts";
 import process from "node:process";
 import { REST } from "discord.js";
 import { URL } from "node:url";
+import dotenv from "dotenv";
+
+dotenv.config();
 
 const commands = await loadCommands(new URL("../commands/", import.meta.url));
 const commandData = [...commands.values()].map((command) => command.data);

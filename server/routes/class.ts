@@ -1,7 +1,9 @@
+import { searchClasses, tryCatch } from "../utils/fetch";
 import { authController } from "../controllers/auth";
-import { searchClasses } from "../utils/fetch";
+import { db } from "../utils/sqlite";
 import { Router } from "express";
 import * as z from "zod";
+import { toCamelCase } from "../utils/functions";
 
 const router = Router();
 
@@ -33,5 +35,30 @@ router.post("/class/search", authController, async (req, res) => {
 
   return res.status(200).json(results);
 });
+
+// router.get("/class/history/:term/:crn", authController, (req, res) => {
+//   const { term, crn } = req.params;
+//   if (!term || !crn) return res.status(400).json({ error: "Missing term or crn" });
+
+//   const [history, error] = tryCatch<{
+//     seat_24h: string;
+//     seat_24h_time: number;
+//     seat_28d: string;
+//     seat_28d_time: number;
+//     wait_24h: string | null;
+//     wait_24h_time: number | null;
+//     wait_28d: string | null;
+//     wait_28d_time: number | null;
+//   }>(() => db.prepare("SELECT * FROM course_history WHERE term_id = ? AND crn = ?").all(term, crn) as any);
+//   if (error) return res.sendStatus(500);
+
+//   return res.status(200).json({
+//     lastUpdated: Math.max(history.seat_24h_time, history.seat_28d_time, history.wait_24h_time ?? 0, history.wait_28d_time ?? 0),
+//     seat24h: JSON.parse(history.seat_24h),
+//     seat28d: JSON.parse(history.seat_28d),
+//     wait24h: history.wait_24h ? JSON.parse(history.wait_24h) : null,
+//     wait28d: history.wait_28d ? JSON.parse(history.wait_28d) : null
+//   });
+// });
 
 export default router;
