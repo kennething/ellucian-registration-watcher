@@ -34,7 +34,7 @@ export class Cookie {
 
     const subjects = (
       await Cookie.requestClient.get<{ code: string; description: string }[]>(
-        `https://ssb.cc.binghamton.edu:8484/StudentRegistrationSsb/ssb/classSearch/get_subject?searchTerm=&term=${terms[0].code}&offset=1&max=50`
+        `https://ssb.cc.binghamton.edu:8484/StudentRegistrationSsb/ssb/classSearch/get_subject?searchTerm=&term=${terms[0].code}&offset=1&max=500`
       )
     ).data;
     Cookie.subjects = subjects.map((subject) => ({ code: subject.code, name: subject.description }));

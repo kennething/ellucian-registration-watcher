@@ -26,32 +26,37 @@ export function tryCatch<T, E = Error>(fn: () => T): Result<T, E> {
   }
 }
 
-export async function searchClasses(term: string, params: Partial<ClassSearchParams>, offset = 0, isRetry = false, classes: ClassData[] = []): Promise<ClassData[]> {
-  let url = `https://ssb.cc.binghamton.edu:8484/StudentRegistrationSsb/ssb/searchResults/searchResults?pageOffset=${offset}&pageMaxSize=500&txt_term=${term}&`;
+export async function searchClasses(
+  term: string,
+  params: Partial<ClassSearchParams>,
+  offset = 0,
+  limit = 500,
+  isRetry = false,
+  classes: ClassData[] = []
+): Promise<[classes: ClassData[], total: number]> {
+  limit = Math.min(limit, 500);
+  let url = `https://ssb.cc.binghamton.edu:8484/StudentRegistrationSsb/ssb/searchResults/searchResults?pageOffset=${offset}&pageMaxSize=${limit}&txt_term=${term}&`;
 
-  if (params.attribute?.length) url += `txt_attribute=${params.attribute.join(",")}&`;
+  if (params.attribute?.length) url += `txt_attribute=${params.attribute}&`;
   if (params.courseNumber) url += `txt_courseNumber=${params.courseNumber}&`;
   if (params.courseTitle) url += `txt_courseTitle=${params.courseTitle}&`;
   if (params.creditHours?.length === 2) url += `txt_credithourlow=${params.creditHours[0]}&txt_credithourhigh=${params.creditHours[1]}&`;
   if (params.crn) url += `txt_keywordany=${params.crn}&`;
   if (params.meetingDays?.length === 7)
     url += params.meetingDays
+      .map((val, i) => (val ? `chk_include_${i}=true&` : null))
       .filter(Boolean)
-      .map((_, i) => `chk_include_${i}=true&`)
       .join("");
-  if (params.openSections) url += `chk_open_only=true&`;
-  if (params.professor?.length) url += `txt_instructor=${params.professor.join(",")}&`;
+  // // if (params.openSections) url += `chk_open_only=true&`;
+  // // if (params.professor?.length) url += `txt_instructor=${params.professor.join(",")}&`;
   if (params.professorRating?.length === 2) url += ""; // TODO: todo
-  if (params.subject?.length) url += `txt_subject=${params.subject.join(",")}&`;
-  if (params.time?.length === 2) {
+  if (params.subject?.length) url += `txt_subject=${params.subject}&`;
+  if (params.time?.length === 6) {
     const pad = (num: number) => String(num).padStart(2, "0");
-    const startHour = params.time[0] % 60;
-    const startMin = Math.floor(params.time[0] / 60);
-    const endHour = params.time[1] % 60;
-    const endMin = Math.floor(params.time[1] / 60);
-    url += `select_start_hour=${pad(startHour)}&select_start_min=${pad(startMin)}&select_start_ampm=${startHour >= 12 ? "PM" : "AM"}&select_end_hour=${pad(endHour)}&select_end_min=${pad(endMin)}&select_end_ampm=${endHour >= 12 ? "PM" : "AM"}&`;
+    if (params.time[0] !== null && params.time[1] !== null) url += `select_start_hour=${pad(params.time[0])}&select_start_min=${pad(params.time[1])}&select_start_ampm=${params.time[2]}&`;
+    if (params.time[3] !== null && params.time[4] !== null) url += `select_end_hour=${pad(params.time[3])}&select_end_min=${pad(params.time[4])}&select_end_ampm=${params.time[5]}&`;
   }
-  if (params.waitlistOpen) url += ""; // TODO: todo
+  // // if (params.waitlistOpen) url += ""; // TODO: todo
 
   url = encodeURI(url.slice(0, -1)).replaceAll(",", "%2C");
 
@@ -60,12 +65,12 @@ export async function searchClasses(term: string, params: Partial<ClassSearchPar
 
   if (data.data === null && !isRetry) {
     await Cookie.refreshCookie();
-    return await searchClasses(term, params, offset, true, classes);
-  } else if (data.data === null) return classes;
+    return await searchClasses(term, params, offset, limit, true, classes);
+  } else if (data.data === null) return [classes, data.totalCount];
 
   classes.push(...data.data);
-  if (data.totalCount > offset + 500) return await searchClasses(term, params, offset + 500, isRetry, classes);
-  return classes;
+  if (data.totalCount > offset + limit) return await searchClasses(term, params, offset + limit, limit, isRetry, classes);
+  return [classes, data.totalCount];
 }
 
 /** Fetches the specified classes and automatically refreshes the cookie if needed */
@@ -73,5 +78,5 @@ export async function fetchClasses(term: string, crns: Set<string>): Promise<Cla
   const uniqueCrns = Array.from(crns);
   const classes = await searchClasses(term, { crn: uniqueCrns.join(" OR ") });
 
-  return classes;
+  return classes[0];
 }

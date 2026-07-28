@@ -1,4 +1,4 @@
-import { ClassData, NotificationType } from "../utils/types";
+import { NotificationType, TruncatedClassData } from "../utils/types";
 import { fetchClasses, tryCatch } from "../utils/fetch";
 import { authController } from "../controllers/auth";
 import { toCamelCase } from "../utils/functions";
@@ -10,40 +10,6 @@ import { Router } from "express";
 const router = Router();
 
 router.get("/init", authController, async (req, res) => {
-  type TruncatedClassData = {
-    term: ClassData["term"];
-    courseReferenceNumber: ClassData["courseReferenceNumber"];
-    subject: ClassData["subject"];
-    courseNumber: ClassData["courseNumber"];
-    courseTitle: ClassData["courseTitle"];
-    sequenceNumber: ClassData["sequenceNumber"];
-    seatsAvailable: ClassData["seatsAvailable"];
-    maximumEnrollment: ClassData["maximumEnrollment"];
-    waitCount: ClassData["waitCount"];
-    waitCapacity: ClassData["waitCapacity"];
-    lastUpdated: number | null;
-    seat24h: number | null;
-    seat28d: number | null;
-    wait24h: number | null;
-    wait28d: number | null;
-    credits: ClassData["meetingsFaculty"][number]["meetingTime"]["creditHourSession"];
-    meeting: {
-      building: ClassData["meetingsFaculty"][number]["meetingTime"]["building"];
-      buildingDescription: ClassData["meetingsFaculty"][number]["meetingTime"]["buildingDescription"];
-      room: ClassData["meetingsFaculty"][number]["meetingTime"]["room"];
-      campus: ClassData["meetingsFaculty"][number]["meetingTime"]["campus"];
-      time: [start: ClassData["meetingsFaculty"][number]["meetingTime"]["beginTime"], end: ClassData["meetingsFaculty"][number]["meetingTime"]["endTime"]];
-      days: [sun: boolean, mon: boolean, tue: boolean, wed: boolean, thu: boolean, fri: boolean, sat: boolean];
-    };
-    professorId: ClassData["faculty"][number]["bannerId"];
-    professorName: ClassData["faculty"][number]["displayName"];
-    rmpId: number | null;
-    rmpRating: number | null;
-    rmpNumRatings: number | null;
-    rmpDifficulty: number | null;
-    rmpTakeAgain: number | null;
-  };
-
   const user = await CLIENT.client?.users.fetch(req.user.discordId);
   if (!user) return res.sendStatus(404);
 
@@ -68,15 +34,12 @@ router.get("/init", authController, async (req, res) => {
         if (error) return console.error(error);
 
         const [history, error2] = tryCatch<{
+          "24h_timestamp": number;
           seat_24h: string;
-          seat_24h_time: number;
           seat_28d: string;
-          seat_28d_time: number;
           wait_24h: string | null;
-          wait_24h_time: number | null;
           wait_28d: string | null;
-          wait_28d_time: number | null;
-        }>(() => db.prepare("SELECT * FROM course_history WHERE term_id = ? AND crn = ?").get(c.term, c.courseReferenceNumber) as any);
+        }>(() => db.prepare('SELECT "24h_timestamp", seat_24h, seat_28d, wait_24h, wait_28d FROM course_history WHERE term_id = ? AND crn = ?').get(c.term, c.courseReferenceNumber) as any);
         if (error2) return console.error(error2);
 
         classMap.set(c.courseReferenceNumber, {
@@ -91,7 +54,7 @@ router.get("/init", authController, async (req, res) => {
           waitCount: c.waitCount,
           waitCapacity: c.waitCapacity,
 
-          lastUpdated: history ? Math.max(history.seat_24h_time, history.seat_28d_time, history.wait_24h_time ?? 0, history.wait_28d_time ?? 0) : null,
+          lastUpdated: history?.["24h_timestamp"] ?? null,
           seat24h: history ? JSON.parse(history.seat_24h) : null,
           seat28d: history ? JSON.parse(history.seat_28d) : null,
           wait24h: history?.wait_24h ? JSON.parse(history.wait_24h) : null,

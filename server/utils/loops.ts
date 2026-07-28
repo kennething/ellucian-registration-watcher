@@ -42,21 +42,18 @@ export function watchClassesLoop(): void {
   type CourseHistory = {
     crn: number;
     term_id: number;
+    "24h_timestamp": number;
+    "28d_timestamp": number;
     seat_24h: string;
-    seat_24h_time: number;
     seat_28d: string;
-    seat_28d_time: number;
     wait_24h: string;
-    wait_24h_time: number;
     wait_28d: string;
-    wait_28d_time: number;
   };
 
   const NOTIFICATION_COOLDOWN = 86400 / 2; // 12h
   const interval = 600 as const; // 10m interval
   const offset = 120 as const; // 2m offset
 
-  // TODO: fix
   waitForInterval(interval, offset, async () => {
     const mostRecentTerms = Cookie.getMostRecentTerms();
 
@@ -76,19 +73,17 @@ export function watchClassesLoop(): void {
         const data = await fetchClasses(term, new Set(watchers.filter((watcher) => watcher.term_id === term).map((watcher) => watcher.crn)));
 
         const getStatement = db.prepare("SELECT * FROM course_history WHERE crn = ? AND term_id = ?");
-        const insertStatement = db.prepare(
-          "INSERT INTO course_history (crn, term_id, seat_24h, seat_24h_time, seat_28d, seat_28d_time, wait_24h, wait_24h_time, wait_28d, wait_28d_time) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
-        );
+        const insertStatement = db.prepare('INSERT INTO course_history (crn, term_id, "24h_timestamp", "28d_timestamp", seat_24h, seat_28d, wait_24h, wait_28d) VALUES (?, ?, ?, ?, ?, ?, ?, ?)');
 
         db.transaction(() => {
+          const currentTime = Math.floor(Date.now() / 1000);
+          const entries24h = 24 * 3; // 20m interval
+          const entries28d = 28; // 1d interval
+
           for (const course of data) {
-            const currentTime = Math.floor(Date.now() / 1000);
             const row = getStatement.get(course.courseReferenceNumber, course.term) as CourseHistory | undefined;
 
             if (!row) {
-              const entries24h = 24 * 3; // 20m interval
-              const entries28d = 28; // 1d interval
-
               const seat24h = new Array(entries24h - 1).fill(-1);
               seat24h.push(course.seatsAvailable);
               const seat28d = new Array(entries28d - 1).fill(-1);
@@ -101,34 +96,32 @@ export function watchClassesLoop(): void {
               insertStatement.run(
                 course.courseReferenceNumber,
                 course.term,
+                currentTime,
+                currentTime,
                 JSON.stringify(seat24h),
-                currentTime,
                 JSON.stringify(seat28d),
-                currentTime,
                 wait24h ? JSON.stringify(wait24h) : null,
-                wait24h ? currentTime : null,
-                wait28d ? JSON.stringify(wait28d) : null,
-                wait28d ? currentTime : null
+                wait28d ? JSON.stringify(wait28d) : null
               );
               continue;
             }
 
-            if (currentTime - row.seat_24h_time >= 20 * 60) {
+            if (currentTime - row["24h_timestamp"] >= 20 * 60) {
               const seat24h = JSON.parse(row.seat_24h) as number[];
               seat24h.shift();
               seat24h.push(course.seatsAvailable);
-              db.prepare("UPDATE course_history SET seat_24h = ?, seat_24h_time = ? WHERE crn = ? AND term_id = ?").run(
+              db.prepare('UPDATE course_history SET seat_24h = ?, "24h_timestamp" = ? WHERE crn = ? AND term_id = ?').run(
                 JSON.stringify(seat24h),
                 currentTime,
                 course.courseReferenceNumber,
                 course.term
               );
             }
-            if (currentTime - row.seat_28d_time >= 24 * 60 * 60) {
+            if (currentTime - row["28d_timestamp"] >= 24 * 60 * 60) {
               const seat28d = JSON.parse(row.seat_28d) as number[];
               seat28d.shift();
               seat28d.push(course.seatsAvailable);
-              db.prepare("UPDATE course_history SET seat_28d = ?, seat_28d_time = ? WHERE crn = ? AND term_id = ?").run(
+              db.prepare("UPDATE course_history SET seat_28d = ?, 28d_timestamp = ? WHERE crn = ? AND term_id = ?").run(
                 JSON.stringify(seat28d),
                 currentTime,
                 course.courseReferenceNumber,
@@ -136,27 +129,47 @@ export function watchClassesLoop(): void {
               );
             }
             if (course.waitCapacity !== 0) {
-              if (currentTime - row.wait_24h_time >= 20 * 60) {
+              if (currentTime - row["24h_timestamp"] >= 20 * 60) {
                 const wait24h = JSON.parse(row.wait_24h) as number[];
                 wait24h.shift();
                 wait24h.push(course.waitCount);
-                db.prepare("UPDATE course_history SET wait_24h = ?, wait_24h_time = ? WHERE crn = ? AND term_id = ?").run(
-                  JSON.stringify(wait24h),
-                  currentTime,
-                  course.courseReferenceNumber,
-                  course.term
-                );
+                db.prepare("UPDATE course_history SET wait_24h = ? WHERE crn = ? AND term_id = ?").run(JSON.stringify(wait24h), course.courseReferenceNumber, course.term);
               }
-              if (currentTime - row.wait_28d_time >= 24 * 60 * 60) {
+              if (currentTime - row["28d_timestamp"] >= 24 * 60 * 60) {
                 const wait28d = JSON.parse(row.wait_28d) as number[];
                 wait28d.shift();
                 wait28d.push(course.waitCount);
-                db.prepare("UPDATE course_history SET wait_28d = ?, wait_28d_time = ? WHERE crn = ? AND term_id = ?").run(
-                  JSON.stringify(wait28d),
-                  currentTime,
-                  course.courseReferenceNumber,
-                  course.term
-                );
+                db.prepare("UPDATE course_history SET wait_28d = ? WHERE crn = ? AND term_id = ?").run(JSON.stringify(wait28d), course.courseReferenceNumber, course.term);
+              }
+            }
+          }
+
+          const oldWatchers = db.prepare('SELECT * FROM course_history WHERE "24h_timestamp" < ? OR "28d_timestamp" < ?').all(currentTime - 20 * 60, currentTime - 86400) as CourseHistory[];
+          for (const row of oldWatchers) {
+            if (currentTime - row["24h_timestamp"] >= 20 * 60) {
+              const seat24h = JSON.parse(row.seat_24h) as number[];
+              seat24h.shift();
+              seat24h.push(-1);
+              db.prepare("UPDATE course_history SET seat_24h = ?, 24h_timestamp = ? WHERE crn = ? AND term_id = ?").run(JSON.stringify(seat24h), currentTime, row.crn, row.term_id);
+            }
+            if (currentTime - row["28d_timestamp"] >= 24 * 60 * 60) {
+              const seat28d = JSON.parse(row.seat_28d) as number[];
+              seat28d.shift();
+              seat28d.push(-1);
+              db.prepare("UPDATE course_history SET seat_28d = ?, 28d_timestamp = ? WHERE crn = ? AND term_id = ?").run(JSON.stringify(seat28d), currentTime, row.crn, row.term_id);
+            }
+            if (row.wait_24h !== null && row.wait_28d !== null) {
+              if (currentTime - row["24h_timestamp"] >= 20 * 60) {
+                const wait24h = JSON.parse(row.wait_24h) as number[];
+                wait24h.shift();
+                wait24h.push(-1);
+                db.prepare("UPDATE course_history SET wait_24h = ? WHERE crn = ? AND term_id = ?").run(JSON.stringify(wait24h), row.crn, row.term_id);
+              }
+              if (currentTime - row["28d_timestamp"] >= 24 * 60 * 60) {
+                const wait28d = JSON.parse(row.wait_28d) as number[];
+                wait28d.shift();
+                wait28d.push(-1);
+                db.prepare("UPDATE course_history SET wait_28d = ? WHERE crn = ? AND term_id = ?").run(JSON.stringify(wait28d), row.crn, row.term_id);
               }
             }
           }

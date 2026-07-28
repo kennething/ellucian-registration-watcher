@@ -86,3 +86,37 @@ export type ClassData = {
     term: string;
   }[];
 };
+
+export type TruncatedClassData = {
+  term: ClassData["term"];
+  courseReferenceNumber: ClassData["courseReferenceNumber"];
+  subject: ClassData["subject"];
+  courseNumber: ClassData["courseNumber"];
+  courseTitle: ClassData["courseTitle"];
+  sequenceNumber: ClassData["sequenceNumber"];
+  seatsAvailable: ClassData["seatsAvailable"];
+  maximumEnrollment: ClassData["maximumEnrollment"];
+  waitCount: ClassData["waitCount"];
+  waitCapacity: ClassData["waitCapacity"];
+  lastUpdated: number | null;
+  seat24h: number | null;
+  seat28d: number | null;
+  wait24h: number | null;
+  wait28d: number | null;
+  credits: ClassData["meetingsFaculty"][number]["meetingTime"]["creditHourSession"];
+  meeting: {
+    building: ClassData["meetingsFaculty"][number]["meetingTime"]["building"];
+    buildingDescription: ClassData["meetingsFaculty"][number]["meetingTime"]["buildingDescription"];
+    room: ClassData["meetingsFaculty"][number]["meetingTime"]["room"];
+    campus: ClassData["meetingsFaculty"][number]["meetingTime"]["campus"];
+    time: [start: ClassData["meetingsFaculty"][number]["meetingTime"]["beginTime"], end: ClassData["meetingsFaculty"][number]["meetingTime"]["endTime"]];
+    days: [sun: boolean, mon: boolean, tue: boolean, wed: boolean, thu: boolean, fri: boolean, sat: boolean];
+  };
+  professorId: ClassData["faculty"][number]["bannerId"];
+  professorName: ClassData["faculty"][number]["displayName"];
+  rmpId: number | null;
+  rmpRating: number | null;
+  rmpNumRatings: number | null;
+  rmpDifficulty: number | null;
+  rmpTakeAgain: number | null;
+};

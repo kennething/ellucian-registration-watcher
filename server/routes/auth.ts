@@ -1,4 +1,3 @@
-import { CLIENT } from "../../bot/src/common";
 import { tryCatch } from "../utils/fetch";
 import { db } from "../utils/sqlite";
 import { v6 as uuidv6 } from "uuid";
@@ -13,7 +12,8 @@ router.get("/auth/discord", async (req, res) => {
     client_id: process.env.DISCORD_CLIENT_ID as string,
     redirect_uri: `${process.env.BACKEND_URL}/auth/discord/callback`,
     response_type: "code",
-    scope: "identify email"
+    scope: "identify email applications.commands",
+    integration_type: "1"
   });
 
   res.redirect(`https://discord.com/oauth2/authorize?${params}`);
@@ -21,7 +21,7 @@ router.get("/auth/discord", async (req, res) => {
 
 router.get("/auth/discord/callback", async (req, res) => {
   const code = req.query.code as string;
-  if (!code) return res.status(400).json({ error: "Missing code" });
+  if (!code) return res.redirect(`${process.env.FRONTEND_URL}/setup`);
 
   try {
     const token = (
@@ -53,8 +53,7 @@ router.get("/auth/discord/callback", async (req, res) => {
     const jwtToken = jwt.sign({ uuid, discordId }, process.env.JWT_SECRET as string, { expiresIn: "7d" });
     res.cookie("token", jwtToken, { httpOnly: true, secure: process.env.NODE_ENV === "production", sameSite: process.env.NODE_ENV === "production" ? "none" : "lax" });
 
-    const existingUser = await CLIENT.client?.users.fetch(discordId);
-    res.redirect(existingUser ? `${process.env.FRONTEND_URL}/watch` : `${process.env.FRONTEND_URL}/setup?sixseven=67`);
+    res.redirect(`${process.env.FRONTEND_URL}/watch`);
   } catch (error) {
     res.sendStatus(500);
   }
