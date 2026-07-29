@@ -26,6 +26,7 @@ export function tryCatch<T, E = Error>(fn: () => T): Result<T, E> {
   }
 }
 
+/** @param params !! does not handle `professorRating` */
 export async function searchClasses(
   term: string,
   params: Partial<ClassSearchParams>,
@@ -49,7 +50,6 @@ export async function searchClasses(
       .join("");
   // // if (params.openSections) url += `chk_open_only=true&`;
   // // if (params.professor?.length) url += `txt_instructor=${params.professor.join(",")}&`;
-  if (params.professorRating?.length === 2) url += ""; // TODO: todo
   if (params.subject?.length) url += `txt_subject=${params.subject}&`;
   if (params.time?.length === 6) {
     const pad = (num: number) => String(num).padStart(2, "0");
@@ -69,7 +69,7 @@ export async function searchClasses(
   } else if (data.data === null) return [classes, data.totalCount];
 
   classes.push(...data.data);
-  if (data.totalCount > offset + limit) return await searchClasses(term, params, offset + limit, limit, isRetry, classes);
+  if (limit === 500 && data.totalCount > offset + limit) return await searchClasses(term, params, offset + limit, limit, isRetry, classes);
   return [classes, data.totalCount];
 }
 

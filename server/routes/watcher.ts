@@ -82,6 +82,7 @@ router.post("/watcher/create", authController, async (req, res) => {
   const [, error4] = tryCatch(() => db.prepare("UPDATE users SET num_watchers = num_watchers + 1 WHERE uuid = ?").run(req.user.uuid));
   if (error4) return res.sendStatus(500);
 
+  // TODO: return watcher data
   res.sendStatus(200);
 });
 

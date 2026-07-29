@@ -121,7 +121,7 @@ export function watchClassesLoop(): void {
               const seat28d = JSON.parse(row.seat_28d) as number[];
               seat28d.shift();
               seat28d.push(course.seatsAvailable);
-              db.prepare("UPDATE course_history SET seat_28d = ?, 28d_timestamp = ? WHERE crn = ? AND term_id = ?").run(
+              db.prepare('UPDATE course_history SET seat_28d = ?, "28d_timestamp" = ? WHERE crn = ? AND term_id = ?').run(
                 JSON.stringify(seat28d),
                 currentTime,
                 course.courseReferenceNumber,
@@ -150,13 +150,13 @@ export function watchClassesLoop(): void {
               const seat24h = JSON.parse(row.seat_24h) as number[];
               seat24h.shift();
               seat24h.push(-1);
-              db.prepare("UPDATE course_history SET seat_24h = ?, 24h_timestamp = ? WHERE crn = ? AND term_id = ?").run(JSON.stringify(seat24h), currentTime, row.crn, row.term_id);
+              db.prepare('UPDATE course_history SET seat_24h = ?, "24h_timestamp" = ? WHERE crn = ? AND term_id = ?').run(JSON.stringify(seat24h), currentTime, row.crn, row.term_id);
             }
             if (currentTime - row["28d_timestamp"] >= 24 * 60 * 60) {
               const seat28d = JSON.parse(row.seat_28d) as number[];
               seat28d.shift();
               seat28d.push(-1);
-              db.prepare("UPDATE course_history SET seat_28d = ?, 28d_timestamp = ? WHERE crn = ? AND term_id = ?").run(JSON.stringify(seat28d), currentTime, row.crn, row.term_id);
+              db.prepare('UPDATE course_history SET seat_28d = ?, "28d_timestamp" = ? WHERE crn = ? AND term_id = ?').run(JSON.stringify(seat28d), currentTime, row.crn, row.term_id);
             }
             if (row.wait_24h !== null && row.wait_28d !== null) {
               if (currentTime - row["24h_timestamp"] >= 20 * 60) {

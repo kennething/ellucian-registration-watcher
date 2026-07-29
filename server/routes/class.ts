@@ -36,14 +36,15 @@ const Schema = z
   .required({ term: true });
 export type ClassSearchParams = z.infer<typeof Schema>;
 
-/** /class/search?filters=&offset= */
+/** /class/search?filters=&offset=&limit= */
 router.get("/class/search", authController, async (req, res) => {
   const [{ data, error: parseError }, jsonError] = tryCatch(() => Schema.safeParse(JSON.parse(decodeURIComponent(req.query.filters as string))));
   if (parseError || jsonError) return res.status(400).json({ error: "Invalid request parameters" });
 
   const offset = parseInt(req.query.offset as string) || 0;
+  const limit = parseInt(req.query.limit as string) || 20;
 
-  const results = await searchClasses(data.term, data, offset, 20);
+  const results = await searchClasses(data.term, data, offset, limit);
   const [classes, total] = results;
 
   const parsedClasses: TruncatedClassData[] = [];
@@ -55,6 +56,8 @@ router.get("/class/search", authController, async (req, res) => {
         )
       : [];
     if (error) return console.error(error);
+
+    if (data.professorRating && rmpData?.overall_rating && (rmpData.overall_rating < data.professorRating[0] || rmpData.overall_rating > data.professorRating[1])) return;
 
     parsedClasses.push({
       term: c.term,
