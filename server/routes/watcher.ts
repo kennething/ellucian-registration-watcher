@@ -5,6 +5,7 @@ import { db } from "../utils/sqlite";
 import { v7 as uuidv7 } from "uuid";
 import { Router } from "express";
 import * as z from "zod";
+import { ClassData } from "../utils/types";
 
 const router = Router();
 
@@ -59,31 +60,43 @@ router.post("/watcher/create", authController, async (req, res) => {
     .safeParse(req.body);
   if (parseError) return res.status(400).json({ error: "Invalid body" });
 
-  const [{ num_watchers }, error] = tryCatch<{ num_watchers: number }>(() => db.prepare("SELECT num_watchers FROM users WHERE uuid = ?").get(req.user.uuid) as any);
-  if (error) return res.sendStatus(500);
+  const [{ num_watchers }, watcherLimitError] = tryCatch<{ num_watchers: number }>(() => db.prepare("SELECT num_watchers FROM users WHERE uuid = ?").get(req.user.uuid) as any);
+  if (watcherLimitError) return res.sendStatus(500);
 
   if (num_watchers + 1 > WATCHER_LIMIT) return res.status(400).json({ error: "Watcher limit exceeded" });
 
-  // TODO: fetch the class and make sure theres a waitlist if waitlist is the notification type
+  const course = (
+    await Cookie.requestClient.get<ClassData>(`https://ssb.cc.binghamton.edu:8484/StudentRegistrationSsb/ssb/searchResults/searchResults?txt_term=${watcher.term}&txt_keywordany=${watcher.crn}`)
+  ).data;
+  if (course.waitCapacity === 0 && watcher.notifyWhen >= 2) return res.status(400).json({ error: "Cannot create watcher for a class with no waitlist" });
 
-  const [existingWatcher, error2] = tryCatch<{ uuid: string }>(
+  const [existingWatcher, existingWatcherError] = tryCatch<{ uuid: string }>(
     () => db.prepare("SELECT uuid FROM watchers WHERE owner_uuid = ? AND term_id = ? AND crn = ?").get(req.user.uuid, watcher.term, watcher.crn) as any
   );
-  if (error2) return res.sendStatus(500);
+  if (existingWatcherError) return res.sendStatus(500);
   if (existingWatcher) return res.status(418).json({ error: `Watcher already exists for term ${watcher.term} and CRN ${watcher.crn}` });
 
-  const [, error3] = tryCatch(() =>
-    db
-      .prepare(`INSERT INTO watchers (uuid, owner_uuid, term_id, crn, notify_when, notify_when_value) VALUES (?, ?, ?, ?, ?, ?, ?)`)
-      .run(uuidv7(), req.user.uuid, watcher.term, watcher.crn, watcher.notifyWhen, watcher.notifyWhenValue)
-  );
-  if (error3) return res.sendStatus(500);
+  db.transaction(() => {
+    const watcherUuid = uuidv7();
+    const [, insertError] = tryCatch(() =>
+      db
+        .prepare(`INSERT INTO watchers (uuid, owner_uuid, term_id, crn, notify_when, notify_when_value) VALUES (?, ?, ?, ?, ?, ?)`)
+        .run(watcherUuid, req.user.uuid, watcher.term, watcher.crn, watcher.notifyWhen, watcher.notifyWhenValue)
+    );
+    if (insertError) return res.sendStatus(500);
 
-  const [, error4] = tryCatch(() => db.prepare("UPDATE users SET num_watchers = num_watchers + 1 WHERE uuid = ?").run(req.user.uuid));
-  if (error4) return res.sendStatus(500);
+    const [, updateLimitError] = tryCatch(() => db.prepare("UPDATE users SET num_watchers = num_watchers + 1 WHERE uuid = ?").run(req.user.uuid));
+    if (updateLimitError) return res.sendStatus(500);
 
-  // TODO: return watcher data
-  res.sendStatus(200);
+    res.status(200).json({
+      uuid: watcherUuid,
+      ownerUuid: req.user.uuid,
+      termId: watcher.term,
+      crn: watcher.crn,
+      notifyWhen: watcher.notifyWhen,
+      notifyWhenValue: watcher.notifyWhenValue
+    });
+  })();
 });
 
 export default router;
