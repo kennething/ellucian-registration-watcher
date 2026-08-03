@@ -43,6 +43,7 @@ router.get("/class/search", authController, async (req, res) => {
 
   const offset = parseInt(req.query.offset as string) || 0;
   const limit = parseInt(req.query.limit as string) || 20;
+  if (limit > 499) return res.sendStatus(400);
 
   const results = await searchClasses(data.term, data, offset, limit);
   const [classes, total] = results;
