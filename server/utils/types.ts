@@ -57,7 +57,7 @@ export type ClassData = {
     courseReferenceNumber: string; // CRN
     faculty: any[]; // TODO:
     meetingTime: {
-      beginTime: string; // "0945"
+      beginTime: string | null; // "0945"
       building: string; // "LN"
       buildingDescription: string; // "Library North"
       campus: string; // "M"
@@ -67,7 +67,7 @@ export type ClassData = {
       courseReferenceNumber: string; // CRN
       creditHourSession: number;
       endDate: string;
-      endTime: string; // "1115"
+      endTime: string | null; // "1115"
       friday: boolean;
       hoursWeek: number;
       meetingScheduleType: string;

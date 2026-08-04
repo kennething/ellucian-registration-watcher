@@ -14,11 +14,11 @@ export default {
   async execute(interaction) {
     await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
-    const [{ uuid }, error] = tryCatch<{ uuid: string }>(() => db.prepare("SELECT uuid FROM users WHERE discord_id = ?").get(interaction.user.id) as any);
-    if (error) return void interaction.editReply({ content: "An error occurred while fetching your watchers. Try again later" });
+    const [user, error] = tryCatch<{ uuid: string }>(() => db.prepare("SELECT uuid FROM users WHERE discord_id = ?").get(interaction.user.id) as any);
+    if (!user || error) return void interaction.editReply({ content: "An error occurred while fetching your watchers. Try again later" });
 
     const [watchers, error2] = tryCatch<{ term_id: string; crn: string; notify_when: number; notify_when_value: number }[]>(
-      () => db.prepare("SELECT term_id, crn, notify_when, notify_when_value FROM watchers WHERE owner_uuid = ?").all(uuid) as any
+      () => db.prepare("SELECT term_id, crn, notify_when, notify_when_value FROM watchers WHERE owner_uuid = ?").all(user.uuid) as any
     );
     if (error2) return void interaction.editReply({ content: "An error occurred while fetching your watchers. Try again later" });
 
