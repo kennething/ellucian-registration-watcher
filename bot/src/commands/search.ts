@@ -1,12 +1,12 @@
 import { APIEmbed, ApplicationCommandOptionType, ApplicationIntegrationType, ButtonStyle, CommandInteractionOptionResolver, ComponentType, InteractionContextType } from "discord.js";
+import { getMeetingDaysString, getMeetingTimeString, getTermString } from "../../../server/utils/functions.ts";
 import { TruncatedClassData, ClassData } from "../../../server/utils/types.ts";
 import { searchClasses, tryCatch } from "../../../server/utils/fetch.ts";
-import { db } from "../../../server/utils/sqlite.ts";
-import type { Command } from "./index.ts";
-import { Cookie } from "../../../server/utils/cookie.ts";
-import { getMeetingDaysString, getMeetingTimeString, getTermString } from "../../../server/utils/functions.ts";
 import type { ClassSearchParams } from "../../../server/routes/class.ts";
+import { Cookie } from "../../../server/utils/cookie.ts";
+import { db } from "../../../server/utils/sqlite.ts";
 import { paginationState } from "../common.ts";
+import type { Command } from "./index.ts";
 import { v7 as uuidv7 } from "uuid";
 
 function getSearchParams(options: CommandInteractionOptionResolver): ClassSearchParams {
@@ -334,6 +334,10 @@ export default {
   },
   async execute(interaction) {
     await interaction.deferReply();
+
+    const [user, error] = tryCatch<{ uuid: string }>(() => db.prepare("SELECT uuid FROM users WHERE discord_id = ?").get(interaction.user.id) as any);
+    if (!user) return void interaction.editReply({ content: `Create an account first: <${process.env.FRONTEND_URL}>` });
+    if (error) return void interaction.editReply({ content: "An error occurred. Try again later" });
 
     // @ts-expect-error
     const options = interaction.options as CommandInteractionOptionResolver;

@@ -1,11 +1,11 @@
+import { authController } from "../controllers/auth";
+import { CLIENT } from "../../bot/src/common";
 import { tryCatch } from "../utils/fetch";
 import { db } from "../utils/sqlite";
 import { v6 as uuidv6 } from "uuid";
 import { Router } from "express";
 import jwt from "jsonwebtoken";
 import axios from "axios";
-import { CLIENT } from "../../bot/src/common";
-import { authController } from "../controllers/auth";
 
 const router = Router();
 

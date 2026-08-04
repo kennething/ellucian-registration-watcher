@@ -1,11 +1,11 @@
 import { authController } from "../controllers/auth";
+import { ClassData } from "../utils/types";
 import { tryCatch } from "../utils/fetch";
 import { Cookie } from "../utils/cookie";
 import { db } from "../utils/sqlite";
 import { v7 as uuidv7 } from "uuid";
 import { Router } from "express";
 import * as z from "zod";
-import { ClassData } from "../utils/types";
 
 const router = Router();
 

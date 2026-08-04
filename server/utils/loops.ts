@@ -2,11 +2,11 @@ import { ClassData, NotificationType } from "./types";
 import { fetchClasses, tryCatch } from "./fetch";
 import { CLIENT } from "../../bot/src/common";
 import { ComponentType } from "discord.js";
+import { getSchedule } from "./math";
 import { getRMPData } from "./rmp";
 import { Cookie } from "./cookie";
 import { db } from "./sqlite";
 import Fuse from "fuse.js";
-import { getSchedule } from "./math";
 
 /** Waits for a specified interval and then calls the callback function
  * @param interval The interval in seconds at which to call the callback function. The first call will be aligned to the nearest interval.

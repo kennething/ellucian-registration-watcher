@@ -1,6 +1,6 @@
 import { generateActionRow, generateEmbed, getClassData } from "../commands/search.ts";
-import { paginationState } from "../common.ts";
 import { loadCommands } from "../util/loaders.ts";
+import { paginationState } from "../common.ts";
 import type { Event } from "./index.ts";
 import { Events } from "discord.js";
 import { URL } from "node:url";
