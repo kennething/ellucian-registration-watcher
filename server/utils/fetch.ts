@@ -1,6 +1,7 @@
 import { ClassSearchParams } from "../routes/class";
 import { ClassData } from "./types";
 import { Cookie } from "./cookie";
+import { db } from "./sqlite";
 
 export type Success<T> = [data: T, error: never];
 export type Failure<E> = [data: never, error: E];
@@ -40,7 +41,7 @@ export async function searchClasses(
 
   if (params.attribute?.length) url += `txt_attribute=${params.attribute}&`;
   if (params.courseNumber) url += `txt_courseNumber=${params.courseNumber}&`;
-  if (params.courseTitle) url += `txt_courseTitle=${params.courseTitle}&`;
+  if (params.courseTitle) url += `txt_courseTitle=${encodeURIComponent(`%${params.courseTitle}%`)}&`;
   if (params.creditHours?.length === 2) url += `txt_credithourlow=${params.creditHours[0]}&txt_credithourhigh=${params.creditHours[1]}&`;
   if (params.crn) url += `txt_keywordany=${params.crn}&`;
   if (params.meetingDays?.length === 7)
@@ -68,7 +69,31 @@ export async function searchClasses(
     return await searchClasses(term, params, offset, limit, true, classes);
   } else if (data.data === null) return [classes, data.totalCount];
 
-  classes.push(...data.data);
+  const dataData = data.data.map((c) => {
+    if (c.subject !== "MATH" || c.faculty.length !== 0) return c;
+
+    const professor = (db.prepare(`SELECT professor FROM "${term}_math_schedule" WHERE crn = ?`).get(c.courseReferenceNumber) as { professor: string } | undefined)?.professor;
+    if (!professor) return c;
+
+    return {
+      ...c,
+      faculty: [
+        {
+          professorLeaked: true,
+          term: c.term,
+          bannerId: "",
+          category: null,
+          class: "",
+          courseReferenceNumber: c.courseReferenceNumber,
+          displayName: professor,
+          emailAddress: "",
+          primaryIndicator: true
+        }
+      ]
+    };
+  });
+
+  classes.push(...dataData);
   if (limit === 500 && data.totalCount > offset + limit) return await searchClasses(term, params, offset + limit, limit, isRetry, classes);
   return [classes, data.totalCount];
 }

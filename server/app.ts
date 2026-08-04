@@ -31,5 +31,5 @@ export async function startServer() {
   loops.watchClassesLoop();
   // loops.purgeWatchersLoop();
   loops.fetchProfessorsLoop();
-  // TODO: purge users that dont have bot
+  loops.fetchMathScheduleLoop();
 }

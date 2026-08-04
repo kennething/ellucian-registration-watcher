@@ -6,6 +6,7 @@ import { getRMPData } from "./rmp";
 import { Cookie } from "./cookie";
 import { db } from "./sqlite";
 import Fuse from "fuse.js";
+import { getSchedule } from "./math";
 
 /** Waits for a specified interval and then calls the callback function
  * @param interval The interval in seconds at which to call the callback function. The first call will be aligned to the nearest interval.
@@ -323,8 +324,9 @@ export function purgeWatchersLoop(): void {
 
 export function fetchProfessorsLoop(): void {
   const interval = 86400 * 7; // 7d interval
+  const offset = 60; // 1m offset
 
-  waitForInterval(interval, 0, async () => {
+  waitForInterval(interval, offset, async () => {
     const rmpProfessors = (await getRMPData()).map((professor) => ({
       ...professor,
       sortedName: professor.name
@@ -376,5 +378,25 @@ export function fetchProfessorsLoop(): void {
     })();
 
     console.log(`${new Date().toLocaleString()}: Fetched ${finalProfessors.length} professors from RMP and Binghamton`);
+  });
+}
+
+export function fetchMathScheduleLoop(): void {
+  const interval = 86400 as const; // 24h interval
+  const offset = 9 * 3600; // 9h offset
+
+  waitForInterval(interval, offset, async () => {
+    for (const term of Cookie.getMostRecentTerms() ?? []) {
+      const professors = await getSchedule(term.slice(0, -1));
+
+      db.transaction(() => {
+        db.prepare(`DELETE FROM "${term}_math_schedule"`).run();
+
+        const statement = db.prepare(`INSERT INTO "${term}_math_schedule" (crn, professor) VALUES (?, ?)`);
+        for (const professor of professors) statement.run(...professor);
+      })();
+
+      console.log(`${new Date().toLocaleString()}: Fetched ${professors.size} professors from Math for term ${term}`);
+    }
   });
 }

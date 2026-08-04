@@ -41,7 +41,7 @@ function getSearchParams(options: CommandInteractionOptionResolver): ClassSearch
     attribute: options.getString("attribute") ?? undefined,
     subject: options.getString("subject") ?? undefined,
     courseNumber: options.getString("course_number") ?? undefined,
-    courseTitle: options.getString("course_title") ? `% ${options.getString("course_title")} %`.replace(/&/g, "&amp;").replace(/'/g, "&#39;") : undefined,
+    courseTitle: options.getString("course_title") ?? undefined,
     crn: options.getString("crn") ?? undefined,
     meetingDays: meetingDays.every((day) => !day) ? undefined : meetingDays,
     time: parsedStartTime && parsedEndTime ? [...parsedStartTime, ...parsedEndTime] : undefined,
@@ -131,15 +131,15 @@ export function generateEmbed(currentPage: number, total: number, classes: Trunc
     {
       color: 0x065942,
       title: "Search Results",
-      description: `${total} classes found`,
+      description: `${total.toLocaleString()} classes found${classes.some((c) => c.professorLeaked) ? "\n**\\*** *This professor was taken from the internal Math department schedule and is subject to change.*" : ""}`,
       fields: classes.map((course) => ({
         name: `${course.subject} ${course.courseNumber} - ${course.sequenceNumber} | ${course.courseTitle.replace(/&amp;/g, "&").replace(/&#39;/g, "'")}`,
         value: `${meetingString(course)}${getMeetingTimeString(course.meeting.time) === "TBD" ? "" : `-# ${getMeetingTimeString(course.meeting.time)}\n`}**__${course.seatsAvailable}__**/${course.maximumEnrollment} seats left${course.waitCapacity === 0 ? "" : `\n**${course.waitCount}** on waitlist`}
--# ${course.rmpId && course.professorName ? `[${course.professorName}](https://ratemyprofessors.com/professor/${course.rmpId})${course.rmpNumRatings ? `\n-# ${course.rmpRating!.toFixed(1)}/5 (${course.rmpNumRatings} rating${course.rmpNumRatings === 1 ? "" : "s"})` : ""}` : (course.professorName ?? "Unknown Instructor")}
+-# ${course.rmpId && course.professorName ? `[${course.professorName}${course.professorLeaked ? "*****" : ""}](https://ratemyprofessors.com/professor/${course.rmpId})${course.rmpNumRatings ? `\n-# ${course.rmpRating!.toFixed(1)}/5 (${course.rmpNumRatings} rating${course.rmpNumRatings === 1 ? "" : "s"})` : ""}` : course.professorName ? `${course.professorName}${course.professorLeaked ? "*****" : ""}` : "Unknown Instructor"}
 ‎ `,
         inline: true
       })),
-      footer: { text: `Page ${currentPage} of ${Math.ceil(total / 6)}` },
+      footer: { text: `Page ${currentPage} of ${Math.ceil(total / 6).toLocaleString()}` },
       timestamp: new Date().toISOString()
     }
   ];

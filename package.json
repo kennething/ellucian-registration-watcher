@@ -20,6 +20,7 @@
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
     "fuse.js": "^7.5.0",
+    "htmlparser2": "^12.0.0",
     "jsonwebtoken": "^9.0.3",
     "ratemyprofessors-client": "^3.0.0",
     "tough-cookie": "^6.0.1",

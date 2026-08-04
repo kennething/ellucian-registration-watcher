@@ -42,6 +42,7 @@ export type ClassData = {
   isSectionLinked: boolean;
   subjectCourse: string; // "CS350"
   faculty: {
+    leaked?: true; // custom
     bannerId: string; // professor id
     category: any; // TODO:
     class: string;
@@ -112,6 +113,7 @@ export type TruncatedClassData = {
     time: [start: ClassData["meetingsFaculty"][number]["meetingTime"]["beginTime"], end: ClassData["meetingsFaculty"][number]["meetingTime"]["endTime"]];
     days: [sun: boolean, mon: boolean, tue: boolean, wed: boolean, thu: boolean, fri: boolean, sat: boolean];
   };
+  professorLeaked?: true;
   professorId: ClassData["faculty"][number]["bannerId"];
   professorName: ClassData["faculty"][number]["displayName"];
   rmpId: number | null;
