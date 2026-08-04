@@ -22,9 +22,6 @@ router.delete("/watcher/delete", authController, async (req, res) => {
   const [, error2] = tryCatch(() => db.prepare(`DELETE FROM watchers WHERE uuid = ? AND owner_uuid = ?`).run(watcher.uuid, req.user.uuid));
   if (error2) return res.sendStatus(500);
 
-  const [, error3] = tryCatch(() => db.prepare("UPDATE users SET num_watchers = num_watchers - 1 WHERE uuid = ?").run(req.user.uuid));
-  if (error3) return res.sendStatus(500);
-
   res.sendStatus(200);
 });
 
@@ -60,7 +57,7 @@ router.post("/watcher/create", authController, async (req, res) => {
     .safeParse(req.body);
   if (parseError) return res.status(400).json({ error: "Invalid body" });
 
-  const [{ num_watchers }, watcherLimitError] = tryCatch<{ num_watchers: number }>(() => db.prepare("SELECT num_watchers FROM users WHERE uuid = ?").get(req.user.uuid) as any);
+  const [{ num_watchers }, watcherLimitError] = tryCatch<{ num_watchers: number }>(() => db.prepare("SELECT COUNT(*) as num_watchers FROM watchers WHERE owner_uuid = ?").get(req.user.uuid) as any);
   if (watcherLimitError) return res.sendStatus(500);
 
   if (num_watchers + 1 > WATCHER_LIMIT) return res.status(400).json({ error: "Watcher limit exceeded" });
@@ -84,9 +81,6 @@ router.post("/watcher/create", authController, async (req, res) => {
         .run(watcherUuid, req.user.uuid, watcher.term, watcher.crn, watcher.notifyWhen, watcher.notifyWhenValue)
     );
     if (insertError) return res.sendStatus(500);
-
-    const [, updateLimitError] = tryCatch(() => db.prepare("UPDATE users SET num_watchers = num_watchers + 1 WHERE uuid = ?").run(req.user.uuid));
-    if (updateLimitError) return res.sendStatus(500);
 
     res.status(200).json({
       uuid: watcherUuid,

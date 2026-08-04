@@ -30,6 +30,6 @@ export async function startServer() {
 
   loops.watchClassesLoop();
   // loops.purgeWatchersLoop();
-  // loops.fetchProfessorsLoop();
+  loops.fetchProfessorsLoop();
   // TODO: purge users that dont have bot
 }

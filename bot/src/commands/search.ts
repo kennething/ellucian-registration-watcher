@@ -53,7 +53,7 @@ function getSearchParams(options: CommandInteractionOptionResolver): ClassSearch
 }
 
 export async function getClassData(term: string, searchParams: ClassSearchParams, offset = 0): Promise<[classes: TruncatedClassData[], total: number]> {
-  const results = await searchClasses(term, searchParams, offset, 6);
+  const results = await searchClasses(term, searchParams, offset, 10); // get 10 instead of 6 incase rmp filtered
   const classes: ClassData[] = results[0];
   const total = results[1];
 
@@ -115,7 +115,7 @@ export async function getClassData(term: string, searchParams: ClassSearchParams
     });
   });
 
-  return [parsedClasses, total];
+  return [parsedClasses.slice(0, 6), total];
 }
 
 export function generateEmbed(currentPage: number, total: number, classes: TruncatedClassData[]): APIEmbed[] {
@@ -166,13 +166,6 @@ export function generateActionRow(currentPage: number, total: number, pagination
         },
         {
           type: ComponentType.Button,
-          label: `Page ${currentPage}`,
-          style: ButtonStyle.Primary,
-          custom_id: "ugfbewd8uygudeyig",
-          disabled: true
-        },
-        {
-          type: ComponentType.Button,
           label: "→",
           style: ButtonStyle.Secondary,
           custom_id: `next:${paginationId}`,
@@ -184,6 +177,12 @@ export function generateActionRow(currentPage: number, total: number, pagination
           style: ButtonStyle.Secondary,
           custom_id: `last:${paginationId}`,
           disabled: currentPage === Math.ceil(total / 6)
+        },
+        {
+          type: ComponentType.Button,
+          style: ButtonStyle.Link,
+          label: "View on Web",
+          url: `${process.env.FRONTEND_URL}/search`
         }
       ]
     }
