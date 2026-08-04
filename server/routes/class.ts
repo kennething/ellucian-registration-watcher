@@ -27,7 +27,7 @@ const Schema = z
     attribute: z.string(), // attribute code
     // too much work // // attribute: z.array(z.string()), // attribute codes
     // too much work // // professor: z.array(z.string()), // instructor codes
-    creditHours: z.tuple([z.number().int().min(1).max(4), z.number().int().min(1).max(4)]), // [low: number, high: number]; 1-4
+    creditHours: z.tuple([z.number().int().min(0).max(4), z.number().int().min(0).max(4)]), // [low: number, high: number]; 1-4
     // too much work // // openSections: z.boolean(),
     // too much work // // waitlistOpen: z.boolean(),
     professorRating: z.tuple([z.number().min(0).max(5), z.number().min(0).max(5)]) // [low: number, high: number]; 0-5
