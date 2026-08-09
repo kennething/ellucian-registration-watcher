@@ -4,7 +4,6 @@ import { ClassData } from "../../../server/utils/types.ts";
 import { db } from "../../../server/utils/sqlite.ts";
 import type { Command } from "./index.ts";
 import { createCanvas } from "canvas";
-import { getMeetingTimeString } from "../../../server/utils/functions.ts";
 
 type MiniClassData = {
   subject: string;
@@ -258,8 +257,6 @@ export default {
         const professor = course.faculty[0];
         if (professor) ctx.fillText(`${professor.displayName.split(",").reverse().join(" ")}${course.rmpRating ? ` (${course.rmpRating.toFixed(1)}/5)` : ""}`, x + 12, y + 34, DAY_WIDTH - 24);
 
-        ctx.fillText(`${course.meetingsFaculty[0]?.meetingTime.building} ${course.meetingsFaculty[0]?.meetingTime.room}`, x + 12, y + (professor ? 54 : 34), DAY_WIDTH - 24);
-
         const startHour = Number(course.startTime?.slice(0, 2));
         const startMinutes = Number(course.startTime?.slice(2, 4));
         const endHour = Number(course.endTime?.slice(0, 2));
@@ -270,7 +267,9 @@ export default {
         if (!sameAmpm) startStr += startHour < 12 ? " AM" : " PM";
 
         const meetingTimeString = `${startStr} - ${endHour > 12 ? endHour - 12 : endHour}:${endMinutes.toString().padStart(2, "0")} ${endHour < 12 ? "AM" : "PM"}`;
-        ctx.fillText(`${meetingTimeString}`, x + 12, y + (professor ? 74 : 54), DAY_WIDTH - 24);
+        ctx.fillText(`${meetingTimeString}`, x + 12, y + (professor ? 54 : 34), DAY_WIDTH - 24);
+
+        ctx.fillText(`${course.meetingsFaculty[0]?.meetingTime.building} ${course.meetingsFaculty[0]?.meetingTime.room}`, x + 12, y + (professor ? 74 : 54), DAY_WIDTH - 24);
       });
     }
 
