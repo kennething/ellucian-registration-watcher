@@ -54,7 +54,7 @@ export function watchClassesLoop(): void {
 
   const NOTIFICATION_COOLDOWN = 86400 / 2; // 12h
   const interval = 600 as const; // 10m interval
-  const offset = 120 as const; // 2m offset
+  const offset = 50 as const; // 50s offset
 
   waitForInterval(interval, offset, async () => {
     const mostRecentTerms = Cookie.getMostRecentTerms();
