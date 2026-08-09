@@ -4,6 +4,7 @@ import { ClassData } from "../../../server/utils/types.ts";
 import { db } from "../../../server/utils/sqlite.ts";
 import type { Command } from "./index.ts";
 import { createCanvas } from "canvas";
+import ENV from "../../../env.ts";
 
 type MiniClassData = {
   subject: string;
@@ -133,7 +134,7 @@ export default {
     await interaction.deferReply({ flags: options.getBoolean("share") ? undefined : MessageFlags.Ephemeral });
 
     const [user, error] = tryCatch<{ uuid: string }>(() => db.prepare("SELECT uuid FROM users WHERE discord_id = ?").get(interaction.user.id) as any);
-    if (!user) return void interaction.editReply({ content: `Sign up first! ${process.env.FRONTEND_URL}` });
+    if (!user) return void interaction.editReply({ content: `Sign up first! ${ENV.FRONTEND_URL}` });
     if (error) return void interaction.editReply({ content: "An error occurred while fetching your watchers. Try again later" });
 
     let schedule: { uuid: string; term_id: string; name: string; crns: string[] } | undefined;

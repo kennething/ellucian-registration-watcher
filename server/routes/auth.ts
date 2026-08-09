@@ -5,14 +5,25 @@ import { db } from "../utils/sqlite";
 import { v6 as uuidv6 } from "uuid";
 import { Router } from "express";
 import jwt from "jsonwebtoken";
+import ENV from "../../env";
 import axios from "axios";
+
+if (!ENV.FRONTEND_URL) {
+  console.error("FRONTEND_URL is not set in the environment variables.");
+  process.exit(1);
+}
 
 const router = Router();
 
 router.get("/auth/discord", async (req, res) => {
+  if (!ENV.DISCORD_CLIENT_ID) {
+    console.error("DISCORD_CLIENT_ID is not set in the environment variables.");
+    return res.redirect(`${ENV.FRONTEND_URL}/setup`);
+  }
+
   const params = new URLSearchParams({
-    client_id: process.env.DISCORD_CLIENT_ID as string,
-    redirect_uri: `${process.env.BACKEND_URL}/auth/discord/callback`,
+    client_id: ENV.DISCORD_CLIENT_ID,
+    redirect_uri: `${ENV.BACKEND_URL}/auth/discord/callback`,
     response_type: "code",
     scope: "identify applications.commands",
     integration_type: "1"
@@ -23,18 +34,23 @@ router.get("/auth/discord", async (req, res) => {
 
 router.get("/auth/discord/callback", async (req, res) => {
   const code = req.query.code as string;
-  if (!code) return res.redirect(`${process.env.FRONTEND_URL}/setup`);
+  if (!code) return res.redirect(`${ENV.FRONTEND_URL}/setup`);
+
+  if (!ENV.DISCORD_CLIENT_ID || !ENV.DISCORD_CLIENT_SECRET || !ENV.JWT_SECRET) {
+    console.error("DISCORD_CLIENT_ID is not set in the environment variables.");
+    return res.redirect(`${ENV.FRONTEND_URL}/setup`);
+  }
 
   try {
     const token = (
       await axios.post(
         "https://discord.com/api/oauth2/token",
         new URLSearchParams({
-          client_id: process.env.DISCORD_CLIENT_ID as string,
-          client_secret: process.env.DISCORD_CLIENT_SECRET as string,
+          client_id: ENV.DISCORD_CLIENT_ID,
+          client_secret: ENV.DISCORD_CLIENT_SECRET,
           grant_type: "authorization_code",
           code,
-          redirect_uri: `${process.env.BACKEND_URL}/auth/discord/callback`
+          redirect_uri: `${ENV.BACKEND_URL}/auth/discord/callback`
         }),
         {
           headers: {
@@ -52,15 +68,15 @@ router.get("/auth/discord/callback", async (req, res) => {
     const uuid = existingUser ? existingUser.uuid : uuidv6();
     if (!existingUser) db.prepare("INSERT INTO users (uuid, discord_id) VALUES (?, ?)").run(uuid, discordId);
 
-    const jwtToken = jwt.sign({ uuid, discordId }, process.env.JWT_SECRET as string, { expiresIn: "7d" });
-    res.cookie("token", jwtToken, { httpOnly: true, secure: process.env.NODE_ENV === "production", sameSite: process.env.NODE_ENV === "production" ? "none" : "lax" });
+    const jwtToken = jwt.sign({ uuid, discordId }, ENV.JWT_SECRET as string, { expiresIn: "7d" });
+    res.cookie("token", jwtToken, { httpOnly: true, secure: ENV.NODE_ENV === "production", sameSite: ENV.NODE_ENV === "production" ? "none" : "lax" });
 
-    res.redirect(`${process.env.FRONTEND_URL}/watch`);
+    res.redirect(`${ENV.FRONTEND_URL}/watch`);
 
     if (!existingUser) {
       const user = await CLIENT.client?.users.fetch(discordId);
       user?.send(
-        `## Thanks for using [Bad Scheduler](<${process.env.FRONTEND_URL}>) :)\nTo get the most out of the bot, make sure you:\n\n1. **Allow Discord notifications** in your system settings,\n2. **DON'T mute** this DM channel, and\n3. **DON'T set __Do Not Disturb__** as your Discord status\\*\n\n-# \\*If you have __Do Not Disturb__ enabled, you will not receive Discord push notifications while:\n-# a. Discord is open on another device, and/or\n-# b. for a few minutes after opening Discord on any device`
+        `## Thanks for using [Bad Scheduler](<${ENV.FRONTEND_URL}>) :)\nTo get the most out of the bot, make sure you:\n\n1. **Allow Discord notifications** in your system settings,\n2. **DON'T mute** this DM channel, and\n3. **DON'T set __Do Not Disturb__** as your Discord status\\*\n\n-# \\*If you have __Do Not Disturb__ enabled, you will not receive Discord push notifications while:\n-# a. Discord is open on another device, and/or\n-# b. for a few minutes after opening Discord on any device`
       );
     }
   } catch (error) {
@@ -75,8 +91,8 @@ router.get("/auth/logout", authController, async (req, res) => {
       new URLSearchParams({
         token: req.cookies.token,
         token_type_hint: "access_token",
-        client_id: process.env.DISCORD_CLIENT_ID as string,
-        client_secret: process.env.DISCORD_CLIENT_SECRET as string
+        client_id: ENV.DISCORD_CLIENT_ID as string,
+        client_secret: ENV.DISCORD_CLIENT_SECRET as string
       }),
       {
         headers: {
@@ -85,7 +101,7 @@ router.get("/auth/logout", authController, async (req, res) => {
       }
     );
 
-    res.clearCookie("token", { httpOnly: true, secure: process.env.NODE_ENV === "production", sameSite: process.env.NODE_ENV === "production" ? "none" : "lax" });
+    res.clearCookie("token", { httpOnly: true, secure: ENV.NODE_ENV === "production", sameSite: ENV.NODE_ENV === "production" ? "none" : "lax" });
     res.sendStatus(200);
   } catch (error) {
     res.sendStatus(500);

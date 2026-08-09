@@ -8,6 +8,7 @@ import { db } from "../../../server/utils/sqlite.ts";
 import { paginationState } from "../common.ts";
 import type { Command } from "./index.ts";
 import { v7 as uuidv7 } from "uuid";
+import ENV from "../../../env.ts";
 
 function getSearchParams(options: CommandInteractionOptionResolver): ClassSearchParams {
   const meetingDays = [
@@ -182,7 +183,7 @@ export function generateActionRow(currentPage: number, total: number, pagination
           type: ComponentType.Button,
           style: ButtonStyle.Link,
           label: "View on Web",
-          url: `${process.env.FRONTEND_URL}/search`
+          url: `${ENV.FRONTEND_URL}/search`
         }
       ]
     }
@@ -336,7 +337,7 @@ export default {
     await interaction.deferReply();
 
     const [user, error] = tryCatch<{ uuid: string }>(() => db.prepare("SELECT uuid FROM users WHERE discord_id = ?").get(interaction.user.id) as any);
-    if (!user) return void interaction.editReply({ content: `Create an account first: <${process.env.FRONTEND_URL}>` });
+    if (!user) return void interaction.editReply({ content: `Create an account first: <${ENV.FRONTEND_URL}>` });
     if (error) return void interaction.editReply({ content: "An error occurred. Try again later" });
 
     // @ts-expect-error

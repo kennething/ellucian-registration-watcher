@@ -1,7 +1,7 @@
 import { ActivityType, Client, GatewayIntentBits } from "discord.js";
 import { loadEvents } from "./util/loaders.ts";
-import process from "node:process";
 import { URL } from "node:url";
+import ENV from "../../env.ts";
 
 export async function startBot() {
   // Initialize the client
@@ -22,14 +22,14 @@ export async function startBot() {
   }
 
   // Login to the client
-  await client.login(process.env.DISCORD_TOKEN);
+  await client.login(ENV.DISCORD_TOKEN);
   client.user?.setPresence({
     status: "idle",
     activities: [
       {
         name: "with Binghamton University's API",
         type: ActivityType.Playing,
-        url: process.env.FRONTEND_URL
+        url: ENV.FRONTEND_URL
       }
     ]
   });

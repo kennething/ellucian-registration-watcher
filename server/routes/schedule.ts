@@ -4,11 +4,10 @@ import { Cookie } from "../utils/cookie";
 import { db } from "../utils/sqlite";
 import { v7 as uuidv7 } from "uuid";
 import { Router } from "express";
+import ENV from "../../env";
 import * as z from "zod";
 
 const router = Router();
-
-const SCHEDULE_LIMIT = 5 as const;
 
 router.delete("/schedule/delete", authController, async (req, res) => {
   const { data: schedule, error: parseError } = z
@@ -61,7 +60,7 @@ router.post("/schedule/create", authController, async (req, res) => {
   );
   if (watcherLimitError) return res.sendStatus(500);
 
-  if (num_schedules + 1 > SCHEDULE_LIMIT) return res.status(400).json({ error: "Schedule limit exceeded" });
+  if (num_schedules + 1 > ENV.USER_SCHEDULE_LIMIT) return res.status(400).json({ error: "Schedule limit exceeded" });
 
   db.transaction(() => {
     const scheduleUuid = uuidv7();

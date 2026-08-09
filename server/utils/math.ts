@@ -1,5 +1,6 @@
 import * as htmlparser2 from "htmlparser2";
 import { Cookie } from "./cookie";
+import ENV from "../../env";
 
 type Element = ReturnType<typeof htmlparser2.DomUtils.getElementsByTagName>[number];
 
@@ -8,7 +9,7 @@ export async function getSchedule(term: string) {
   form.set("schedule", term);
   form.set("listby", "By course name");
 
-  const html = (await Cookie.requestClient.post("https://matrix.math.binghamton.edu/d/cgi-bin/schedule/get_course_schedule.cgi", form)).data as string;
+  const html = (await Cookie.requestClient.post(`${ENV.MATH_SCHEDULE_URL}/d/cgi-bin/schedule/get_course_schedule.cgi`, form)).data as string;
   const dom = htmlparser2.parseDocument(html);
 
   /** `{ [crn]: professor }` */

@@ -2,6 +2,7 @@ import { ClassSearchParams } from "../routes/class";
 import { ClassData } from "./types";
 import { Cookie } from "./cookie";
 import { db } from "./sqlite";
+import ENV from "../../env";
 
 export type Success<T> = [data: T, error: never];
 export type Failure<E> = [data: never, error: E];
@@ -37,7 +38,7 @@ export async function searchClasses(
   classes: ClassData[] = []
 ): Promise<[classes: ClassData[], total: number]> {
   limit = Math.min(limit, 500);
-  let url = `https://ssb.cc.binghamton.edu:8484/StudentRegistrationSsb/ssb/searchResults/searchResults?pageOffset=${offset}&pageMaxSize=${limit}&txt_term=${term}&`;
+  let url = `${ENV.BANNER_API_URL}/StudentRegistrationSsb/ssb/searchResults/searchResults?pageOffset=${offset}&pageMaxSize=${limit}&txt_term=${term}&`;
 
   if (params.attribute?.length) url += `txt_attribute=${params.attribute}&`;
   if (params.courseNumber) url += `txt_courseNumber=${params.courseNumber}&`;
@@ -61,7 +62,7 @@ export async function searchClasses(
 
   url = encodeURI(url.slice(0, -1)).replaceAll(",", "%2C");
 
-  await Cookie.requestClient.post("https://ssb.cc.binghamton.edu:8484/StudentRegistrationSsb/ssb/classSearch/resetDataForm");
+  await Cookie.requestClient.post(`${ENV.BANNER_API_URL}/StudentRegistrationSsb/ssb/classSearch/resetDataForm`);
   const data = (await Cookie.requestClient.get<{ data: ClassData[] | null; totalCount: number }>(url)).data;
 
   if (data.data === null && !isRetry) {

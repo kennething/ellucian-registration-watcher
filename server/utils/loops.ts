@@ -6,8 +6,15 @@ import { getSchedule } from "./math";
 import { getRMPData } from "./rmp";
 import { Cookie } from "./cookie";
 import { db } from "./sqlite";
+import ENV from "../../env";
 import Fuse from "fuse.js";
+import path from "path";
 import fs from "fs";
+
+if (!ENV.FRONTEND_URL) {
+  console.error("FRONTEND_URL is not set in the environment variables.");
+  process.exit(1);
+}
 
 /** Waits for a specified interval and then calls the callback function
  * @param interval The interval in seconds at which to call the callback function. The first call will be aligned to the nearest interval.
@@ -52,11 +59,7 @@ export function watchClassesLoop(): void {
     wait_28d: string;
   };
 
-  const NOTIFICATION_COOLDOWN = 86400 / 2; // 12h
-  const interval = 600 as const; // 10m interval
-  const offset = 50 as const; // 50s offset
-
-  waitForInterval(interval, offset, async () => {
+  waitForInterval(ENV.CLASS_FETCH_INTERVAL, ENV.CLASS_FETCH_OFFSET, async () => {
     const mostRecentTerms = Cookie.getMostRecentTerms();
 
     if (!mostRecentTerms) return;
@@ -79,8 +82,8 @@ export function watchClassesLoop(): void {
 
         db.transaction(() => {
           const currentTime = Math.floor(Date.now() / 1000);
-          const entries24h = 24 * 3; // 20m interval
-          const entries28d = 28; // 1d interval
+          const entries24h = ENV.CLASS_HISTORY_24H_ENTRIES;
+          const entries28d = ENV.CLASS_HISTORY_28D_ENTRIES;
 
           for (const course of data) {
             const row = getStatement.get(course.courseReferenceNumber, course.term) as CourseHistory | undefined;
@@ -201,7 +204,7 @@ export function watchClassesLoop(): void {
       tryCatch(() => db.prepare("UPDATE watchers SET last_notified = ? WHERE crn = ? AND owner_uuid = ? AND term_id = ?").run(Math.floor(Date.now() / 1000), crn, ownerUuid, term))
     );
     for (const watcher of watchers) {
-      if (watcher.last_notified && Date.now() / 1000 - watcher.last_notified < NOTIFICATION_COOLDOWN) continue;
+      if (watcher.last_notified && Date.now() / 1000 - watcher.last_notified < ENV.NOTIFICATION_COOLDOWN) continue;
 
       const termIndex = terms.findIndex((term) => term === watcher.term_id);
       const classData = classes[termIndex]?.get(watcher.crn);
@@ -235,7 +238,7 @@ export function watchClassesLoop(): void {
                     `- **${c.subject} ${c.courseNumber} - ${c.sequenceNumber}** has ${c.notifyWhen! < 2 ? c.seatsAvailable : c.waitCount} ${c.notifyWhen! < 2 ? `seat${c.seatsAvailable === 1 ? "" : "s"} available` : `waitlist spot${c.waitCount === 1 ? "" : "s"} taken`}`
                 )
                 .join("\n") +
-              `\nTh${availableClasses.length > 1 ? "ese" : "is"} watcher${availableClasses.length > 1 ? "s" : ""} will not notify you again until <t:${Math.floor((Date.now() + NOTIFICATION_COOLDOWN * 1000) / 1000)}>`,
+              `\nTh${availableClasses.length > 1 ? "ese" : "is"} watcher${availableClasses.length > 1 ? "s" : ""} will not notify you again until <t:${Math.floor((Date.now() + ENV.NOTIFICATION_COOLDOWN * 1000) / 1000)}>`,
             color: 0x065942,
             timestamp: new Date().toISOString()
           }
@@ -248,7 +251,7 @@ export function watchClassesLoop(): void {
                 type: ComponentType.Button,
                 label: `Edit Watcher${availableClasses.length > 1 ? "s" : ""}`,
                 style: 5,
-                url: `${process.env.FRONTEND_URL}/watch`
+                url: `${ENV.FRONTEND_URL}/watch`
               }
             ]
           }
@@ -261,8 +264,6 @@ export function watchClassesLoop(): void {
 
 /** Purges outdated watchers on a 24-hour interval */
 export function purgeWatchersLoop(): void {
-  const interval = 86400 as const; // 24h interval
-
   const termStrings = {
     "10": "Winter",
     "20": "Spring",
@@ -271,7 +272,7 @@ export function purgeWatchersLoop(): void {
   } as const;
 
   const termsToDelete = new Map<string, number>(); // Map<termId, timestampToDelete>
-  waitForInterval(interval, 0, async () => {
+  waitForInterval(ENV.WATCHER_PURGE_INTERVAL, ENV.WATCHER_PURGE_OFFSET, async () => {
     const mostRecentTerms = Cookie.getMostRecentTerms();
     if (!mostRecentTerms) return;
     const mostRecentTermStrings: `${(typeof termStrings)[keyof typeof termStrings]} ${number}`[] = mostRecentTerms.map(
@@ -279,7 +280,7 @@ export function purgeWatchersLoop(): void {
     ) as any;
 
     if (termsToDelete.size) {
-      fs.copyFileSync(`./server/db.sqlite3`, `./server/${Date.now()}-backup.sqlite3`);
+      fs.copyFileSync(path.resolve(ENV.DATABASE_PATH), path.resolve(ENV.BACKUP_DATABASE_PATH, `${Date.now()}-backup.sqlite3`));
 
       let count = 0;
       for (const [termId, deleteTimestamp] of termsToDelete) {
@@ -297,7 +298,7 @@ export function purgeWatchersLoop(): void {
     if (error) return;
 
     const outdatedTerms = allTerms.filter((term) => !mostRecentTerms.includes(term.term_id));
-    outdatedTerms.forEach((term) => termsToDelete.set(term.term_id, Math.floor(Date.now() / 1000) + 7 * interval));
+    outdatedTerms.forEach((term) => termsToDelete.set(term.term_id, Math.floor(Date.now() / 1000) + 7 * ENV.WATCHER_PURGE_INTERVAL));
     if (!outdatedTerms.length) return;
 
     const [usersToNotify, error2] = tryCatch<{ owner_uuid: string }[]>(
@@ -328,10 +329,7 @@ export function purgeWatchersLoop(): void {
 }
 
 export function fetchProfessorsLoop(): void {
-  const interval = 86400 * 7; // 7d interval
-  const offset = 60; // 1m offset
-
-  waitForInterval(interval, offset, async () => {
+  waitForInterval(ENV.RMP_FETCH_INTERVAL, ENV.RMP_FETCH_OFFSET, async () => {
     const rmpProfessors = (await getRMPData()).map((professor) => ({
       ...professor,
       sortedName: professor.name
@@ -343,9 +341,7 @@ export function fetchProfessorsLoop(): void {
     }));
     // ! bing professor id isnt consistent ??
     const bingProfessors = (
-      await Cookie.requestClient.get<{ code: string; description: string }[]>(
-        "https://ssb.cc.binghamton.edu:8484/StudentRegistrationSsb/ssb/classSearch/get_instructor?searchTerm=&term=202690&offset=1&max=2000"
-      )
+      await Cookie.requestClient.get<{ code: string; description: string }[]>(`${ENV.BANNER_API_URL}/StudentRegistrationSsb/ssb/classSearch/get_instructor?searchTerm=&term=202690&offset=1&max=2000`)
     ).data.map((professor) => ({
       ...professor,
       sortedName: professor.description
@@ -387,10 +383,7 @@ export function fetchProfessorsLoop(): void {
 }
 
 export function fetchMathScheduleLoop(): void {
-  const interval = 86400 as const; // 24h interval
-  const offset = 9 * 3600; // 9h offset
-
-  waitForInterval(interval, offset, async () => {
+  waitForInterval(ENV.MATH_FETCH_INTERVAL, ENV.MATH_FETCH_OFFSET, async () => {
     for (const term of Cookie.getMostRecentTerms() ?? []) {
       const professors = await getSchedule(term.slice(0, -1));
 

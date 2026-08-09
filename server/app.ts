@@ -3,13 +3,14 @@ import cookieParser from "cookie-parser";
 import { Cookie } from "./utils/cookie";
 import * as loops from "./utils/loops";
 import { pathToFileURL } from "url";
+import ENV from "../env";
 import cors from "cors";
 import path from "path";
 import fs from "fs";
 
 export async function startServer() {
   const app = express()
-    .use(cors({ origin: process.env.FRONTEND_URL, optionsSuccessStatus: 200, credentials: true }))
+    .use(cors({ origin: ENV.FRONTEND_URL, optionsSuccessStatus: 200, credentials: true }))
     .use(cookieParser())
     .use(express.json());
 
@@ -25,11 +26,10 @@ export async function startServer() {
 
   await Cookie.refreshCookie();
 
-  const port = Number(process.env.PORT) || 6969;
-  app.listen(port, "0.0.0.0", () => console.log(`Server is up on port ${port}`));
+  app.listen(ENV.PORT, "0.0.0.0", () => console.log(`Server is up on port ${ENV.PORT}`));
 
-  loops.watchClassesLoop();
-  loops.purgeWatchersLoop();
-  loops.fetchProfessorsLoop();
-  loops.fetchMathScheduleLoop();
+  if (ENV.CLASS_FETCH_INTERVAL > 0) loops.watchClassesLoop();
+  if (ENV.WATCHER_PURGE_INTERVAL > 0) loops.purgeWatchersLoop();
+  if (ENV.RMP_FETCH_INTERVAL > 0 && ENV.RMP_SCHOOL_ID) loops.fetchProfessorsLoop();
+  if (ENV.MATH_FETCH_INTERVAL > 0 && ENV.MATH_SCHEDULE_URL) loops.fetchMathScheduleLoop();
 }

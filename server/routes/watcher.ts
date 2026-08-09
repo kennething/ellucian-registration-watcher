@@ -5,11 +5,10 @@ import { Cookie } from "../utils/cookie";
 import { db } from "../utils/sqlite";
 import { v7 as uuidv7 } from "uuid";
 import { Router } from "express";
+import ENV from "../../env";
 import * as z from "zod";
 
 const router = Router();
-
-const WATCHER_LIMIT = 67 as const;
 
 router.delete("/watcher/delete", authController, async (req, res) => {
   const { data: watcher, error: parseError } = z
@@ -71,11 +70,10 @@ router.post("/watcher/create", authController, async (req, res) => {
   const [{ num_watchers }, watcherLimitError] = tryCatch<{ num_watchers: number }>(() => db.prepare("SELECT COUNT(*) as num_watchers FROM watchers WHERE owner_uuid = ?").get(req.user.uuid) as any);
   if (watcherLimitError) return res.sendStatus(500);
 
-  if (num_watchers + 1 > WATCHER_LIMIT) return res.status(400).json({ error: "Watcher limit exceeded" });
+  if (num_watchers + 1 > ENV.USER_WATCHER_LIMIT) return res.status(400).json({ error: "Watcher limit exceeded" });
 
-  const course = (
-    await Cookie.requestClient.get<ClassData>(`https://ssb.cc.binghamton.edu:8484/StudentRegistrationSsb/ssb/searchResults/searchResults?txt_term=${watcher.term}&txt_keywordany=${watcher.crn}`)
-  ).data;
+  const course = (await Cookie.requestClient.get<ClassData>(`${ENV.BANNER_API_URL}/StudentRegistrationSsb/ssb/searchResults/searchResults?txt_term=${watcher.term}&txt_keywordany=${watcher.crn}`))
+    .data;
   if (course.waitCapacity === 0 && watcher.notifyWhen >= 2) return res.status(400).json({ error: "Cannot create watcher for a class with no waitlist" });
 
   const [existingWatcher, existingWatcherError] = tryCatch<{ uuid: string }>(

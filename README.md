@@ -1,63 +1,151 @@
-## Backend Setup
+# Ellucian Registration Watcher
 
-1. Ensure [Node.js](https://nodejs.org) is installed
+This is the Express.js server and Discord.js bot for
+[Bad Scheduler](https://bschedule.kennethng.dev) (specifically tailored for
+Binghamton University), but the methods used for fetching data can _probably_
+be applied to any school that uses Ellucian's Banner system.
 
-2. Select the `backend` directory:
+> \[!IMPORTANT\]
+>
+> This is NOT a ready-to-use course scheduler. The published bot commands here
+> only allow for getting data.
+>
+> You'll need to create some frontend, be it a web app or more bot commands, to
+> allow users to create and manage their stuff.
 
-   ```sh
-   cd backend
-   ```
+## Installation
 
-3. Place the `db.sqlite3` file in the `backend/server` directory.
+### Create a Discord Bot
 
-4. Create a `.env` file in the `backend` directory:
+1. Go to the
+   [Discord Developer Portal](https://discord.com/developers/applications) and
+   create a new application.
 
-   ```sh
-   BACKEND_URL= # dont append /
-   FRONTEND_URL= # dont append /
+   Note the Application ID. This will be your `APPLICATION_ID`.
 
-   PORT= # (optional) defaults to 6969
-   NODE_ENV= # (optional) defaults to development, set to production when deploying
+2. Under the "Bot" tab, click "Add Bot" and copy the bot token. This will be
+   your `DISCORD_TOKEN`.
 
-   DISCORD_TOKEN= # (optional) can be omitted to only run the server
-   DISCORD_CLIENT_ID= # required if running bot
-   DISCORD_CLIENT_SECRET= # required if running bot
-   APPLICATION_ID= # required if running bot
-   JWT_SECRET= # required if running frontend
-   ```
+3. Also enable the `Message Content Intent` Priveleged Intent.
 
-5. Install dependencies:
+If you will **NOT** be running a frontend using Discord's OAuth2:
+
+4. Under the "Installation" tab, select `User Install` as the Installation
+   Context, `Discord Provided Link` as the Install Link, and
+   `applications.commands` as the Default Install scopes.
+
+   Copy the generated link and you can add your bot!
+
+If you will be running a frontend using Discord's OAuth2:
+
+4. Under the "OAuth2" tab, copy the Client ID and reset the Client Secret.
+   These will be your `DISCORD_CLIENT_ID` and `DISCORD_CLIENT_SECRET`.
+
+5. Create redirect URLs to `<BACKEND_URL>/auth/discord/callback` and
+   `<BACKEND_URL>/auth/discord/bot/callback` (with your backend URL replaced).
+
+6. Go to `<BACKEND_URL>/auth/discord` and you can add your bot!
+
+### Run the server
+
+1. Install [Node.js](https://nodejs.org)
+
+2. Place the `db.sqlite3` file in the `/server` directory.
+
+3. Create a `.env` file in the root directory. See
+   [here](./README.md#environment-variables) for config options.
+
+4. Install dependencies:
 
    ```sh
    npm install
    ```
 
-6. Start the bot and server:
+5. Start the bot and/or server:
 
    ```sh
    npm run serve
    ```
 
-   If you don't have a `DISCORD_TOKEN` set, this will only start the server. Anything on the server that requires a bot client will not work.
+## Bot Commands
 
-## Registering Bot Commands
+`APPLICATION_ID` must be defined in your `.env` in order to deploy/undeploy
+commands.
 
-1. Ensure you have a `APPLICATION_ID` in your `.env` file.
+### Registering
 
-2. Register the commands:
+1. Register the commands:
 
    ```sh
    npm run deploy
    ```
 
-You only need to register commands if you change the command's data. Changing the command's behavior (i.e. editing the `execute` function) does not require re-registering.
+You only need to register commands if you change the command's data. Changing
+the command's behavior (i.e. editing the `execute` function) does not require
+re-registering.
 
-## Unregistering Bot Commands
-
-1. Ensure you have a `APPLICATION_ID` in your `.env` file.
+### Unregistering
 
 2. Unregister the commands:
 
    ```sh
    npm run undeploy
    ```
+
+## Environment Variables
+
+### General
+
+| Variable               | Description                                                                                                                                          | Default               | Required |
+| ---------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------- | -------- |
+| `BACKEND_URL`          | URL with protocol, don't append `/`                                                                                                                  |                       | yes      |
+| `PORT`                 | Port to run the server on                                                                                                                            | `6969`                |          |
+| `DATABASE_PATH`        | Path to the SQLite database file                                                                                                                     | `./server/db.sqlite3` |          |
+| `BACKUP_DATABASE_PATH` | Path to a folder where the database will be backed up before watchers are purged                                                                     | `./server/`           |          |
+| `BANNER_API_URL`       | URL with protocol to your university's course catalog, don't append `/` (ex. `https://ssb.cc.binghamton.edu:8484`, `https://banssb.yourcollege.edu`) |                       | yes      |
+| `RMP_SCHOOL_ID`        | ID of your school on [Rate My Professors](https://www.ratemyprofessors.com) - find this by searching for your school and looking at the URL          |                       |          |
+| `MATH_SCHEDULE_URL`    | You probably don't have this but the URL to the math course schedule for your school, don't append `/`                                               |                       |          |
+| `USER_WATCHER_LIMIT`   | Maximum number of watchers a user can create                                                                                                         | 67                    |          |
+| `USER_SCHEDULE_LIMIT`  | Maximum number of schedules a user can create                                                                                                        | 5                     |          |
+
+### Automation
+
+| Variable                    | Description                                                                                                                 | Default                    | Required |
+| --------------------------- | --------------------------------------------------------------------------------------------------------------------------- | -------------------------- | -------- |
+| `NOTIFICATION_COOLDOWN`     | Cooldown, in seconds, to wait before sending another notification for the same watcher to the same user                     | `43200` (12 hours)         |          |
+| `CLASS_FETCH_INTERVAL`      | Interval, in seconds, to fetch new class data. Set to `0` to disable class fetching.                                        | `600` (10 minutes)         |          |
+| `CLASS_FETCH_OFFSET`        | Offset, in seconds, to wait before fetching new class data                                                                  | `50`                       |          |
+| `CLASS_HISTORY_24H_ENTRIES` | Number of entries to log in the class history over the last 24 hours. This should be an interval of `CLASS_FETCH_INTERVAL`. | `72` (once per 20 minutes) |          |
+| `CLASS_HISTORY_28D_ENTRIES` | Number of entries to log in the class history over the last 28 days. This should be an interval of `CLASS_FETCH_INTERVAL`.  | `28` (once per 1 day)      |          |
+| `WATCHER_PURGE_INTERVAL`    | Interval, in seconds, to search for outdated watchers. Set to `0` to disable watcher purging.                               | `86400` (1 day)            |          |
+| `WATCHER_PURGE_OFFSET`      | Offset, in seconds, to wait before searching for outdated watchers                                                          | `0`                        |          |
+| `RMP_FETCH_INTERVAL`        | Interval, in seconds, to fetch new RateMyProfessors data. Set to `0` to disable RateMyProfessors fetching.                  | `604800` (7 days)          |          |
+| `RMP_FETCH_OFFSET`          | Offset, in seconds, to wait before fetching new Rate My Professors data                                                     | `300` (5 minutes)          |          |
+| `MATH_FETCH_INTERVAL`       | Interval, in seconds, to fetch new math course schedule data. Set to `0` to disable math course schedule fetching.          | `86400` (1 day)            |          |
+| `MATH_FETCH_OFFSET`         | Offset, in seconds, to wait before fetching new math course schedule data                                                   | `32400` (9 hours)          |          |
+
+### Discord Bot
+
+| Variable         | Description                         | Default | Required |
+| ---------------- | ----------------------------------- | ------- | -------- |
+| `DISCORD_TOKEN`  | Token for your Discord bot          |         | yes\*    |
+| `APPLICATION_ID` | Application ID for your Discord bot |         | yes\*    |
+
+> \[!NOTE\]
+>
+> These are only required if you want to run the Discord bot. Omit
+> `DISCORD_TOKEN` to skip running the bot.
+
+### Frontend
+
+| Variable                | Description                                                                                             | Default | Required |
+| ----------------------- | ------------------------------------------------------------------------------------------------------- | ------- | -------- |
+| `FRONTEND_URL`          | URL with protocol, don't append `/`                                                                     |         | yes\*    |
+| `DISCORD_CLIENT_ID`     | Client ID for your Discord bot, used for Discord OAuth2                                                 |         | yes\*    |
+| `DISCORD_CLIENT_SECRET` | Client secret for your Discord bot, used for Discord OAuth2                                             |         | yes\*    |
+| `JWT_SECRET`            | Secret for generating JWT tokens, used for authentication - technically can be any string but like cmon |         | yes\*    |
+
+> \[!NOTE\]
+>
+> These are only required if you want to run a frontend. but like at that point
+> you might as well edit the entire backend to fit your frontend needs.

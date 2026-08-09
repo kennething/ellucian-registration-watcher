@@ -3,6 +3,7 @@ import { NotificationType } from "../../../server/utils/types.ts";
 import { tryCatch } from "../../../server/utils/fetch.ts";
 import { db } from "../../../server/utils/sqlite.ts";
 import type { Command } from "./index.ts";
+import ENV from "../../../env.ts";
 
 export default {
   data: {
@@ -15,7 +16,7 @@ export default {
     await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
     const [user, error] = tryCatch<{ uuid: string }>(() => db.prepare("SELECT uuid FROM users WHERE discord_id = ?").get(interaction.user.id) as any);
-    if (!user) return void interaction.editReply({ content: `Sign up first! ${process.env.FRONTEND_URL}` });
+    if (!user) return void interaction.editReply({ content: `Sign up first! ${ENV.FRONTEND_URL}` });
     if (error) return void interaction.editReply({ content: "An error occurred while fetching your watchers. Try again later" });
 
     const [watchers, error2] = tryCatch<{ term_id: string; crn: string; notify_when: number; notify_when_value: number }[]>(
@@ -58,7 +59,7 @@ export default {
               type: ComponentType.Button,
               label: "Manage Watchers",
               style: 5,
-              url: `${process.env.FRONTEND_URL}/watch`
+              url: `${ENV.FRONTEND_URL}/watch`
             }
           ]
         }

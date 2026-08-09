@@ -1,6 +1,7 @@
 import { wrapper } from "axios-cookiejar-support";
 import axios, { AxiosInstance } from "axios";
 import { CookieJar } from "tough-cookie";
+import ENV from "../../env";
 
 export class Cookie {
   static requestClient: AxiosInstance;
@@ -27,21 +28,19 @@ export class Cookie {
    * @returns whether all requests were successful
    */
   private static async setup(): Promise<boolean> {
-    const terms = (
-      await Cookie.requestClient.get<{ code: string; description: string }[]>("https://ssb.cc.binghamton.edu:8484/StudentRegistrationSsb/ssb/classSearch/getTerms?searchTerm=&offset=1&max=2")
-    ).data;
+    const terms = (await Cookie.requestClient.get<{ code: string; description: string }[]>(`${ENV.BANNER_API_URL}/StudentRegistrationSsb/ssb/classSearch/getTerms?searchTerm=&offset=1&max=2`)).data;
     Cookie.mostRecentTerms = terms.map((term) => term.code) as [string, string];
 
     const subjects = (
       await Cookie.requestClient.get<{ code: string; description: string }[]>(
-        `https://ssb.cc.binghamton.edu:8484/StudentRegistrationSsb/ssb/classSearch/get_subject?searchTerm=&term=${terms[0].code}&offset=1&max=500`
+        `${ENV.BANNER_API_URL}/StudentRegistrationSsb/ssb/classSearch/get_subject?searchTerm=&term=${terms[0].code}&offset=1&max=500`
       )
     ).data;
     Cookie.subjects = subjects.map((subject) => ({ code: subject.code, name: subject.description }));
 
     const attributes = (
       await Cookie.requestClient.get<{ code: string; description: string }[]>(
-        `https://ssb.cc.binghamton.edu:8484/StudentRegistrationSsb/ssb/classSearch/get_attribute?searchTerm=&term=${terms[0].code}&offset=1&max=50`
+        `${ENV.BANNER_API_URL}/StudentRegistrationSsb/ssb/classSearch/get_attribute?searchTerm=&term=${terms[0].code}&offset=1&max=50`
       )
     ).data;
     Cookie.attributes = attributes.map((attribute) => ({ code: attribute.code, name: attribute.description }));
@@ -52,7 +51,7 @@ export class Cookie {
     formData.append("studyPathText", "");
     formData.append("startDatepicker", "");
     formData.append("endDatepicker", "");
-    await Cookie.requestClient.post("https://ssb.cc.binghamton.edu:8484/StudentRegistrationSsb/ssb/term/search?mode=search", formData);
+    await Cookie.requestClient.post(`${ENV.BANNER_API_URL}/StudentRegistrationSsb/ssb/term/search?mode=search`, formData);
 
     return true;
   }
