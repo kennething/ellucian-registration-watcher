@@ -8,7 +8,7 @@
    cd backend
    ```
 
-3. Place the `dev.sqlite3` file in the `backend/server` directory.
+3. Place the `db.sqlite3` file in the `backend/server` directory.
 
 4. Create a `.env` file in the `backend` directory:
 
