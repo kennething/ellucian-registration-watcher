@@ -14,7 +14,7 @@ router.get("/auth/discord", async (req, res) => {
     client_id: process.env.DISCORD_CLIENT_ID as string,
     redirect_uri: `${process.env.BACKEND_URL}/auth/discord/callback`,
     response_type: "code",
-    scope: "identify email applications.commands",
+    scope: "identify applications.commands",
     integration_type: "1"
   });
 
