@@ -175,6 +175,8 @@ export function watchClassesLoop(): void {
               }
             }
           }
+
+          console.log(`${new Date().toLocaleString()}: Updated course history for ${data.length} classes for term ${term}`);
         })();
 
         const classMap = new Map<string, NotificationData>(); // Map<CRN, NotificationData>
