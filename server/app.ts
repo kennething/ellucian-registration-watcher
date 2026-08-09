@@ -29,7 +29,7 @@ export async function startServer() {
   app.listen(port, "0.0.0.0", () => console.log(`Server is up on port ${port}`));
 
   loops.watchClassesLoop();
-  // loops.purgeWatchersLoop();
+  loops.purgeWatchersLoop();
   loops.fetchProfessorsLoop();
   loops.fetchMathScheduleLoop();
 }

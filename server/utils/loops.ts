@@ -7,6 +7,7 @@ import { getRMPData } from "./rmp";
 import { Cookie } from "./cookie";
 import { db } from "./sqlite";
 import Fuse from "fuse.js";
+import fs from "fs";
 
 /** Waits for a specified interval and then calls the callback function
  * @param interval The interval in seconds at which to call the callback function. The first call will be aligned to the nearest interval.
@@ -276,6 +277,8 @@ export function purgeWatchersLoop(): void {
     ) as any;
 
     if (termsToDelete.size) {
+      fs.copyFileSync(`./server/db.sqlite3`, `./server/${Date.now()}-backup.sqlite3`);
+
       let count = 0;
       for (const [termId, deleteTimestamp] of termsToDelete) {
         if (Date.now() >= deleteTimestamp * 1000) {
