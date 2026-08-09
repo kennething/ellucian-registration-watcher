@@ -25,23 +25,26 @@ export default {
     else if (interaction.isButton()) {
       await interaction.deferUpdate();
 
-      const [type, paginationId] = interaction.customId.split(":") as ["first" | "prev" | "next" | "last", string];
-      const state = paginationState.get(paginationId);
-      if (!state) return void interaction.followUp({ content: "Something went wrong.", ephemeral: true });
-      if (state.userId !== interaction.user.id) return;
+      const [command, type, paginationId] = interaction.customId.split(":") as ["search", "first" | "prev" | "next" | "last", string];
 
-      if (type === "first") state.page = 1;
-      else if (type === "prev") state.page = Math.max(1, state.page - 1);
-      else if (type === "next") state.page = Math.min(Math.ceil(state.total / 6), state.page + 1);
-      else if (type === "last") state.page = Math.ceil(state.total / 6);
+      if (command === "search") {
+        const state = paginationState.get(paginationId);
+        if (!state) return void interaction.followUp({ content: "Something went wrong.", ephemeral: true });
+        if (state.userId !== interaction.user.id) return;
 
-      const offset = (state.page - 1) * 6;
-      const [parsedClasses, total] = await getClassData(state.params.term, state.params, offset);
+        if (type === "first") state.page = 1;
+        else if (type === "prev") state.page = Math.max(1, state.page - 1);
+        else if (type === "next") state.page = Math.min(Math.ceil(state.total / 6), state.page + 1);
+        else if (type === "last") state.page = Math.ceil(state.total / 6);
 
-      await interaction.editReply({
-        embeds: generateEmbed(state.page, total, parsedClasses),
-        components: generateActionRow(state.page, total, paginationId)
-      });
+        const offset = (state.page - 1) * 6;
+        const [parsedClasses, total] = await getClassData(state.params.term, state.params, offset);
+
+        await interaction.editReply({
+          embeds: generateEmbed(state.page, total, parsedClasses),
+          components: generateActionRow(state.page, total, paginationId)
+        });
+      } // search
     } // isButton
   }
 } satisfies Event<Events.InteractionCreate>;

@@ -72,25 +72,29 @@ export async function searchClasses(
   const dataData = data.data.map((c) => {
     if (c.subject !== "MATH" || c.faculty.length !== 0) return c;
 
-    const professor = (db.prepare(`SELECT professor FROM "${term}_math_schedule" WHERE crn = ?`).get(c.courseReferenceNumber) as { professor: string } | undefined)?.professor;
-    if (!professor) return c;
+    try {
+      const professor = (db.prepare(`SELECT professor FROM "${term}_math_schedule" WHERE crn = ?`).get(c.courseReferenceNumber) as { professor: string } | undefined)?.professor;
+      if (!professor) return c;
 
-    return {
-      ...c,
-      faculty: [
-        {
-          professorLeaked: true,
-          term: c.term,
-          bannerId: "",
-          category: null,
-          class: "",
-          courseReferenceNumber: c.courseReferenceNumber,
-          displayName: professor,
-          emailAddress: "",
-          primaryIndicator: true
-        }
-      ]
-    };
+      return {
+        ...c,
+        faculty: [
+          {
+            professorLeaked: true,
+            term: c.term,
+            bannerId: "",
+            category: null,
+            class: "",
+            courseReferenceNumber: c.courseReferenceNumber,
+            displayName: professor,
+            emailAddress: "",
+            primaryIndicator: true
+          }
+        ]
+      };
+    } catch (error) {
+      return c;
+    }
   });
 
   classes.push(...dataData);

@@ -56,7 +56,16 @@ export type ClassData = {
     category: string;
     class: string;
     courseReferenceNumber: string; // CRN
-    faculty: any[]; // TODO:
+    faculty: {
+      bannerId: string; // professor id
+      category: any; // TODO:
+      class: string;
+      courseReferenceNumber: string; // CRN
+      displayName: string;
+      emailAddress: string;
+      primaryIndicator: boolean;
+      term: string;
+    }[];
     meetingTime: {
       beginTime: string | null; // "0945"
       building: string; // "LN"

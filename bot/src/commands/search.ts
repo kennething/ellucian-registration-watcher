@@ -152,30 +152,30 @@ export function generateActionRow(currentPage: number, total: number, pagination
       components: [
         {
           type: ComponentType.Button,
-          label: "⇤",
+          label: "⏮️",
           style: ButtonStyle.Secondary,
-          custom_id: `first:${paginationId}`,
+          custom_id: `search:first:${paginationId}`,
           disabled: currentPage === 1
         },
         {
           type: ComponentType.Button,
-          label: "←",
+          label: "◀️",
           style: ButtonStyle.Secondary,
-          custom_id: `prev:${paginationId}`,
+          custom_id: `search:prev:${paginationId}`,
           disabled: currentPage === 1
         },
         {
           type: ComponentType.Button,
-          label: "→",
+          label: "▶️",
           style: ButtonStyle.Secondary,
-          custom_id: `next:${paginationId}`,
+          custom_id: `search:next:${paginationId}`,
           disabled: currentPage === Math.ceil(total / 6)
         },
         {
           type: ComponentType.Button,
-          label: "⇥",
+          label: "⏭️",
           style: ButtonStyle.Secondary,
-          custom_id: `last:${paginationId}`,
+          custom_id: `search:last:${paginationId}`,
           disabled: currentPage === Math.ceil(total / 6)
         },
         {

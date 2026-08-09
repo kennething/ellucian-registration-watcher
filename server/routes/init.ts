@@ -13,10 +13,15 @@ router.get("/init", authController, async (req, res) => {
   const user = await CLIENT.client?.users.fetch(req.user.discordId);
   if (!user) return res.sendStatus(404);
 
-  const [watchers, error2] = tryCatch<{ uuid: string; owner_uuid: string; term_id: string; crn: string; notify_when: NotificationType; notify_when_value: number }[]>(
-    () => db.prepare("SELECT * FROM watchers WHERE owner_uuid = ?").all(req.user.uuid) as any
+  const [watchers, error2] = tryCatch<{ uuid: string; term_id: string; crn: string; notify_when: NotificationType; notify_when_value: number }[]>(
+    () => db.prepare("SELECT uuid, term_id, crn, notify_when, notify_when_value FROM watchers WHERE owner_uuid = ?").all(req.user.uuid) as any
   );
   if (error2) return res.sendStatus(500);
+
+  const [schedules, error3] = tryCatch<{ uuid: string; term_id: string; name: string; crns: string }[]>(
+    () => db.prepare("SELECT uuid, term_id, name, crns FROM schedules WHERE owner_uuid = ?").all(req.user.uuid) as any
+  );
+  if (error3) return res.sendStatus(500);
 
   const terms = Array.from(new Set(watchers.map((watcher) => watcher.term_id)));
   const classes = await Promise.all(
@@ -106,7 +111,8 @@ router.get("/init", authController, async (req, res) => {
     validTerms: Cookie.getMostRecentTerms(),
     attributes: Cookie.attributes,
     subjects: Cookie.subjects,
-    watchers: toCamelCase(watchersWithData)
+    watchers: toCamelCase(watchersWithData),
+    schedules: toCamelCase(schedules.map((schedule) => ({ ...schedule, crns: JSON.parse(schedule.crns) })))
   });
 });
 
