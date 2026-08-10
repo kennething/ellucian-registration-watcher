@@ -1,8 +1,11 @@
 import { searchClasses, tryCatch } from "../utils/fetch";
 import { authController } from "../controllers/auth";
 import { TruncatedClassData } from "../utils/types";
+import * as htmlparser2 from "htmlparser2";
+import { Cookie } from "../utils/cookie";
 import { db } from "../utils/sqlite";
 import { Router } from "express";
+import ENV from "../../env";
 import * as z from "zod";
 
 const router = Router();
@@ -84,6 +87,9 @@ router.get("/class/search", authController, async (req, res) => {
         buildingDescription: c.meetingsFaculty[0]?.meetingTime.buildingDescription ?? "",
         room: c.meetingsFaculty[0]?.meetingTime.room ?? "",
         campus: c.meetingsFaculty[0]?.meetingTime.campus ?? "",
+        campusDescription: c.meetingsFaculty[0]?.meetingTime.campusDescription ?? "",
+        scheduleType: c.meetingsFaculty[0]?.meetingTime.meetingScheduleType ?? "",
+        instructionalMethodDescription: c.instructionalMethodDescription ?? "",
         time: [c.meetingsFaculty[0]?.meetingTime.beginTime ?? "", c.meetingsFaculty[0]?.meetingTime.endTime ?? ""],
         days: [
           c.meetingsFaculty[0]?.meetingTime.sunday ?? false,
@@ -95,7 +101,9 @@ router.get("/class/search", authController, async (req, res) => {
           c.meetingsFaculty[0]?.meetingTime.saturday ?? false
         ]
       },
+      attributes: c.sectionAttributes.map((a) => a.code),
 
+      professorLeaked: professor?.leaked,
       professorId: professor?.bannerId ?? "",
       professorName: professor?.displayName ?? "",
       rmpId: rmpData?.rmp_id ?? null,
@@ -130,6 +138,35 @@ router.get("/class/history/:term/:crn", authController, (req, res) => {
     wait24h: history?.wait_24h ? JSON.parse(history.wait_24h) : null,
     wait28d: history?.wait_28d ? JSON.parse(history.wait_28d) : null
   });
+});
+
+router.get("/class/description/:crn", authController, async (req, res) => {
+  type Element = ReturnType<typeof htmlparser2.DomUtils.getElementsByTagName>[number];
+
+  const { crn } = req.params;
+  if (!crn || typeof crn !== "string") return res.status(400).json({ error: "Missing crn" });
+
+  const formData = new FormData();
+  formData.append("term", "202690");
+  formData.append("courseReferenceNumber", crn);
+
+  try {
+    const html = (await Cookie.requestClient.post(`${ENV.BANNER_API_URL}/StudentRegistrationSsb/ssb/searchResults/getCourseDescription`, formData)).data as string;
+    const dom = htmlparser2.parseDocument(html);
+
+    const children = htmlparser2.DomUtils.getChildren(dom) as Element[];
+    const section = children.find((child) => child.type === "tag" && child.name === "section");
+    if (!section) return res.status(404).json({ error: "Course description not found" });
+
+    const br = section.children.find((child) => child.type === "tag" && child.name === "br");
+    if (!br) return res.status(404).json({ error: "Course description not found" });
+
+    const text = br.nextSibling?.type === "text" ? br.nextSibling.data.trim() : "";
+    return res.status(200).json({ description: text });
+  } catch (error) {
+    console.error(error);
+    return res.sendStatus(500);
+  }
 });
 
 export default router;

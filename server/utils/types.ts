@@ -41,6 +41,16 @@ export type ClassData = {
   linkIdentifier: string;
   isSectionLinked: boolean;
   subjectCourse: string; // "CS350"
+  instructionalMethod: string; // "TR"
+  instructionalMethodDescription: string; // "Traditional"
+  sectionAttributes: {
+    class: string; // some random string
+    code: string; // "FYA"
+    courseReferenceNumber: string; // CRN
+    description: string; // "FYA - First Year Appropriate"
+    isZTCAttribute: boolean;
+    termCode: string;
+  }[];
   faculty: {
     leaked?: true; // custom
     bannerId: string; // professor id
@@ -119,9 +129,13 @@ export type TruncatedClassData = {
     buildingDescription: ClassData["meetingsFaculty"][number]["meetingTime"]["buildingDescription"];
     room: ClassData["meetingsFaculty"][number]["meetingTime"]["room"];
     campus: ClassData["meetingsFaculty"][number]["meetingTime"]["campus"];
+    campusDescription: ClassData["meetingsFaculty"][number]["meetingTime"]["campusDescription"];
+    scheduleType: ClassData["meetingsFaculty"][number]["meetingTime"]["meetingScheduleType"];
+    instructionalMethodDescription: ClassData["instructionalMethodDescription"];
     time: [start: ClassData["meetingsFaculty"][number]["meetingTime"]["beginTime"], end: ClassData["meetingsFaculty"][number]["meetingTime"]["endTime"]];
     days: [sun: boolean, mon: boolean, tue: boolean, wed: boolean, thu: boolean, fri: boolean, sat: boolean];
   };
+  attributes: ClassData["sectionAttributes"][number]["code"][];
   professorLeaked?: true;
   professorId: ClassData["faculty"][number]["bannerId"];
   professorName: ClassData["faculty"][number]["displayName"];
