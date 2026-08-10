@@ -72,6 +72,9 @@ router.get("/init", authController, async (req, res) => {
             buildingDescription: c.meetingsFaculty[0]?.meetingTime.buildingDescription ?? "",
             room: c.meetingsFaculty[0]?.meetingTime.room ?? "",
             campus: c.meetingsFaculty[0]?.meetingTime.campus ?? "",
+            campusDescription: c.meetingsFaculty[0]?.meetingTime.campusDescription ?? "",
+            scheduleType: c.meetingsFaculty[0]?.meetingTime.meetingScheduleType ?? "",
+            instructionalMethodDescription: c.instructionalMethodDescription ?? "",
             time: [c.meetingsFaculty[0]?.meetingTime.beginTime ?? "", c.meetingsFaculty[0]?.meetingTime.endTime ?? ""],
             days: [
               c.meetingsFaculty[0]?.meetingTime.sunday ?? false,
@@ -83,6 +86,7 @@ router.get("/init", authController, async (req, res) => {
               c.meetingsFaculty[0]?.meetingTime.saturday ?? false
             ]
           },
+          attributes: c.sectionAttributes.map((a) => a.code),
 
           professorId: professor?.bannerId ?? "",
           professorName: professor?.displayName ?? "",
