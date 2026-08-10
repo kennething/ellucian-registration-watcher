@@ -5,6 +5,9 @@ This is the Express.js server and Discord.js bot for
 Binghamton University), but the methods used for fetching data can _probably_
 be applied to any school that uses Ellucian's Banner system.
 
+Classes to be fetched are batched together and use a single requester to
+minimize the number of requests sent to the Banner API.
+
 > \[!IMPORTANT\]
 >
 > This is NOT a ready-to-use course scheduler. The published bot commands here
@@ -131,10 +134,10 @@ re-registering.
 
 ## Discord Bot
 
-| Variable         | Description                         | Default | Required |
-| ---------------- | ----------------------------------- | ------- | -------- |
-| `DISCORD_TOKEN`  | Token for your Discord bot          |         | yes\*    |
-| `APPLICATION_ID` | Application ID for your Discord bot |         | yes\*    |
+| Variable         | Description                        | Default | Required |
+| ---------------- | ---------------------------------- | ------- | -------- |
+| `DISCORD_TOKEN`  | Token of your Discord bot          |         | yes\*    |
+| `APPLICATION_ID` | Application ID of your Discord bot |         | yes\*    |
 
 > \[!NOTE\]
 >
@@ -146,8 +149,8 @@ re-registering.
 | Variable                | Description                                                                                             | Default | Required |
 | ----------------------- | ------------------------------------------------------------------------------------------------------- | ------- | -------- |
 | `FRONTEND_URL`          | URL with protocol, don't append `/`                                                                     |         | yes\*    |
-| `DISCORD_CLIENT_ID`     | Client ID for your Discord bot, used for Discord OAuth2                                                 |         | yes\*    |
-| `DISCORD_CLIENT_SECRET` | Client secret for your Discord bot, used for Discord OAuth2                                             |         | yes\*    |
+| `DISCORD_CLIENT_ID`     | Client ID of your Discord bot, used for Discord OAuth2                                                  |         | yes\*    |
+| `DISCORD_CLIENT_SECRET` | Client secret of your Discord bot, used for Discord OAuth2                                              |         | yes\*    |
 | `JWT_SECRET`            | Secret for generating JWT tokens, used for authentication - technically can be any string but like cmon |         | yes\*    |
 
 > \[!NOTE\]
