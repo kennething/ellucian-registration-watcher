@@ -47,7 +47,7 @@ export default {
               return `- **${watcher.crn}** (${condition} ${operator} ${watcher.notify_when_value}): ${watcher.seat24h} seat${watcher.seat24h !== 1 ? "s" : ""} available${watcher.wait24h ? `, ${watcher.wait24h} in waitlist` : ""}`;
             })
             .join("\n"),
-          footer: { text: `You have ${watchersWithData.length}/67 watchers` },
+          footer: { text: `You have ${watchersWithData.length}/${ENV.USER_WATCHER_LIMIT} watchers` },
           timestamp: new Date().toISOString()
         }
       ],

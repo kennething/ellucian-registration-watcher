@@ -139,7 +139,7 @@ export default {
 
     let schedule: { uuid: string; term_id: string; name: string; crns: string[] } | undefined;
 
-    const scheduleUuid = options.getString("schedule");
+    const scheduleUuid = options.getString("name");
     if (!scheduleUuid) {
       const [fetchedSchedule, error2] = tryCatch<{ uuid: string; term_id: string; name: string; crns: string }>(
         () => db.prepare("SELECT uuid, term_id, name, crns FROM schedules WHERE owner_uuid = ?").get(user.uuid) as any
@@ -156,7 +156,7 @@ export default {
       schedule = { ...fetchedSchedule, uuid: scheduleUuid, crns: JSON.parse(fetchedSchedule.crns) as string[] };
     }
 
-    const classData = await searchClasses(schedule.term_id, { crn: schedule.crns.join(" OR ") }, 0, 67);
+    const classData = await searchClasses(schedule.term_id, { crn: schedule.crns.join(" OR ") }, 0, ENV.USER_WATCHER_LIMIT);
     const classes = classData[0] as ClassData[];
 
     const parsedClasses: MiniClassData[] = [];
