@@ -298,15 +298,15 @@ export default {
       },
       {
         name: "credit_hours_minimum",
-        description: "Filter by minimum credit hours (1 - 4)",
-        min_value: 1,
+        description: "Filter by minimum credit hours (0 - 4)",
+        min_value: 0,
         max_value: 4,
         type: ApplicationCommandOptionType.Integer
       },
       {
         name: "credit_hours_maximum",
-        description: "Filter by maximum credit hours (1 - 4)",
-        min_value: 1,
+        description: "Filter by maximum credit hours (0 - 4)",
+        min_value: 0,
         max_value: 4,
         type: ApplicationCommandOptionType.Integer
       }
