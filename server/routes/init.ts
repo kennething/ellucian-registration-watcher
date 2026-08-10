@@ -6,12 +6,13 @@ import { CLIENT } from "../../bot/src/common";
 import { Cookie } from "../utils/cookie";
 import { db } from "../utils/sqlite";
 import { Router } from "express";
+import ENV from "../../env";
 
 const router = Router();
 
 router.get("/init", authController, async (req, res) => {
   const user = await CLIENT.client?.users.fetch(req.user.discordId);
-  if (!user) return res.sendStatus(404);
+  if (ENV.DISCORD_TOKEN && !user) return res.sendStatus(404);
 
   const [watchers, error2] = tryCatch<{ uuid: string; term_id: string; crn: string; notify_when: NotificationType; notify_when_value: number }[]>(
     () => db.prepare("SELECT uuid, term_id, crn, notify_when, notify_when_value FROM watchers WHERE owner_uuid = ?").all(req.user.uuid) as any
@@ -104,9 +105,9 @@ router.get("/init", authController, async (req, res) => {
   res.status(200).json({
     discord: {
       id: req.user.discordId,
-      displayName: user.displayName,
-      username: user.username,
-      avatar: user.avatar
+      displayName: user?.displayName,
+      username: user?.username,
+      avatar: user?.avatar
     },
     validTerms: Cookie.getMostRecentTerms(),
     attributes: Cookie.attributes,
