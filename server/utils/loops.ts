@@ -359,8 +359,8 @@ export function fetchProfessorsLoop(): void {
       const match = result[0]?.item;
 
       return {
-        bing_id: professor.code,
-        bing_name: professor.description,
+        school_id: professor.code,
+        school_name: professor.description,
         rmp_id: match?.id ?? null,
         rmp_name: match?.name ?? null,
         overall_rating: match?.overall_rating ?? null,

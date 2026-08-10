@@ -13,9 +13,13 @@ be applied to any school that uses Ellucian's Banner system.
 > You'll need to create some frontend, be it a web app or more bot commands, to
 > allow users to create and manage their stuff.
 
-## Installation
+> \[!CAUTION\]
+>
+> This may or may not be allowed by your university. Don't get expelled!
 
-### Create a Discord Bot
+# Installation
+
+## Create a Discord Bot
 
 1. Go to the
    [Discord Developer Portal](https://discord.com/developers/applications) and
@@ -28,7 +32,7 @@ be applied to any school that uses Ellucian's Banner system.
 
 3. Also enable the `Message Content Intent` Priveleged Intent.
 
-If you will **NOT** be running a frontend using Discord's OAuth2:
+### If you will NOT be running a frontend using Discord's OAuth2:
 
 4. Under the "Installation" tab, select `User Install` as the Installation
    Context, `Discord Provided Link` as the Install Link, and
@@ -36,7 +40,7 @@ If you will **NOT** be running a frontend using Discord's OAuth2:
 
    Copy the generated link and you can add your bot!
 
-If you will be running a frontend using Discord's OAuth2:
+### If you WILL be running a frontend using Discord's OAuth2:
 
 4. Under the "OAuth2" tab, copy the Client ID and reset the Client Secret.
    These will be your `DISCORD_CLIENT_ID` and `DISCORD_CLIENT_SECRET`.
@@ -46,11 +50,12 @@ If you will be running a frontend using Discord's OAuth2:
 
 6. Go to `<BACKEND_URL>/auth/discord` and you can add your bot!
 
-### Run the server
+## Run the server
 
 1. Install [Node.js](https://nodejs.org)
 
-2. Place the `db.sqlite3` file in the `/server` directory.
+2. Place a `db.sqlite3` SQLite3 database file in the `/server` directory.
+   See [here](./README.md#database) for more info on the database schema.
 
 3. Create a `.env` file in the root directory. See
    [here](./README.md#environment-variables) for config options.
@@ -67,12 +72,12 @@ If you will be running a frontend using Discord's OAuth2:
    npm run serve
    ```
 
-## Bot Commands
+# Bot Commands
 
 `APPLICATION_ID` must be defined in your `.env` in order to deploy/undeploy
 commands.
 
-### Registering
+## Registering
 
 1. Register the commands:
 
@@ -84,7 +89,7 @@ You only need to register commands if you change the command's data. Changing
 the command's behavior (i.e. editing the `execute` function) does not require
 re-registering.
 
-### Unregistering
+## Unregistering
 
 2. Unregister the commands:
 
@@ -92,9 +97,9 @@ re-registering.
    npm run undeploy
    ```
 
-## Environment Variables
+# Environment Variables
 
-### General
+## General
 
 | Variable               | Description                                                                                                                                          | Default               | Required |
 | ---------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------- | -------- |
@@ -108,7 +113,7 @@ re-registering.
 | `USER_WATCHER_LIMIT`   | Maximum number of watchers a user can create                                                                                                         | 67                    |          |
 | `USER_SCHEDULE_LIMIT`  | Maximum number of schedules a user can create                                                                                                        | 5                     |          |
 
-### Automation
+## Automation
 
 | Variable                    | Description                                                                                                                 | Default                    | Required |
 | --------------------------- | --------------------------------------------------------------------------------------------------------------------------- | -------------------------- | -------- |
@@ -124,7 +129,7 @@ re-registering.
 | `MATH_FETCH_INTERVAL`       | Interval, in seconds, to fetch new math course schedule data. Set to `0` to disable math course schedule fetching.          | `86400` (1 day)            |          |
 | `MATH_FETCH_OFFSET`         | Offset, in seconds, to wait before fetching new math course schedule data                                                   | `32400` (9 hours)          |          |
 
-### Discord Bot
+## Discord Bot
 
 | Variable         | Description                         | Default | Required |
 | ---------------- | ----------------------------------- | ------- | -------- |
@@ -136,7 +141,7 @@ re-registering.
 > These are only required if you want to run the Discord bot. Omit
 > `DISCORD_TOKEN` to skip running the bot.
 
-### Frontend
+## Frontend
 
 | Variable                | Description                                                                                             | Default | Required |
 | ----------------------- | ------------------------------------------------------------------------------------------------------- | ------- | -------- |
@@ -149,3 +154,63 @@ re-registering.
 >
 > These are only required if you want to run a frontend. but like at that point
 > you might as well edit the entire backend to fit your frontend needs.
+
+# Database
+
+You can adapt your database to fit your needs better, but here is the schema for
+the database used by Bad Scheduler:
+
+### `users` table
+
+| Name         | Data type |
+| ------------ | --------- |
+| `uuid`       | `TEXT`    |
+| `discord_id` | `TEXT`    |
+
+### `watchers` table
+
+| Name                | Data type | Notes                     |
+| ------------------- | --------- | ------------------------- |
+| `uuid`              | `TEXT`    |                           |
+| `owner_uuid`        | `TEXT`    |                           |
+| `last_notified`     | `INTEGER` | unix timestamp in seconds |
+| `term_id`           | `TEXT`    |                           |
+| `crn`               | `TEXT`    |                           |
+| `notify_when`       | `INTEGER` |                           |
+| `notify_when_value` | `INTEGER` |                           |
+
+### `schedules` table
+
+| Name         | Data type | Notes                         |
+| ------------ | --------- | ----------------------------- |
+| `uuid`       | `TEXT`    |                               |
+| `owner_uuid` | `TEXT`    |                               |
+| `name`       | `TEXT`    |                               |
+| `term_id`    | `TEXT`    |                               |
+| `crns`       | `TEXT`    | JSON-serialized array of CRNs |
+
+### `professors` table
+
+| Name                  | Data type | Notes                                                  |
+| --------------------- | --------- | ------------------------------------------------------ |
+| `school_id`           | `INTEGER` | not consistent across multiple fetches for some reason |
+| `school_name`         | `TEXT`    |                                                        |
+| `rmp_id`              | `INTEGER` |                                                        |
+| `rmp_name`            | `TEXT`    |                                                        |
+| `overall_rating`      | `REAL`    |                                                        |
+| `num_ratings`         | `INTEGER` |                                                        |
+| `percent_take_again`  | `REAL`    |                                                        |
+| `level_of_difficulty` | `REAL`    |                                                        |
+
+### `course_history` table
+
+| Name            | Data type | Notes                            |
+| --------------- | --------- | -------------------------------- |
+| `crn`           | `TEXT`    |                                  |
+| `term_id`       | `TEXT`    |                                  |
+| `24h_timestamp` | `INTEGER` | unix timestamp in seconds        |
+| `28d_timestamp` | `INTEGER` | unix timestamp in seconds        |
+| `seat_24h`      | `TEXT`    | JSON-serialized array of numbers |
+| `seat_28d`      | `TEXT`    | JSON-serialized array of numbers |
+| `wait_24h`      | `TEXT`    | JSON-serialized array of numbers |
+| `wait_28d`      | `TEXT`    | JSON-serialized array of numbers |
