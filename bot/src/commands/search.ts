@@ -1,7 +1,7 @@
 import { APIEmbed, ApplicationCommandOptionType, ApplicationIntegrationType, ButtonStyle, CommandInteractionOptionResolver, ComponentType, InteractionContextType } from "discord.js";
 import { getMeetingDaysString, getMeetingTimeString, getTermString } from "../../../server/utils/functions.ts";
+import { requestSearchClasses, tryCatch } from "../../../server/utils/fetch.ts";
 import { TruncatedClassData, ClassData } from "../../../server/utils/types.ts";
-import { searchClasses, tryCatch } from "../../../server/utils/fetch.ts";
 import type { ClassSearchParams } from "../../../server/routes/class.ts";
 import { Cookie } from "../../../server/utils/cookie.ts";
 import { db } from "../../../server/utils/sqlite.ts";
@@ -54,7 +54,7 @@ function getSearchParams(options: CommandInteractionOptionResolver): ClassSearch
 }
 
 export async function getClassData(term: string, searchParams: ClassSearchParams, offset = 0): Promise<[classes: TruncatedClassData[], total: number]> {
-  const results = await searchClasses(term, searchParams, offset, 10); // get 10 instead of 6 incase rmp filtered
+  const results = await requestSearchClasses(term, searchParams, offset, 10); // get 10 instead of 6 incase rmp filtered
   const classes: ClassData[] = results[0];
   const total = results[1];
 

@@ -28,15 +28,24 @@ export function tryCatch<T, E = Error>(fn: () => T): Result<T, E> {
   }
 }
 
+export class AsyncQueue {
+  private currentTask: Promise<void | any>;
+
+  constructor() {
+    this.currentTask = Promise.resolve();
+  }
+
+  enqueue<T>(task: () => Promise<T> | T): Promise<T> {
+    const taskCompletion = this.currentTask.then(() => task());
+    this.currentTask = taskCompletion.catch(() => {});
+
+    return taskCompletion;
+  }
+}
+const requestQueue = new AsyncQueue();
+
 /** @param params !! does not handle `professorRating` */
-export async function searchClasses(
-  term: string,
-  params: Partial<ClassSearchParams>,
-  offset = 0,
-  limit = 500,
-  isRetry = false,
-  classes: ClassData[] = []
-): Promise<[classes: ClassData[], total: number]> {
+async function searchClasses(term: string, params: Partial<ClassSearchParams>, offset = 0, limit = 500, isRetry = false, classes: ClassData[] = []): Promise<[classes: ClassData[], total: number]> {
   limit = Math.min(limit, 500);
   let url = `${ENV.BANNER_API_URL}/StudentRegistrationSsb/ssb/searchResults/searchResults?pageOffset=${offset}&pageMaxSize=${limit}&txt_term=${term}&`;
 
@@ -103,10 +112,14 @@ export async function searchClasses(
   return [classes, data.totalCount];
 }
 
+export async function requestSearchClasses(term: string, params: Partial<ClassSearchParams>, offset = 0, limit = 500, isRetry = false, classes: ClassData[] = []) {
+  return requestQueue.enqueue(() => searchClasses(term, params, offset, limit, isRetry, classes));
+}
+
 /** Fetches the specified classes and automatically refreshes the cookie if needed */
 export async function fetchClasses(term: string, crns: Set<string>): Promise<ClassData[]> {
   const uniqueCrns = Array.from(crns);
-  const classes = await searchClasses(term, { crn: uniqueCrns.join(" OR ") });
+  const classes = await requestSearchClasses(term, { crn: uniqueCrns.join(" OR ") });
 
   return classes[0];
 }

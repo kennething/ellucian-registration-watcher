@@ -1,5 +1,5 @@
 import { ApplicationCommandOptionType, ApplicationIntegrationType, AttachmentBuilder, CommandInteractionOptionResolver, InteractionContextType, MessageFlags } from "discord.js";
-import { searchClasses, tryCatch } from "../../../server/utils/fetch.ts";
+import { requestSearchClasses, tryCatch } from "../../../server/utils/fetch.ts";
 import { ClassData } from "../../../server/utils/types.ts";
 import { db } from "../../../server/utils/sqlite.ts";
 import type { Command } from "./index.ts";
@@ -135,7 +135,7 @@ export default {
 
     const [user, error] = tryCatch<{ uuid: string }>(() => db.prepare("SELECT uuid FROM users WHERE discord_id = ?").get(interaction.user.id) as any);
     if (!user) return void interaction.editReply({ content: `Sign up first! ${ENV.FRONTEND_URL}` });
-    if (error) return void interaction.editReply({ content: "An error occurred while fetching your watchers. Try again later" });
+    if (error) return void interaction.editReply({ content: "An error occurred while fetching your schedules. Try again later" });
 
     let schedule: { uuid: string; term_id: string; name: string; crns: string[] } | undefined;
 
@@ -156,7 +156,9 @@ export default {
       schedule = { ...fetchedSchedule, uuid: scheduleUuid, crns: JSON.parse(fetchedSchedule.crns) as string[] };
     }
 
-    const classData = await searchClasses(schedule.term_id, { crn: schedule.crns.join(" OR ") }, 0, ENV.USER_WATCHER_LIMIT);
+    if (schedule.crns.length === 0) return void interaction.editReply({ content: "This schedule is empty. Add some classes first!" });
+
+    const classData = await requestSearchClasses(schedule.term_id, { crn: schedule.crns.join(" OR ") }, 0, ENV.USER_WATCHER_LIMIT);
     const classes = classData[0] as ClassData[];
 
     const parsedClasses: MiniClassData[] = [];

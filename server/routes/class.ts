@@ -1,4 +1,4 @@
-import { searchClasses, tryCatch } from "../utils/fetch";
+import { requestSearchClasses, tryCatch } from "../utils/fetch";
 import { authController } from "../controllers/auth";
 import { TruncatedClassData } from "../utils/types";
 import * as htmlparser2 from "htmlparser2";
@@ -48,7 +48,7 @@ router.get("/class/search", authController, async (req, res) => {
   const limit = parseInt(req.query.limit as string) || 20;
   if (limit > 499) return res.sendStatus(400);
 
-  const results = await searchClasses(data.term, data, offset, limit);
+  const results = await requestSearchClasses(data.term, data, offset, limit);
   const [classes, total] = results;
 
   const parsedClasses: TruncatedClassData[] = [];
