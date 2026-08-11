@@ -1,10 +1,20 @@
-import { ApplicationCommandOptionType, ApplicationIntegrationType, AttachmentBuilder, CommandInteractionOptionResolver, InteractionContextType, MessageFlags } from "discord.js";
 import { requestSearchClasses, tryCatch } from "../../../server/utils/fetch.ts";
+import { getTermString } from "../../../server/utils/functions.ts";
 import { ClassData } from "../../../server/utils/types.ts";
 import { db } from "../../../server/utils/sqlite.ts";
 import type { Command } from "./index.ts";
 import { createCanvas } from "canvas";
 import ENV from "../../../env.ts";
+import {
+  ApplicationCommandOptionType,
+  ApplicationIntegrationType,
+  AttachmentBuilder,
+  ButtonStyle,
+  CommandInteractionOptionResolver,
+  ComponentType,
+  InteractionContextType,
+  MessageFlags
+} from "discord.js";
 
 type MiniClassData = {
   subject: string;
@@ -184,99 +194,117 @@ export default {
     });
 
     const canvas = createCanvas(WIDTH, HEIGHT);
-    const ctx = canvas.getContext("2d");
+    (() => {
+      const ctx = canvas.getContext("2d");
 
-    ctx.fillStyle = "#1a1a1e";
-    ctx.fillRect(0, 0, WIDTH, HEIGHT);
+      ctx.fillStyle = "#1a1a1e";
+      ctx.fillRect(0, 0, WIDTH, HEIGHT);
 
-    ctx.fillStyle = "#afe696";
-    ctx.fillRect(0, 0, WIDTH, HEADER_HEIGHT);
+      ctx.fillStyle = "#afe696";
+      ctx.fillRect(0, 0, WIDTH, HEADER_HEIGHT);
 
-    ctx.fillStyle = "#0b1308";
-    ctx.font = "bold 24px Inter";
-    ctx.textAlign = "center";
-    ctx.textBaseline = "middle";
-    DAYS.forEach((day, i) => {
-      const x = TIME_WIDTH + i * DAY_WIDTH + DAY_WIDTH / 2;
-      ctx.fillText(day.charAt(0).toUpperCase() + day.slice(1), x, HEADER_HEIGHT / 2);
-    });
-
-    ctx.strokeStyle = "#474f5a";
-    ctx.lineWidth = 1;
-    for (let i = 0; i <= GRID_HEIGHT / SLOT_HEIGHT; i++) {
-      const y = HEADER_HEIGHT + i * SLOT_HEIGHT;
-      ctx.beginPath();
-      ctx.moveTo(0, y);
-      ctx.lineTo(WIDTH, y);
-      ctx.stroke();
-    }
-
-    for (let i = 0; i <= DAYS.length; i++) {
-      const x = TIME_WIDTH + i * DAY_WIDTH;
-      ctx.beginPath();
-      ctx.moveTo(x, HEADER_HEIGHT);
-      ctx.lineTo(x, HEIGHT);
-      ctx.stroke();
-    }
-
-    ctx.fillStyle = "#b5c9d2";
-    ctx.font = "16px Inter";
-    ctx.textAlign = "left";
-
-    for (let i = 0; i < GRID_HEIGHT / SLOT_HEIGHT; i++) {
-      const minutes = SCHEDULE_START + i * 15;
-      const y = HEADER_HEIGHT + i * SLOT_HEIGHT + 15;
-
-      if (minutes % 60 === 0) ctx.font = "bold 16px Inter";
-      else ctx.font = "16px Inter";
-
-      ctx.fillText(getTimeLabel(minutes), 10, y);
-    }
-
-    for (const course of parsedClasses) {
-      const color = getCourseColor(course);
-
-      const start = timeToMinutes(course.meetingsFaculty[0]?.meetingTime.beginTime);
-      const end = timeToMinutes(course.meetingsFaculty[0]?.meetingTime.endTime);
-
-      const y = timeToY(start);
-      const height = timeToY(end) - y;
-
+      ctx.fillStyle = "#0b1308";
+      ctx.font = "bold 24px Inter";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
       DAYS.forEach((day, i) => {
-        if (!course.meetingsFaculty[0]?.meetingTime[day]) return;
-
-        const x = TIME_WIDTH + i * DAY_WIDTH;
-
-        ctx.fillStyle = color;
-        ctx.fillRect(x + 4, y + 2, DAY_WIDTH - 8, height - 4);
-
-        ctx.fillStyle = "#000000";
-        ctx.font = "bold 18px Inter";
-        ctx.textAlign = "left";
-        ctx.textBaseline = "top";
-        ctx.fillText(`${course.subject} ${course.courseNumber} - ${course.sequenceNumber}`, x + 12, y + 10, DAY_WIDTH - 24);
-
-        ctx.font = "14px Inter";
-        const professor = course.faculty[0];
-        if (professor) ctx.fillText(`${professor.displayName.split(",").reverse().join(" ")}${course.rmpRating ? ` (${course.rmpRating.toFixed(1)}/5)` : ""}`, x + 12, y + 34, DAY_WIDTH - 24);
-
-        const startHour = Number(course.startTime?.slice(0, 2));
-        const startMinutes = Number(course.startTime?.slice(2, 4));
-        const endHour = Number(course.endTime?.slice(0, 2));
-        const endMinutes = Number(course.endTime?.slice(2, 4));
-        const sameAmpm = startHour < 12 === endHour < 12;
-
-        let startStr = `${String(startHour > 12 ? startHour - 12 : startHour).padStart(2, "0")}:${startMinutes.toString().padStart(2, "0")}`;
-        if (!sameAmpm) startStr += startHour < 12 ? " AM" : " PM";
-
-        const meetingTimeString = `${startStr} - ${endHour > 12 ? endHour - 12 : endHour}:${endMinutes.toString().padStart(2, "0")} ${endHour < 12 ? "AM" : "PM"}`;
-        ctx.fillText(`${meetingTimeString}`, x + 12, y + (professor ? 54 : 34), DAY_WIDTH - 24);
-
-        ctx.fillText(`${course.meetingsFaculty[0]?.meetingTime.building} ${course.meetingsFaculty[0]?.meetingTime.room}`, x + 12, y + (professor ? 74 : 54), DAY_WIDTH - 24);
+        const x = TIME_WIDTH + i * DAY_WIDTH + DAY_WIDTH / 2;
+        ctx.fillText(day.charAt(0).toUpperCase() + day.slice(1), x, HEADER_HEIGHT / 2);
       });
-    }
+
+      ctx.strokeStyle = "#474f5a";
+      ctx.lineWidth = 1;
+      for (let i = 0; i <= GRID_HEIGHT / SLOT_HEIGHT; i++) {
+        const y = HEADER_HEIGHT + i * SLOT_HEIGHT;
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.lineTo(WIDTH, y);
+        ctx.stroke();
+      }
+
+      for (let i = 0; i <= DAYS.length; i++) {
+        const x = TIME_WIDTH + i * DAY_WIDTH;
+        ctx.beginPath();
+        ctx.moveTo(x, HEADER_HEIGHT);
+        ctx.lineTo(x, HEIGHT);
+        ctx.stroke();
+      }
+
+      ctx.fillStyle = "#b5c9d2";
+      ctx.font = "16px Inter";
+      ctx.textAlign = "left";
+
+      for (let i = 0; i < GRID_HEIGHT / SLOT_HEIGHT; i++) {
+        const minutes = SCHEDULE_START + i * 15;
+        const y = HEADER_HEIGHT + i * SLOT_HEIGHT + 15;
+
+        if (minutes % 60 === 0) ctx.font = "bold 16px Inter";
+        else ctx.font = "16px Inter";
+
+        ctx.fillText(getTimeLabel(minutes), 10, y);
+      }
+
+      for (const course of parsedClasses) {
+        const color = getCourseColor(course);
+
+        const start = timeToMinutes(course.meetingsFaculty[0]?.meetingTime.beginTime);
+        const end = timeToMinutes(course.meetingsFaculty[0]?.meetingTime.endTime);
+
+        const y = timeToY(start);
+        const height = timeToY(end) - y;
+
+        DAYS.forEach((day, i) => {
+          if (!course.meetingsFaculty[0]?.meetingTime[day]) return;
+
+          const x = TIME_WIDTH + i * DAY_WIDTH;
+
+          ctx.fillStyle = color;
+          ctx.fillRect(x + 4, y + 2, DAY_WIDTH - 8, height - 4);
+
+          ctx.fillStyle = "#000000";
+          ctx.font = "bold 18px Inter";
+          ctx.textAlign = "left";
+          ctx.textBaseline = "top";
+          ctx.fillText(`${course.subject} ${course.courseNumber} - ${course.sequenceNumber}`, x + 12, y + 10, DAY_WIDTH - 24);
+
+          ctx.font = "14px Inter";
+          const professor = course.faculty[0];
+          if (professor) ctx.fillText(`${professor.displayName.split(",").reverse().join(" ")}${course.rmpRating ? ` (${course.rmpRating.toFixed(1)}/5)` : ""}`, x + 12, y + 34, DAY_WIDTH - 24);
+
+          const startHour = Number(course.startTime?.slice(0, 2));
+          const startMinutes = Number(course.startTime?.slice(2, 4));
+          const endHour = Number(course.endTime?.slice(0, 2));
+          const endMinutes = Number(course.endTime?.slice(2, 4));
+          const sameAmpm = startHour < 12 === endHour < 12;
+
+          let startStr = `${String(startHour > 12 ? startHour - 12 : startHour).padStart(2, "0")}:${startMinutes.toString().padStart(2, "0")}`;
+          if (!sameAmpm) startStr += startHour < 12 ? " AM" : " PM";
+
+          const meetingTimeString = `${startStr} - ${endHour > 12 ? endHour - 12 : endHour}:${endMinutes.toString().padStart(2, "0")} ${endHour < 12 ? "AM" : "PM"}`;
+          ctx.fillText(`${meetingTimeString}`, x + 12, y + (professor ? 54 : 34), DAY_WIDTH - 24);
+
+          ctx.fillText(`${course.meetingsFaculty[0]?.meetingTime.building} ${course.meetingsFaculty[0]?.meetingTime.room}`, x + 12, y + (professor ? 74 : 54), DAY_WIDTH - 24);
+        });
+      }
+    })();
 
     const buffer = canvas.toBuffer("image/png");
-    await interaction.editReply({ files: [new AttachmentBuilder(buffer, { name: `${schedule.name}.png` })] });
+    await interaction.editReply({
+      content: `${getTermString(schedule.term_id)} - ${classes.reduce((acc, course) => acc + course.meetingsFaculty[0]?.meetingTime.creditHourSession || 0, 0)} credits`,
+      files: [new AttachmentBuilder(buffer, { name: `${schedule.name}.png` })],
+      components: [
+        {
+          type: ComponentType.ActionRow,
+          components: [
+            {
+              type: ComponentType.Button,
+              style: ButtonStyle.Link,
+              label: "View on Web",
+              url: `${ENV.FRONTEND_URL}/schedules/${schedule.uuid}`
+            }
+          ]
+        }
+      ]
+    });
   }
 } satisfies Command;
