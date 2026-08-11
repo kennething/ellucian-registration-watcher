@@ -288,10 +288,10 @@ export default {
       }
     })();
 
-    const buffer = canvas.toBuffer("image/png");
+    const buffer = options.getBoolean("share") ? canvas.toBuffer("image/png") : canvas.toBuffer("image/jpeg");
     await interaction.editReply({
       content: `${getTermString(schedule.term_id)} - ${classes.reduce((acc, course) => acc + course.meetingsFaculty[0]?.meetingTime.creditHourSession || 0, 0)} credits`,
-      files: [new AttachmentBuilder(buffer, { name: `${schedule.name}.png` })],
+      files: [new AttachmentBuilder(buffer, { name: `${schedule.name}.${options.getBoolean("share") ? "png" : "jpg"}` })],
       components: [
         {
           type: ComponentType.ActionRow,
