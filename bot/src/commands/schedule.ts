@@ -72,7 +72,7 @@ export default {
     integration_types: [ApplicationIntegrationType.UserInstall],
     options: [
       {
-        name: "schedule",
+        name: "name",
         description: "The schedule to view. If not provided, the first schedule will be used.",
         max_length: 100,
         type: ApplicationCommandOptionType.String,
