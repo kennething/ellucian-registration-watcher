@@ -39,7 +39,7 @@ export default {
     interaction.editReply({
       embeds: [
         {
-          color: 0x065942,
+          color: ENV.PRIMARY_COLOR,
           title: "Your Watchers",
           description: watchersWithData
             .map((watcher) => {
