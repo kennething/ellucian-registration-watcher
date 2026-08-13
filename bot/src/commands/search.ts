@@ -10,7 +10,7 @@ import {
   MessageFlags
 } from "discord.js";
 import { getMeetingDaysString, getMeetingTimeString, getTermString } from "../../../server/utils/functions.ts";
-import { requestSearchClasses, tryCatch } from "../../../server/utils/fetch.ts";
+import { fetchClassDescription, requestSearchClasses, tryCatch } from "../../../server/utils/fetch.ts";
 import { TruncatedClassData, ClassData } from "../../../server/utils/types.ts";
 import type { ClassSearchParams } from "../../../server/routes/class.ts";
 import { Cookie } from "../../../server/utils/cookie.ts";
@@ -135,41 +135,74 @@ export async function getClassData(term: string, searchParams: ClassSearchParams
   return [parsedClasses.slice(0, ENV.SEARCH_PAGE_SIZE), total];
 }
 
-export function generateResponse(term: string, currentPage: number, total: number, classes: TruncatedClassData[], paginationId: string, hasRmpFilter: boolean): InteractionEditReplyOptions {
+export async function generateResponse(
+  term: string,
+  currentPage: number,
+  total: number,
+  classes: TruncatedClassData[],
+  paginationId: string,
+  hasRmpFilter: boolean
+): Promise<InteractionEditReplyOptions> {
   const maxPage = Math.ceil(total / ENV.SEARCH_PAGE_SIZE);
 
   const container = new ContainerBuilder();
   if (total === 1 && classes.length === 1) {
     const course = classes[0];
 
-    container.setAccentColor(getCourseColor(course, true)).addTextDisplayComponents((textDisplay) => {
-      let str = `## ${course.courseTitle}\n${course.subject} ${course.courseNumber} - ${course.sequenceNumber} (CRN: ${course.courseReferenceNumber})`;
+    const [data, descriptionError] = tryCatch(() => fetchClassDescription(term, course.courseReferenceNumber));
+    if (descriptionError) return getErrorResponse(ErrorCodes.SEARCH_NO_CLASSES, "couldnt get the course description sorry");
+    const description = await data;
 
-      // * location
-      if (course.meeting.building && course.meeting.room) str += `\n- <:location:1537238636368764948> **Location**: ${course.meeting.building} ${course.meeting.room}`;
-      // * professor
-      if (course.professorName) {
-        str += "\n- <:professor:1537238698477752451> **Professor**: ";
-        const hasRmp = course.rmpId && course.rmpRating;
-        const ratingStars = hasRmp ? "<:starfill:1537242913850007612>".repeat(Math.round(course.rmpRating!)) + "<:star:1537242913157681273>".repeat(5 - Math.round(course.rmpRating!)) : "";
-        const rating = hasRmp ? ` ${ratingStars} (${course.rmpRating!.toFixed(1)}/5)` : "";
-        const professor = hasRmp ? `[${course.professorName}](https://www.ratemyprofessors.com/professor/${course.rmpId})` : course.professorName;
-        str += `${professor}${rating}`;
-      }
-      // * meeting time
-      if (course.meeting.days.some((d) => !!d) || (course.meeting.time[0] && course.meeting.time[1])) {
-        str += `\n- <:meetingtime:1537238821911920751> **Meeting Time**: `;
-        if (course.meeting.days.some((d) => !!d)) str += `${getMeetingDaysString(course.meeting.days)} `;
-        if (course.meeting.time[0] && course.meeting.time[1]) str += `${getMeetingTimeString(course.meeting.time)}`;
-      }
-      // * seats
-      str += `\n- <:seats:1537238779268694117> **Seats Available**: __**${course.seatsAvailable}**__ of ${course.maximumEnrollment}`;
-      // * waitlist
-      if (course.waitCapacity > 0) str += `\n- <:waitlist:1537262126647877632> **Waitlist**: ${course.waitCount}`;
+    container
+      .setAccentColor(getCourseColor(course, true))
+      .addTextDisplayComponents((textDisplay) => {
+        let str = `## ${course.courseTitle}\n${course.subject} ${course.courseNumber} - ${course.sequenceNumber} (CRN: ${course.courseReferenceNumber})`;
 
-      textDisplay.setContent(str);
-      return textDisplay;
-    });
+        // * location
+        if (course.meeting.building && course.meeting.room) str += `\n- <:location:1537238636368764948> **Location**: ${course.meeting.building} ${course.meeting.room}`;
+        // * professor
+        if (course.professorName) {
+          str += "\n- <:professor:1537238698477752451> **Professor**: ";
+          const hasRmp = course.rmpId && course.rmpRating;
+          const ratingStars = hasRmp ? "<:starfill:1537242913850007612>".repeat(Math.round(course.rmpRating!)) + "<:star:1537242913157681273>".repeat(5 - Math.round(course.rmpRating!)) : "";
+          const rating = hasRmp ? ` ${ratingStars} (${course.rmpRating!.toFixed(1)}/5)` : "";
+          const professor = hasRmp ? `[${course.professorName}](https://www.ratemyprofessors.com/professor/${course.rmpId})` : course.professorName;
+          str += `${professor}${rating}`;
+        }
+        // * meeting time
+        if (course.meeting.days.some((d) => !!d) || (course.meeting.time[0] && course.meeting.time[1])) {
+          str += `\n- <:meetingtime:1537238821911920751> **Meeting Time**: `;
+          if (course.meeting.days.some((d) => !!d)) str += `${getMeetingDaysString(course.meeting.days)} `;
+          if (course.meeting.time[0] && course.meeting.time[1]) str += `${getMeetingTimeString(course.meeting.time)}`;
+        }
+        // * seats
+        str += `\n- <:seats:1537238779268694117> **Seats Available**: __**${course.seatsAvailable}**__ of ${course.maximumEnrollment}`;
+        // * waitlist
+        if (course.waitCapacity > 0) str += `\n- <:waitlist:1537262126647877632> **Waitlist**: ${course.waitCount}`;
+
+        textDisplay.setContent(str);
+        return textDisplay;
+      })
+      .addSeparatorComponents((separator) => separator.setDivider(true))
+      .addTextDisplayComponents((textDisplay) => textDisplay.setContent(`### <:description:1537274148999536701> Course Description\n${description.slice(0, 1000)}`))
+      .addSeparatorComponents((separator) => separator.setDivider(true))
+      .addTextDisplayComponents((textDisplay) => {
+        let str = `- <:term:1537260458715648041> **Term**: ${getTermString(course.term)}
+- <:credits:1537260545592397996> **Credits**: ${course.credits}
+- <:campus:1537273936646119496> **Campus**: ${course.meeting.campusDescription}${course.meeting.campus === "M" ? " Campus" : ""}
+- <:scheduletype:1537261058635595846> **Schedule Type**: ${course.meeting.scheduleType}
+- <:instructionmethod:1537262270114037845> **Instructional Method**: ${course.meeting.instructionalMethodDescription}`;
+        if (course.attributes.length > 0)
+          str += `\n- <:attributes:1537275293738336386> **Attributes**:\n${course.attributes.map((attribute) => `  - ${Cookie.attributes?.find((a) => a.code === attribute)?.name ?? attribute}`).join("\n")}`;
+
+        textDisplay.setContent(str);
+        return textDisplay;
+      });
+
+    if (ENV.FRONTEND_URL)
+      container.addActionRowComponents((actionRow) =>
+        actionRow.addComponents(new ButtonBuilder().setStyle(ButtonStyle.Link).setLabel("View on Web").setURL(`${ENV.FRONTEND_URL}/search?term=${term}&crn=${course.courseReferenceNumber}`))
+      );
   } // single class
   else {
     container
@@ -422,6 +455,6 @@ export default {
     paginationState.set(paginationId, { userId: interaction.user.id, page: 1, total, params: searchParams });
     setTimeout(() => paginationState.delete(paginationId), ENV.PAGINATION_TIMEOUT * 1000);
 
-    interaction.editReply(generateResponse(searchParams.term, 1, total, parsedClasses, paginationId, hasRmpFilter));
+    interaction.editReply(await generateResponse(searchParams.term, 1, total, parsedClasses, paginationId, hasRmpFilter));
   }
 } satisfies Command;

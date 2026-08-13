@@ -1,4 +1,5 @@
 import { ClassSearchParams } from "../routes/class";
+import * as htmlparser2 from "htmlparser2";
 import { ClassData } from "./types";
 import { Cookie } from "./cookie";
 import { db } from "./sqlite";
@@ -122,4 +123,30 @@ export async function fetchClasses(term: string, crns: Set<string>): Promise<Cla
   const classes = await requestSearchClasses(term, { crn: uniqueCrns.join(" OR ") });
 
   return classes[0];
+}
+
+export async function fetchClassDescription(term: string, crn: string): Promise<string> {
+  type Element = ReturnType<typeof htmlparser2.DomUtils.getElementsByTagName>[number];
+
+  const formData = new FormData();
+  formData.append("term", term);
+  formData.append("courseReferenceNumber", crn);
+
+  try {
+    const html = (await Cookie.requestClient.post(`${ENV.BANNER_API_URL}/StudentRegistrationSsb/ssb/searchResults/getCourseDescription`, formData)).data as string;
+    const dom = htmlparser2.parseDocument(html);
+
+    const children = htmlparser2.DomUtils.getChildren(dom) as Element[];
+    const section = children.find((child) => child.type === "tag" && child.name === "section");
+    if (!section) throw new Error("Course description not found");
+
+    const br = section.children.find((child) => child.type === "tag" && child.name === "br");
+    if (!br) throw new Error("Course description not found");
+
+    const text = br.nextSibling?.type === "text" ? br.nextSibling.data.trim() : "";
+    return text;
+  } catch (error) {
+    console.error(error);
+    throw error;
+  }
 }

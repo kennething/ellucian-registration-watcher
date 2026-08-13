@@ -48,7 +48,7 @@ export default {
         const offset = (state.page - 1) * ENV.SEARCH_PAGE_SIZE;
         const [parsedClasses, total] = await getClassData(state.params.term, state.params, offset);
 
-        await interaction.editReply(generateResponse(state.params.term, state.page, total, parsedClasses, paginationId, state.params.professorRating !== undefined));
+        await interaction.editReply(await generateResponse(state.params.term, state.page, total, parsedClasses, paginationId, state.params.professorRating !== undefined));
       } // search
     } // isButton
   }

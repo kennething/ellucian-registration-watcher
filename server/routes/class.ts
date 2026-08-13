@@ -1,4 +1,4 @@
-import { requestSearchClasses, tryCatch } from "../utils/fetch";
+import { fetchClassDescription, requestSearchClasses, tryCatch } from "../utils/fetch";
 import { authController } from "../controllers/auth";
 import { TruncatedClassData } from "../utils/types";
 import * as htmlparser2 from "htmlparser2";
@@ -141,32 +141,16 @@ router.get("/class/history/:term/:crn", authController, (req, res) => {
 });
 
 router.get("/class/description/:term/:crn", authController, async (req, res) => {
-  type Element = ReturnType<typeof htmlparser2.DomUtils.getElementsByTagName>[number];
-
   const { term, crn } = req.params;
   if (!term || typeof term !== "string" || !crn || typeof crn !== "string") return res.status(400).json({ error: "Missing term or crn" });
 
-  const formData = new FormData();
-  formData.append("term", term);
-  formData.append("courseReferenceNumber", crn);
-
-  try {
-    const html = (await Cookie.requestClient.post(`${ENV.BANNER_API_URL}/StudentRegistrationSsb/ssb/searchResults/getCourseDescription`, formData)).data as string;
-    const dom = htmlparser2.parseDocument(html);
-
-    const children = htmlparser2.DomUtils.getChildren(dom) as Element[];
-    const section = children.find((child) => child.type === "tag" && child.name === "section");
-    if (!section) return res.status(404).json({ error: "Course description not found" });
-
-    const br = section.children.find((child) => child.type === "tag" && child.name === "br");
-    if (!br) return res.status(404).json({ error: "Course description not found" });
-
-    const text = br.nextSibling?.type === "text" ? br.nextSibling.data.trim() : "";
-    return res.status(200).json({ description: text });
-  } catch (error) {
-    console.error(error);
+  const [data, error] = tryCatch(() => fetchClassDescription(term, crn));
+  if (error) {
+    if (error.message === "Course description not found") return res.status(404).json({ error: "Course description not found" });
     return res.sendStatus(500);
   }
+
+  return res.status(200).json({ description: await data });
 });
 
 export default router;
