@@ -71,7 +71,7 @@ router.get("/auth/discord/callback", async (req, res) => {
     const jwtToken = jwt.sign({ uuid, discordId }, ENV.JWT_SECRET as string, { expiresIn: "7d" });
     res.cookie("token", jwtToken, { httpOnly: true, secure: ENV.NODE_ENV === "production", sameSite: ENV.NODE_ENV === "production" ? "none" : "lax" });
 
-    res.redirect(`${ENV.FRONTEND_URL}/watch`);
+    res.redirect(`${ENV.FRONTEND_URL}/schedule`);
 
     if (!existingUser) {
       const user = await CLIENT.client?.users.fetch(discordId);

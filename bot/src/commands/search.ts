@@ -200,7 +200,9 @@ export async function generateResponse(
         return textDisplay;
       })
       .addSeparatorComponents((separator) => separator.setDivider(true))
-      .addTextDisplayComponents((textDisplay) => textDisplay.setContent(`### <:description:1537274148999536701> Course Description\n${description.slice(0, 1000)}`))
+      .addTextDisplayComponents((textDisplay) =>
+        textDisplay.setContent(`### <:description:1537274148999536701> Course Description\n${description.slice(0, 1000)}${description.length > 1000 ? "..." : ""}`)
+      )
       .addSeparatorComponents((separator) => separator.setDivider(true))
       .addTextDisplayComponents((textDisplay) => {
         let str = `- <:term:1537260458715648041> **Term**: ${getTermString(course.term)}
@@ -241,8 +243,6 @@ export async function generateResponse(
           section.addTextDisplayComponents((textDisplay) => {
             let str = `### __${course.courseTitle}__\n${course.subject} ${course.courseNumber} - ${course.sequenceNumber} (CRN: ${course.courseReferenceNumber})`;
 
-            // * location
-            if (course.meeting.building && course.meeting.room) str += `\n- <:location:1537238636368764948> **Location**: ${course.meeting.building} ${course.meeting.room}`;
             // * professor
             if (course.professorName) {
               str += "\n- <:professor:1537238698477752451> **Professor**: ";
@@ -258,6 +258,8 @@ export async function generateResponse(
               if (course.meeting.days.some((d) => !!d)) str += `${getMeetingDaysString(course.meeting.days)} `;
               if (course.meeting.time[0] && course.meeting.time[1]) str += `${getMeetingTimeString(course.meeting.time)}`;
             }
+            // * location
+            if (course.meeting.building && course.meeting.room) str += `\n- <:location:1537238636368764948> **Location**: ${course.meeting.building} ${course.meeting.room}`;
             // * seats
             str += `\n- <:seats:1537238779268694117> **Seats Available**: __**${course.seatsAvailable}**__ of ${course.maximumEnrollment}`;
             // * waitlist

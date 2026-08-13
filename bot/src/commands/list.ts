@@ -41,13 +41,15 @@ export default {
         {
           color: ENV.PRIMARY_COLOR,
           title: "Your Watchers",
-          description: watchersWithData
-            .map((watcher) => {
-              const condition = watcher.notify_when === NotificationType.SEAT_GREATER_THAN || watcher.notify_when === NotificationType.SEAT_LESS_THAN ? "seats" : "waitlist";
-              const operator = watcher.notify_when === NotificationType.SEAT_LESS_THAN || watcher.notify_when === NotificationType.WAIT_LESS_THAN ? "≤" : "≥";
-              return `- **${watcher.crn}** (${condition} ${operator} ${watcher.notify_when_value}): ${watcher.seat24h} seat${watcher.seat24h !== 1 ? "s" : ""} available${watcher.wait24h ? `, ${watcher.wait24h} in waitlist` : ""}`;
-            })
-            .join("\n"),
+          description:
+            "These watchers will notify you when their conditions are met:\n" +
+            watchersWithData
+              .map((watcher) => {
+                const condition = watcher.notify_when === NotificationType.SEAT_GREATER_THAN || watcher.notify_when === NotificationType.SEAT_LESS_THAN ? "seats" : "waitlist";
+                const operator = watcher.notify_when === NotificationType.SEAT_LESS_THAN || watcher.notify_when === NotificationType.WAIT_LESS_THAN ? "≤" : "≥";
+                return `- **${watcher.crn}** (${condition} ${operator} ${watcher.notify_when_value}): ${watcher.seat24h} seat${watcher.seat24h !== 1 ? "s" : ""} available${watcher.wait24h ? `, ${watcher.wait24h} in waitlist` : ""}`;
+              })
+              .join("\n"),
           footer: { text: `You have ${watchersWithData.length}/${ENV.USER_WATCHER_LIMIT} watchers` },
           timestamp: new Date().toISOString()
         }
