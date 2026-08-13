@@ -59,6 +59,7 @@ function getSearchParams(options: CommandInteractionOptionResolver): ClassSearch
     meetingDays: meetingDays.every((day) => !day) ? undefined : meetingDays,
     time: parsedStartTime && parsedEndTime ? [...parsedStartTime, ...parsedEndTime] : undefined,
     professorRating: rmpLow && rmpHigh ? [rmpLow, rmpHigh] : undefined,
+    strictRatingSearch: options.getBoolean("strict_rating_search") ?? false,
     creditHours: creditLow && creditHigh ? [creditLow, creditHigh] : undefined
   };
 
@@ -66,6 +67,8 @@ function getSearchParams(options: CommandInteractionOptionResolver): ClassSearch
 }
 
 export async function getClassData(term: string, searchParams: ClassSearchParams, offset = 0): Promise<[classes: TruncatedClassData[], total: number]> {
+  const hasRmpFilter = (searchParams.professorRating && searchParams.professorRating[0] !== 0 && searchParams.professorRating[1] !== 5) || searchParams.strictRatingSearch;
+
   const results = await requestSearchClasses(term, searchParams, offset, ENV.SEARCH_PAGE_SIZE * 2); // get double incase rmp filtered
   const classes: ClassData[] = results[0];
   const total = results[1];
@@ -80,6 +83,7 @@ export async function getClassData(term: string, searchParams: ClassSearchParams
       : [];
     if (error) return console.error(error);
 
+    if (searchParams.strictRatingSearch && (!rmpData || !rmpData.overall_rating)) return;
     if (searchParams.professorRating && rmpData?.overall_rating && (rmpData.overall_rating < searchParams.professorRating[0] || rmpData.overall_rating > searchParams.professorRating[1])) return;
 
     parsedClasses.push({
@@ -131,6 +135,18 @@ export async function getClassData(term: string, searchParams: ClassSearchParams
       rmpDifficulty: rmpData?.level_of_difficulty ?? null
     });
   });
+
+  if (hasRmpFilter)
+    parsedClasses.sort((a, b) => {
+      const aRating = a.rmpRating ?? 0;
+      const bRating = b.rmpRating ?? 0;
+
+      if (aRating === bRating) return 0;
+      if (aRating === null) return 1;
+      if (bRating === null) return -1;
+
+      return aRating > bRating ? -1 : 1;
+    });
 
   return [parsedClasses.slice(0, ENV.SEARCH_PAGE_SIZE), total];
 }
@@ -400,6 +416,11 @@ export default {
         type: ApplicationCommandOptionType.Number
       },
       {
+        name: "strict_rating_search",
+        description: "If enabled, only classes with professors that have a RateMyProfessor rating will be shown",
+        type: ApplicationCommandOptionType.Boolean
+      },
+      {
         name: "credit_hours_minimum",
         description: "Filter by minimum credit hours (0 - 4)",
         min_value: 0,
@@ -446,7 +467,7 @@ export default {
     // @ts-expect-error
     const options = interaction.options as CommandInteractionOptionResolver;
     const searchParams = getSearchParams(options);
-    const hasRmpFilter = searchParams.professorRating !== undefined;
+    const hasRmpFilter = (searchParams.professorRating !== undefined && searchParams.professorRating[0] !== 0 && searchParams.professorRating[1] !== 5) || !!searchParams.strictRatingSearch;
 
     const [parsedClasses, total] = await getClassData(searchParams.term, searchParams);
     if (total === 0) return void interaction.editReply(getErrorResponse(ErrorCodes.SEARCH_NO_CLASSES, "No classes found matching your search criteria"));
