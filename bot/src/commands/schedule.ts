@@ -237,7 +237,7 @@ export default {
           const endMinutes = Number(course.endTime?.slice(2, 4));
           const sameAmpm = startHour < 12 === endHour < 12;
 
-          let startStr = `${String(startHour > 12 ? startHour - 12 : startHour).padStart(2, "0")}:${startMinutes.toString().padStart(2, "0")}`;
+          let startStr = `${startHour > 12 ? startHour - 12 : startHour}:${startMinutes.toString().padStart(2, "0")}`;
           if (!sameAmpm) startStr += startHour < 12 ? " AM" : " PM";
 
           const meetingTimeString = `${startStr} - ${endHour > 12 ? endHour - 12 : endHour}:${endMinutes.toString().padStart(2, "0")} ${endHour < 12 ? "AM" : "PM"}`;
