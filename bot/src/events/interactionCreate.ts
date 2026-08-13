@@ -1,11 +1,11 @@
+import { Events, InteractionReplyOptions, MessageFlags } from "discord.js";
 import { generateResponse, getClassData } from "../commands/search.ts";
+import { ErrorCodes, getErrorResponse } from "../util/responses.ts";
 import { loadCommands } from "../util/loaders.ts";
 import { paginationState } from "../common.ts";
 import type { Event } from "./index.ts";
-import { Events, InteractionReplyOptions, MessageFlags } from "discord.js";
-import { URL } from "node:url";
-import { ErrorCodes, getErrorResponse } from "../util/responses.ts";
 import ENV from "../../../env.ts";
+import { URL } from "node:url";
 
 const commands = await loadCommands(new URL("../commands/", import.meta.url));
 

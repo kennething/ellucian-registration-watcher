@@ -1,7 +1,9 @@
+import { ErrorCodes, getErrorResponse, getSignupResponse } from "../util/responses.ts";
 import { requestSearchClasses, tryCatch } from "../../../server/utils/fetch.ts";
 import { getTermString } from "../../../server/utils/functions.ts";
 import { ClassData } from "../../../server/utils/types.ts";
 import { db } from "../../../server/utils/sqlite.ts";
+import { getCourseColor } from "../util/index.ts";
 import type { Command } from "./index.ts";
 import { createCanvas } from "canvas";
 import ENV from "../../../env.ts";
@@ -15,8 +17,6 @@ import {
   InteractionContextType,
   MessageFlags
 } from "discord.js";
-import { ErrorCodes, getErrorResponse, getSignupResponse } from "../util/responses.ts";
-import { getCourseColor } from "../util/index.ts";
 
 type MiniClassData = {
   subject: string;

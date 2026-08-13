@@ -1,11 +1,8 @@
 import { fetchClassDescription, requestSearchClasses, tryCatch } from "../utils/fetch";
 import { authController } from "../controllers/auth";
 import { TruncatedClassData } from "../utils/types";
-import * as htmlparser2 from "htmlparser2";
-import { Cookie } from "../utils/cookie";
 import { db } from "../utils/sqlite";
 import { Router } from "express";
-import ENV from "../../env";
 import * as z from "zod";
 
 const router = Router();

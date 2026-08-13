@@ -1,3 +1,15 @@
+import { getMeetingDaysString, getMeetingTimeString, getTermString } from "../../../server/utils/functions.ts";
+import { fetchClassDescription, requestSearchClasses, tryCatch } from "../../../server/utils/fetch.ts";
+import { ErrorCodes, getErrorResponse, getSignupResponse } from "../util/responses.ts";
+import { TruncatedClassData, ClassData } from "../../../server/utils/types.ts";
+import type { ClassSearchParams } from "../../../server/routes/class.ts";
+import { Cookie } from "../../../server/utils/cookie.ts";
+import { db } from "../../../server/utils/sqlite.ts";
+import { getCourseColor } from "../util/index.ts";
+import { paginationState } from "../common.ts";
+import type { Command } from "./index.ts";
+import { v7 as uuidv7 } from "uuid";
+import ENV from "../../../env.ts";
 import {
   ApplicationCommandOptionType,
   ApplicationIntegrationType,
@@ -9,18 +21,6 @@ import {
   InteractionEditReplyOptions,
   MessageFlags
 } from "discord.js";
-import { getMeetingDaysString, getMeetingTimeString, getTermString } from "../../../server/utils/functions.ts";
-import { fetchClassDescription, requestSearchClasses, tryCatch } from "../../../server/utils/fetch.ts";
-import { TruncatedClassData, ClassData } from "../../../server/utils/types.ts";
-import type { ClassSearchParams } from "../../../server/routes/class.ts";
-import { Cookie } from "../../../server/utils/cookie.ts";
-import { db } from "../../../server/utils/sqlite.ts";
-import { paginationState } from "../common.ts";
-import type { Command } from "./index.ts";
-import { v7 as uuidv7 } from "uuid";
-import ENV from "../../../env.ts";
-import { ErrorCodes, getErrorResponse, getSignupResponse } from "../util/responses.ts";
-import { getCourseColor } from "../util/index.ts";
 
 function getSearchParams(options: CommandInteractionOptionResolver): ClassSearchParams {
   const meetingDays = [

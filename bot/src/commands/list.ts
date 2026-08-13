@@ -1,7 +1,7 @@
 import { ApplicationIntegrationType, ComponentType, InteractionContextType, MessageFlags } from "discord.js";
+import { ErrorCodes, getErrorResponse, getSignupResponse } from "../util/responses.ts";
 import { NotificationType } from "../../../server/utils/types.ts";
 import { tryCatch } from "../../../server/utils/fetch.ts";
-import { ErrorCodes, getErrorResponse, getSignupResponse } from "../util/responses.ts";
 import { db } from "../../../server/utils/sqlite.ts";
 import type { Command } from "./index.ts";
 import ENV from "../../../env.ts";
