@@ -140,14 +140,14 @@ router.get("/class/history/:term/:crn", authController, (req, res) => {
   });
 });
 
-router.get("/class/description/:crn", authController, async (req, res) => {
+router.get("/class/description/:term/:crn", authController, async (req, res) => {
   type Element = ReturnType<typeof htmlparser2.DomUtils.getElementsByTagName>[number];
 
-  const { crn } = req.params;
-  if (!crn || typeof crn !== "string") return res.status(400).json({ error: "Missing crn" });
+  const { term, crn } = req.params;
+  if (!term || typeof term !== "string" || !crn || typeof crn !== "string") return res.status(400).json({ error: "Missing term or crn" });
 
   const formData = new FormData();
-  formData.append("term", "202690");
+  formData.append("term", term);
   formData.append("courseReferenceNumber", crn);
 
   try {

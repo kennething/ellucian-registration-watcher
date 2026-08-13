@@ -118,26 +118,31 @@ re-registering.
 
 ## Automation
 
-| Variable                    | Description                                                                                                                 | Default                    | Required |
-| --------------------------- | --------------------------------------------------------------------------------------------------------------------------- | -------------------------- | -------- |
-| `NOTIFICATION_COOLDOWN`     | Cooldown, in seconds, to wait before sending another notification for the same watcher to the same user                     | `43200` (12 hours)         |          |
-| `CLASS_FETCH_INTERVAL`      | Interval, in seconds, to fetch new class data. Set to `0` to disable class fetching.                                        | `600` (10 minutes)         |          |
-| `CLASS_FETCH_OFFSET`        | Offset, in seconds, to wait before fetching new class data                                                                  | `50`                       |          |
-| `CLASS_HISTORY_24H_ENTRIES` | Number of entries to log in the class history over the last 24 hours. This should be an interval of `CLASS_FETCH_INTERVAL`. | `72` (once per 20 minutes) |          |
-| `CLASS_HISTORY_28D_ENTRIES` | Number of entries to log in the class history over the last 28 days. This should be an interval of `CLASS_FETCH_INTERVAL`.  | `28` (once per 1 day)      |          |
-| `WATCHER_PURGE_INTERVAL`    | Interval, in seconds, to search for outdated watchers. Set to `0` to disable watcher purging.                               | `86400` (1 day)            |          |
-| `WATCHER_PURGE_OFFSET`      | Offset, in seconds, to wait before searching for outdated watchers                                                          | `0`                        |          |
-| `RMP_FETCH_INTERVAL`        | Interval, in seconds, to fetch new RateMyProfessors data. Set to `0` to disable RateMyProfessors fetching.                  | `604800` (7 days)          |          |
-| `RMP_FETCH_OFFSET`          | Offset, in seconds, to wait before fetching new Rate My Professors data                                                     | `300` (5 minutes)          |          |
-| `MATH_FETCH_INTERVAL`       | Interval, in seconds, to fetch new math course schedule data. Set to `0` to disable math course schedule fetching.          | `86400` (1 day)            |          |
-| `MATH_FETCH_OFFSET`         | Offset, in seconds, to wait before fetching new math course schedule data                                                   | `32400` (9 hours)          |          |
+| Variable                    | Description                                                                                                                                  | Default                    | Required |
+| --------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------- | -------- |
+| `NOTIFICATION_COOLDOWN`     | Cooldown, in seconds, to wait before sending another notification for the same watcher to the same user                                      | `43200` (12 hours)         |          |
+| `CLASS_FETCH_INTERVAL`      | Interval, in seconds, to fetch new class data. Set to `0` to disable class fetching.                                                         | `600` (10 minutes)         |          |
+| `CLASS_FETCH_OFFSET`        | Offset, in seconds, to wait before fetching new class data                                                                                   | `50`                       |          |
+| `CLASS_HISTORY_24H_ENTRIES` | Number of entries to log in the class history over the last 24 hours. This should be an interval of `CLASS_FETCH_INTERVAL`.                  | `72` (once per 20 minutes) |          |
+| `CLASS_HISTORY_28D_ENTRIES` | Number of entries to log in the class history over the last 28 days. This should be an interval of `CLASS_FETCH_INTERVAL`.                   | `28` (once per 1 day)      |          |
+| `WATCHER_PURGE_INTERVAL`    | Interval, in seconds, to search for outdated watchers. Set to `0` to disable watcher purging.                                                | `86400` (1 day)            |          |
+| `WATCHER_PURGE_OFFSET`      | Offset, in seconds, to wait before searching for outdated watchers                                                                           | `0`                        |          |
+| `WATCHER_PURGE_NOTICE`      | Number of seconds to wait before purging outdated watchers after the term has ended. This should be an interval of `WATCHER_PURGE_INTERVAL`. | `604800` (7 days)          |          |
+| `RMP_FETCH_INTERVAL`        | Interval, in seconds, to fetch new RateMyProfessors data. Set to `0` to disable RateMyProfessors fetching.                                   | `604800` (7 days)          |          |
+| `RMP_FETCH_OFFSET`          | Offset, in seconds, to wait before fetching new Rate My Professors data                                                                      | `300` (5 minutes)          |          |
+| `MATH_FETCH_INTERVAL`       | Interval, in seconds, to fetch new math course schedule data. Set to `0` to disable math course schedule fetching.                           | `86400` (1 day)            |          |
+| `MATH_FETCH_OFFSET`         | Offset, in seconds, to wait before fetching new math course schedule data                                                                    | `32400` (9 hours)          |          |
 
 ## Discord Bot
 
-| Variable         | Description                        | Default | Required |
-| ---------------- | ---------------------------------- | ------- | -------- |
-| `DISCORD_TOKEN`  | Token of your Discord bot          |         | yes\*    |
-| `APPLICATION_ID` | Application ID of your Discord bot |         | yes\*    |
+| Variable             | Description                                                  | Default    | Required |
+| -------------------- | ------------------------------------------------------------ | ---------- | -------- |
+| `DISCORD_TOKEN`      | Token of your Discord bot                                    |            | yes\*    |
+| `APPLICATION_ID`     | Application ID of your Discord bot                           |            | yes\*    |
+| `PRIMARY_COLOR`      | Hex color code for the primary container color               | `0x065942` |          |
+| `ERROR_COLOR`        | Hex color code for the error container color                 | `0xff0000` |          |
+| `SEARCH_PAGE_SIZE`   | Number of search results to show per page of `/search`       | `4`        |          |
+| `PAGINATION_TIMEOUT` | Number of seconds to wait before expiring a pagination state | `900`      |          |
 
 > \[!NOTE\]
 >

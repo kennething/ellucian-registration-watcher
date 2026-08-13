@@ -1,4 +1,14 @@
-import { APIEmbed, ApplicationCommandOptionType, ApplicationIntegrationType, ButtonStyle, CommandInteractionOptionResolver, ComponentType, InteractionContextType } from "discord.js";
+import {
+  ApplicationCommandOptionType,
+  ApplicationIntegrationType,
+  ButtonBuilder,
+  ButtonStyle,
+  CommandInteractionOptionResolver,
+  ContainerBuilder,
+  InteractionContextType,
+  InteractionEditReplyOptions,
+  MessageFlags
+} from "discord.js";
 import { getMeetingDaysString, getMeetingTimeString, getTermString } from "../../../server/utils/functions.ts";
 import { requestSearchClasses, tryCatch } from "../../../server/utils/fetch.ts";
 import { TruncatedClassData, ClassData } from "../../../server/utils/types.ts";
@@ -9,6 +19,8 @@ import { paginationState } from "../common.ts";
 import type { Command } from "./index.ts";
 import { v7 as uuidv7 } from "uuid";
 import ENV from "../../../env.ts";
+import { ErrorCodes, getErrorResponse, getSignupResponse } from "../util/responses.ts";
+import { getCourseColor } from "../util/index.ts";
 
 function getSearchParams(options: CommandInteractionOptionResolver): ClassSearchParams {
   const meetingDays = [
@@ -54,7 +66,7 @@ function getSearchParams(options: CommandInteractionOptionResolver): ClassSearch
 }
 
 export async function getClassData(term: string, searchParams: ClassSearchParams, offset = 0): Promise<[classes: TruncatedClassData[], total: number]> {
-  const results = await requestSearchClasses(term, searchParams, offset, 10); // get 10 instead of 6 incase rmp filtered
+  const results = await requestSearchClasses(term, searchParams, offset, ENV.SEARCH_PAGE_SIZE * 2); // get double incase rmp filtered
   const classes: ClassData[] = results[0];
   const total = results[1];
 
@@ -120,78 +132,132 @@ export async function getClassData(term: string, searchParams: ClassSearchParams
     });
   });
 
-  return [parsedClasses.slice(0, 6), total];
+  return [parsedClasses.slice(0, ENV.SEARCH_PAGE_SIZE), total];
 }
 
-export function generateEmbed(currentPage: number, total: number, classes: TruncatedClassData[]): APIEmbed[] {
-  const meetingString = (course: TruncatedClassData) => {
-    if (course.meeting.days.some((day) => day) && !course.meeting.building && !course.meeting.room) return `-# ${getMeetingDaysString(course.meeting.days)}\n`;
-    else if (course.meeting.days.every((day) => !day) && course.meeting.building && course.meeting.room) return `-# ${course.meeting.building} ${course.meeting.room}\n`;
-    else if (course.meeting.days.some((day) => day) && course.meeting.building && course.meeting.room)
-      return `-# ${getMeetingDaysString(course.meeting.days)} | ${course.meeting.building} ${course.meeting.room}\n`;
-    return "";
+export function generateResponse(term: string, currentPage: number, total: number, classes: TruncatedClassData[], paginationId: string, hasRmpFilter: boolean): InteractionEditReplyOptions {
+  const maxPage = Math.ceil(total / ENV.SEARCH_PAGE_SIZE);
+
+  const container = new ContainerBuilder();
+  if (total === 1 && classes.length === 1) {
+    const course = classes[0];
+
+    container.setAccentColor(getCourseColor(course, true)).addTextDisplayComponents((textDisplay) => {
+      let str = `## ${course.courseTitle}\n${course.subject} ${course.courseNumber} - ${course.sequenceNumber} (CRN: ${course.courseReferenceNumber})`;
+
+      // * location
+      if (course.meeting.building && course.meeting.room) str += `\n- <:location:1537238636368764948> **Location**: ${course.meeting.building} ${course.meeting.room}`;
+      // * professor
+      if (course.professorName) {
+        str += "\n- <:professor:1537238698477752451> **Professor**: ";
+        const hasRmp = course.rmpId && course.rmpRating;
+        const ratingStars = hasRmp ? "<:starfill:1537242913850007612>".repeat(Math.round(course.rmpRating!)) + "<:star:1537242913157681273>".repeat(5 - Math.round(course.rmpRating!)) : "";
+        const rating = hasRmp ? ` ${ratingStars} (${course.rmpRating!.toFixed(1)}/5)` : "";
+        const professor = hasRmp ? `[${course.professorName}](https://www.ratemyprofessors.com/professor/${course.rmpId})` : course.professorName;
+        str += `${professor}${rating}`;
+      }
+      // * meeting time
+      if (course.meeting.days.some((d) => !!d) || (course.meeting.time[0] && course.meeting.time[1])) {
+        str += `\n- <:meetingtime:1537238821911920751> **Meeting Time**: `;
+        if (course.meeting.days.some((d) => !!d)) str += `${getMeetingDaysString(course.meeting.days)} `;
+        if (course.meeting.time[0] && course.meeting.time[1]) str += `${getMeetingTimeString(course.meeting.time)}`;
+      }
+      // * seats
+      str += `\n- <:seats:1537238779268694117> **Seats Available**: __**${course.seatsAvailable}**__ of ${course.maximumEnrollment}`;
+      // * waitlist
+      if (course.waitCapacity > 0) str += `\n- <:waitlist:1537262126647877632> **Waitlist**: ${course.waitCount}`;
+
+      textDisplay.setContent(str);
+      return textDisplay;
+    });
+  } // single class
+  else {
+    container
+      .setAccentColor(ENV.PRIMARY_COLOR)
+      .addTextDisplayComponents((textDisplay) =>
+        textDisplay.setContent(`## Search Results\n${getTermString(term)} - ${total.toLocaleString()} classes found (Page ${currentPage} of ${maxPage.toLocaleString()})`)
+      );
+
+    if (ENV.FRONTEND_URL && hasRmpFilter)
+      container.addTextDisplayComponents((textDisplay) => textDisplay.setContent(`-# [*"Why do some pages have fewer results than others?"*](${ENV.FRONTEND_URL}/?faq=rmp-filter#faq)`));
+
+    container.addSeparatorComponents((separator) => separator.setDivider(true));
+
+    if (classes.length === 0) {
+      container.addTextDisplayComponents((textDisplay) => textDisplay.setContent("No classes on this page matching your search criteria."));
+    } // 0 classes
+    else
+      classes.forEach((course) =>
+        container.addSectionComponents((section) => {
+          section.addTextDisplayComponents((textDisplay) => {
+            let str = `### __${course.courseTitle}__\n${course.subject} ${course.courseNumber} - ${course.sequenceNumber} (CRN: ${course.courseReferenceNumber})`;
+
+            // * location
+            if (course.meeting.building && course.meeting.room) str += `\n- <:location:1537238636368764948> **Location**: ${course.meeting.building} ${course.meeting.room}`;
+            // * professor
+            if (course.professorName) {
+              str += "\n- <:professor:1537238698477752451> **Professor**: ";
+              const hasRmp = course.rmpId && course.rmpRating;
+              const ratingStars = hasRmp ? "<:starfill:1537242913850007612>".repeat(Math.round(course.rmpRating!)) + "<:star:1537242913157681273>".repeat(5 - Math.round(course.rmpRating!)) : "";
+              const rating = hasRmp ? ` ${ratingStars} (${course.rmpRating!.toFixed(1)}/5)` : "";
+              const professor = hasRmp ? `[${course.professorName}](https://www.ratemyprofessors.com/professor/${course.rmpId})` : course.professorName;
+              str += `${professor}${rating}`;
+            }
+            // * meeting time
+            if (course.meeting.days.some((d) => !!d) || (course.meeting.time[0] && course.meeting.time[1])) {
+              str += `\n- <:meetingtime:1537238821911920751> **Meeting Time**: `;
+              if (course.meeting.days.some((d) => !!d)) str += `${getMeetingDaysString(course.meeting.days)} `;
+              if (course.meeting.time[0] && course.meeting.time[1]) str += `${getMeetingTimeString(course.meeting.time)}`;
+            }
+            // * seats
+            str += `\n- <:seats:1537238779268694117> **Seats Available**: __**${course.seatsAvailable}**__ of ${course.maximumEnrollment}`;
+            // * waitlist
+            if (course.waitCapacity > 0) str += `\n- <:waitlist:1537262126647877632> **Waitlist**: ${course.waitCount}`;
+
+            textDisplay.setContent(str);
+            return textDisplay;
+          });
+          if (ENV.FRONTEND_URL)
+            section.setButtonAccessory((button) => button.setStyle(ButtonStyle.Link).setLabel("More Info").setURL(`${ENV.FRONTEND_URL}/search?term=${term}&crn=${course.courseReferenceNumber}`));
+          return section;
+        })
+      );
+
+    container
+      .addSeparatorComponents((separator) => separator.setDivider(true))
+      .addTextDisplayComponents((textDisplay) => textDisplay.setContent(`Page ${currentPage} of ${maxPage.toLocaleString()}`))
+      .addActionRowComponents((actionRow) => {
+        actionRow.setComponents(
+          new ButtonBuilder()
+            .setStyle(ButtonStyle.Secondary)
+            .setCustomId(`search:first:${paginationId}`)
+            .setEmoji("<:arrow:1537239640925536376>")
+            .setDisabled(currentPage === 1),
+          new ButtonBuilder()
+            .setStyle(ButtonStyle.Secondary)
+            .setCustomId(`search:prev:${paginationId}`)
+            .setEmoji("<:arrowleft:1537239620897611887>")
+            .setDisabled(currentPage === 1),
+          new ButtonBuilder()
+            .setStyle(ButtonStyle.Secondary)
+            .setCustomId(`search:next:${paginationId}`)
+            .setEmoji("<:arrowright:1537239554480668684>")
+            .setDisabled(currentPage === maxPage),
+          new ButtonBuilder()
+            .setStyle(ButtonStyle.Secondary)
+            .setCustomId(`search:last:${paginationId}`)
+            .setEmoji("<:arrowright2:1537239597992513537>")
+            .setDisabled(currentPage === maxPage)
+        );
+        if (ENV.FRONTEND_URL) actionRow.addComponents(new ButtonBuilder().setStyle(ButtonStyle.Link).setLabel("View on Web").setURL(`${ENV.FRONTEND_URL}/search`));
+        return actionRow;
+      });
+  }
+
+  return {
+    components: [container],
+    flags: MessageFlags.IsComponentsV2
   };
-
-  return [
-    {
-      color: 0x065942,
-      title: "Search Results",
-      description: `${total.toLocaleString()} classes found${classes.some((c) => c.professorLeaked) ? "\n**\\*** *This professor was taken from the internal Math department schedule and is subject to change.*" : ""}`,
-      fields: classes.map((course) => ({
-        name: `${course.subject} ${course.courseNumber} - ${course.sequenceNumber} | ${course.courseTitle.replace(/&amp;/g, "&").replace(/&#39;/g, "'")}`,
-        value: `${meetingString(course)}${getMeetingTimeString(course.meeting.time) === "TBD" ? "" : `-# ${getMeetingTimeString(course.meeting.time)}\n`}**__${course.seatsAvailable}__**/${course.maximumEnrollment} seats left${course.waitCapacity === 0 ? "" : `\n**${course.waitCount}** on waitlist`}
--# ${course.rmpId && course.professorName ? `[${course.professorName}${course.professorLeaked ? "*****" : ""}](https://ratemyprofessors.com/professor/${course.rmpId})${course.rmpNumRatings ? `\n-# ${course.rmpRating!.toFixed(1)}/5 (${course.rmpNumRatings} rating${course.rmpNumRatings === 1 ? "" : "s"})` : ""}` : course.professorName ? `${course.professorName}${course.professorLeaked ? "*****" : ""}` : "Unknown Instructor"}
-‎ `,
-        inline: true
-      })),
-      footer: { text: `Page ${currentPage} of ${Math.ceil(total / 6).toLocaleString()}` },
-      timestamp: new Date().toISOString()
-    }
-  ];
-}
-
-export function generateActionRow(currentPage: number, total: number, paginationId: string) {
-  return [
-    {
-      type: ComponentType.ActionRow,
-      components: [
-        {
-          type: ComponentType.Button,
-          label: "⏮️",
-          style: ButtonStyle.Secondary,
-          custom_id: `search:first:${paginationId}`,
-          disabled: currentPage === 1
-        },
-        {
-          type: ComponentType.Button,
-          label: "◀️",
-          style: ButtonStyle.Secondary,
-          custom_id: `search:prev:${paginationId}`,
-          disabled: currentPage === 1
-        },
-        {
-          type: ComponentType.Button,
-          label: "▶️",
-          style: ButtonStyle.Secondary,
-          custom_id: `search:next:${paginationId}`,
-          disabled: currentPage === Math.ceil(total / 6)
-        },
-        {
-          type: ComponentType.Button,
-          label: "⏭️",
-          style: ButtonStyle.Secondary,
-          custom_id: `search:last:${paginationId}`,
-          disabled: currentPage === Math.ceil(total / 6)
-        },
-        {
-          type: ComponentType.Button,
-          style: ButtonStyle.Link,
-          label: "View on Web",
-          url: `${ENV.FRONTEND_URL}/search`
-        }
-      ]
-    }
-  ] as const;
 }
 
 export default {
@@ -341,23 +407,21 @@ export default {
     await interaction.deferReply();
 
     const [user, error] = tryCatch<{ uuid: string }>(() => db.prepare("SELECT uuid FROM users WHERE discord_id = ?").get(interaction.user.id) as any);
-    if (!user) return void interaction.editReply({ content: `Create an account first: <${ENV.FRONTEND_URL}>` });
-    if (error) return void interaction.editReply({ content: "An error occurred. Try again later" });
+    if (!user) return void interaction.editReply(getSignupResponse());
+    if (error) return void interaction.editReply(getErrorResponse(ErrorCodes.USER_DB_FETCH_FAIL));
 
     // @ts-expect-error
     const options = interaction.options as CommandInteractionOptionResolver;
     const searchParams = getSearchParams(options);
+    const hasRmpFilter = searchParams.professorRating !== undefined;
 
     const [parsedClasses, total] = await getClassData(searchParams.term, searchParams);
-
-    if (total === 0) return void interaction.editReply({ content: "No classes found matching your search criteria." });
+    if (total === 0) return void interaction.editReply(getErrorResponse(ErrorCodes.SEARCH_NO_CLASSES, "No classes found matching your search criteria"));
 
     const paginationId = uuidv7();
     paginationState.set(paginationId, { userId: interaction.user.id, page: 1, total, params: searchParams });
+    setTimeout(() => paginationState.delete(paginationId), ENV.PAGINATION_TIMEOUT * 1000);
 
-    interaction.editReply({
-      embeds: generateEmbed(1, total, parsedClasses),
-      components: generateActionRow(1, total, paginationId)
-    });
+    interaction.editReply(generateResponse(searchParams.term, 1, total, parsedClasses, paginationId, hasRmpFilter));
   }
 } satisfies Command;

@@ -1,6 +1,7 @@
 import { ApplicationIntegrationType, ComponentType, InteractionContextType, MessageFlags } from "discord.js";
 import { NotificationType } from "../../../server/utils/types.ts";
 import { tryCatch } from "../../../server/utils/fetch.ts";
+import { ErrorCodes, getErrorResponse, getSignupResponse } from "../util/responses.ts";
 import { db } from "../../../server/utils/sqlite.ts";
 import type { Command } from "./index.ts";
 import ENV from "../../../env.ts";
@@ -16,13 +17,13 @@ export default {
     await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
     const [user, error] = tryCatch<{ uuid: string }>(() => db.prepare("SELECT uuid FROM users WHERE discord_id = ?").get(interaction.user.id) as any);
-    if (!user) return void interaction.editReply({ content: `Sign up first! ${ENV.FRONTEND_URL}` });
-    if (error) return void interaction.editReply({ content: "An error occurred while fetching your watchers. Try again later" });
+    if (!user) void interaction.editReply(getSignupResponse());
+    if (error) return void interaction.editReply(getErrorResponse(ErrorCodes.USER_DB_FETCH_FAIL));
 
     const [watchers, error2] = tryCatch<{ term_id: string; crn: string; notify_when: number; notify_when_value: number }[]>(
       () => db.prepare("SELECT term_id, crn, notify_when, notify_when_value FROM watchers WHERE owner_uuid = ?").all(user.uuid) as any
     );
-    if (error2) return void interaction.editReply({ content: "An error occurred while fetching your watchers. Try again later" });
+    if (error2) return void interaction.editReply(getErrorResponse(ErrorCodes.WATCHER_DB_FETCH_FAIL));
 
     const watchersWithData: { term_id: string; crn: string; notify_when: NotificationType; notify_when_value: number; seat24h: number; wait24h: number | null }[] = [];
     const getStatement = db.prepare("SELECT seat_24h, wait_24h FROM course_history WHERE term_id = ? AND crn = ?");
@@ -51,19 +52,21 @@ export default {
           timestamp: new Date().toISOString()
         }
       ],
-      components: [
-        {
-          type: ComponentType.ActionRow,
-          components: [
+      components: ENV.FRONTEND_URL
+        ? [
             {
-              type: ComponentType.Button,
-              label: "Manage Watchers",
-              style: 5,
-              url: `${ENV.FRONTEND_URL}/watch`
+              type: ComponentType.ActionRow,
+              components: [
+                {
+                  type: ComponentType.Button,
+                  label: "Manage Watchers",
+                  style: 5,
+                  url: `${ENV.FRONTEND_URL}/watch`
+                }
+              ]
             }
           ]
-        }
-      ]
+        : undefined
     });
   }
 } satisfies Command;

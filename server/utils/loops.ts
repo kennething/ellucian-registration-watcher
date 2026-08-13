@@ -238,24 +238,26 @@ export function watchClassesLoop(): void {
                     `- **${c.subject} ${c.courseNumber} - ${c.sequenceNumber}** has ${c.notifyWhen! < 2 ? c.seatsAvailable : c.waitCount} ${c.notifyWhen! < 2 ? `seat${c.seatsAvailable === 1 ? "" : "s"} available` : `waitlist spot${c.waitCount === 1 ? "" : "s"} taken`}`
                 )
                 .join("\n") +
-              `\nTh${availableClasses.length > 1 ? "ese" : "is"} watcher${availableClasses.length > 1 ? "s" : ""} will not notify you again until <t:${Math.floor((Date.now() + ENV.NOTIFICATION_COOLDOWN * 1000) / 1000)}>`,
-            color: 0x065942,
+              `\nTh${availableClasses.length > 1 ? "ese" : "is"} watcher${availableClasses.length > 1 ? "s" : ""} will be able to notify you again <t:${Math.floor((Date.now() + ENV.NOTIFICATION_COOLDOWN * 1000) / 1000)}:R>`,
+            color: ENV.PRIMARY_COLOR,
             timestamp: new Date().toISOString()
           }
         ],
-        components: [
-          {
-            type: ComponentType.ActionRow,
-            components: [
+        components: ENV.FRONTEND_URL
+          ? [
               {
-                type: ComponentType.Button,
-                label: `Edit Watcher${availableClasses.length > 1 ? "s" : ""}`,
-                style: 5,
-                url: `${ENV.FRONTEND_URL}/watch`
+                type: ComponentType.ActionRow,
+                components: [
+                  {
+                    type: ComponentType.Button,
+                    label: `Edit Watcher${availableClasses.length > 1 ? "s" : ""}`,
+                    style: 5,
+                    url: `${ENV.FRONTEND_URL}/watch`
+                  }
+                ]
               }
             ]
-          }
-        ]
+          : undefined
         // flags: availableClasses.every((c) => c.notification_priority === 0) ? MessageFlags.SuppressNotifications : undefined
       });
     }
@@ -279,18 +281,18 @@ export function purgeWatchersLoop(): void {
       (term) => `${termStrings[term.slice(-2) as keyof typeof termStrings]} ${term.slice(0, -2)}`
     ) as any;
 
-    if (termsToDelete.size) {
+    const isDeletingTerms = termsToDelete.size && Array.from(termsToDelete).some(([, deleteTimestamp]) => Date.now() >= deleteTimestamp * 1000);
+    if (isDeletingTerms) {
       fs.copyFileSync(path.resolve(ENV.DATABASE_PATH), path.resolve(ENV.BACKUP_DATABASE_PATH, `${Date.now()}-backup.sqlite3`));
 
-      let count = 0;
-      for (const [termId, deleteTimestamp] of termsToDelete) {
-        if (Date.now() >= deleteTimestamp * 1000) {
-          db.prepare("DELETE FROM watchers WHERE term_id = ?").run(termId);
-          termsToDelete.delete(termId);
-          count++;
-        }
+      let total = 0;
+      for (const [termId] of termsToDelete) {
+        const { count } = db.prepare("DELETE FROM watchers WHERE term_id = ? RETURNING COUNT(*) as count").get(termId) as { count: number };
+        termsToDelete.delete(termId);
+        total += count;
       }
-      console.log(`${new Date().toLocaleString()}: Purged ${count} outdated watchers for terms: ${mostRecentTermStrings.join(", ")}`);
+      console.log(`${new Date().toLocaleString()}: Purged ${total} outdated watchers for terms: ${mostRecentTermStrings.join(", ")}`);
+      termsToDelete.clear();
       return;
     }
 
@@ -298,7 +300,7 @@ export function purgeWatchersLoop(): void {
     if (error) return;
 
     const outdatedTerms = allTerms.filter((term) => !mostRecentTerms.includes(term.term_id));
-    outdatedTerms.forEach((term) => termsToDelete.set(term.term_id, Math.floor(Date.now() / 1000) + 7 * ENV.WATCHER_PURGE_INTERVAL));
+    outdatedTerms.forEach((term) => termsToDelete.set(term.term_id, Math.floor(Date.now() / 1000) + ENV.WATCHER_PURGE_NOTICE));
     if (!outdatedTerms.length) return;
 
     const [usersToNotify, error2] = tryCatch<{ owner_uuid: string }[]>(

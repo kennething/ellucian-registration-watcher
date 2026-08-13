@@ -1,9 +1,11 @@
-import { generateActionRow, generateEmbed, getClassData } from "../commands/search.ts";
+import { generateResponse, getClassData } from "../commands/search.ts";
 import { loadCommands } from "../util/loaders.ts";
 import { paginationState } from "../common.ts";
 import type { Event } from "./index.ts";
-import { Events } from "discord.js";
+import { Events, InteractionReplyOptions, MessageFlags } from "discord.js";
 import { URL } from "node:url";
+import { ErrorCodes, getErrorResponse } from "../util/responses.ts";
+import ENV from "../../../env.ts";
 
 const commands = await loadCommands(new URL("../commands/", import.meta.url));
 
@@ -29,21 +31,24 @@ export default {
 
       if (command === "search") {
         const state = paginationState.get(paginationId);
-        if (!state) return void interaction.followUp({ content: "Something went wrong.", ephemeral: true });
+        if (!state)
+          return void interaction.followUp({
+            ...(getErrorResponse(ErrorCodes.SEARCH_EXPIRED, "This search has expired.") as InteractionReplyOptions),
+            flags: [MessageFlags.Ephemeral, MessageFlags.IsComponentsV2]
+          });
         if (state.userId !== interaction.user.id) return;
+
+        const maxPages = Math.ceil(state.total / ENV.SEARCH_PAGE_SIZE);
 
         if (type === "first") state.page = 1;
         else if (type === "prev") state.page = Math.max(1, state.page - 1);
-        else if (type === "next") state.page = Math.min(Math.ceil(state.total / 6), state.page + 1);
-        else if (type === "last") state.page = Math.ceil(state.total / 6);
+        else if (type === "next") state.page = Math.min(maxPages, state.page + 1);
+        else if (type === "last") state.page = maxPages;
 
-        const offset = (state.page - 1) * 6;
+        const offset = (state.page - 1) * ENV.SEARCH_PAGE_SIZE;
         const [parsedClasses, total] = await getClassData(state.params.term, state.params, offset);
 
-        await interaction.editReply({
-          embeds: generateEmbed(state.page, total, parsedClasses),
-          components: generateActionRow(state.page, total, paginationId)
-        });
+        await interaction.editReply(generateResponse(state.params.term, state.page, total, parsedClasses, paginationId, state.params.professorRating !== undefined));
       } // search
     } // isButton
   }

@@ -15,6 +15,8 @@ import {
   InteractionContextType,
   MessageFlags
 } from "discord.js";
+import { ErrorCodes, getErrorResponse, getSignupResponse } from "../util/responses.ts";
+import { getCourseColor } from "../util/index.ts";
 
 type MiniClassData = {
   subject: string;
@@ -62,48 +64,6 @@ function getTimeLabel(minutes: number) {
   return `${hours}:${mins.toString().padStart(2, "0")}${mins === 0 ? ` ${amPm}` : ""}`;
 }
 
-function getCourseColor(course: MiniClassData) {
-  const str = `${course.subject}${course.courseNumber}${course.sequenceNumber}`;
-
-  let hash = 0x811c9dc5;
-  for (let i = 0; i < str.length; i++) {
-    hash ^= str.charCodeAt(i);
-    hash = Math.imul(hash, 0x01000193);
-  }
-
-  const hue = (hash >>> 0) % 360;
-  const saturation = 60 + ((hash >>> 8) % 21);
-  const lightness = 70 + ((hash >>> 16) % 11);
-
-  const hslToHex = (h: number, s: number, l: number) => {
-    s /= 100;
-    l /= 100;
-
-    const c = (1 - Math.abs(2 * l - 1)) * s;
-    const x = c * (1 - Math.abs(((h / 60) % 2) - 1));
-    const m = l - c / 2;
-
-    let r = 0,
-      g = 0,
-      b = 0;
-
-    if (h < 60) [r, g, b] = [c, x, 0];
-    else if (h < 120) [r, g, b] = [x, c, 0];
-    else if (h < 180) [r, g, b] = [0, c, x];
-    else if (h < 240) [r, g, b] = [0, x, c];
-    else if (h < 300) [r, g, b] = [x, 0, c];
-    else [r, g, b] = [c, 0, x];
-
-    const toHex = (v: number) =>
-      Math.round((v + m) * 255)
-        .toString(16)
-        .padStart(2, "0");
-
-    return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
-  };
-  return hslToHex(hue, saturation, lightness);
-}
-
 export default {
   data: {
     name: "schedule",
@@ -144,8 +104,8 @@ export default {
     await interaction.deferReply({ flags: options.getBoolean("share") ? undefined : MessageFlags.Ephemeral });
 
     const [user, error] = tryCatch<{ uuid: string }>(() => db.prepare("SELECT uuid FROM users WHERE discord_id = ?").get(interaction.user.id) as any);
-    if (!user) return void interaction.editReply({ content: `Sign up first! ${ENV.FRONTEND_URL}` });
-    if (error) return void interaction.editReply({ content: "An error occurred while fetching your schedules. Try again later" });
+    if (!user) return void interaction.editReply(getSignupResponse());
+    if (error) return void interaction.editReply(getErrorResponse(ErrorCodes.USER_DB_FETCH_FAIL));
 
     let schedule: { uuid: string; term_id: string; name: string; crns: string[] } | undefined;
 
@@ -154,19 +114,19 @@ export default {
       const [fetchedSchedule, error2] = tryCatch<{ uuid: string; term_id: string; name: string; crns: string }>(
         () => db.prepare("SELECT uuid, term_id, name, crns FROM schedules WHERE owner_uuid = ?").get(user.uuid) as any
       );
-      if (error2) return void interaction.editReply({ content: "An error occurred while fetching your schedules. Try again later" });
-      if (!fetchedSchedule) return void interaction.editReply({ content: "You don't have any schedules yet. Create one first!" });
+      if (error2) return void interaction.editReply(getErrorResponse(ErrorCodes.SCHEDULE_DB_FETCH_FAIL));
+      if (!fetchedSchedule) return void interaction.editReply(getErrorResponse(ErrorCodes.NO_SCHEDULE, "You don't have any schedules yet. Create one first!"));
       schedule = { ...fetchedSchedule, crns: JSON.parse(fetchedSchedule.crns) as string[] };
     } else {
       const [fetchedSchedule, error2] = tryCatch<{ term_id: string; name: string; crns: string }>(
         () => db.prepare("SELECT term_id, name, crns FROM schedules WHERE owner_uuid = ? AND uuid = ?").get(user.uuid, scheduleUuid) as any
       );
-      if (error2) return void interaction.editReply({ content: "An error occurred while fetching your schedules. Try again later" });
-      if (!fetchedSchedule) return void interaction.editReply({ content: "This schedule doesn't exist." });
+      if (error2) return void interaction.editReply(getErrorResponse(ErrorCodes.SCHEDULE_DB_FETCH_FAIL));
+      if (!fetchedSchedule) return void interaction.editReply(getErrorResponse(ErrorCodes.NO_SCHEDULE, "This schedule doesnt exist bro"));
       schedule = { ...fetchedSchedule, uuid: scheduleUuid, crns: JSON.parse(fetchedSchedule.crns) as string[] };
     }
 
-    if (schedule.crns.length === 0) return void interaction.editReply({ content: "This schedule is empty. Add some classes first!" });
+    if (schedule.crns.length === 0) return void interaction.editReply(getErrorResponse(ErrorCodes.EMPTY_SCHEDULE, "This schedule is empty. Add some classes first!"));
 
     const classData = await requestSearchClasses(schedule.term_id, { crn: schedule.crns.join(" OR ") }, 0, ENV.USER_WATCHER_LIMIT);
     const classes = classData[0] as ClassData[];
@@ -292,19 +252,21 @@ export default {
     await interaction.editReply({
       content: `${getTermString(schedule.term_id)} - ${classes.reduce((acc, course) => acc + course.meetingsFaculty[0]?.meetingTime.creditHourSession || 0, 0)} credits`,
       files: [new AttachmentBuilder(buffer, { name: `${schedule.name}.${options.getBoolean("share") ? "png" : "jpg"}` })],
-      components: [
-        {
-          type: ComponentType.ActionRow,
-          components: [
+      components: ENV.FRONTEND_URL
+        ? [
             {
-              type: ComponentType.Button,
-              style: ButtonStyle.Link,
-              label: "View on Web",
-              url: `${ENV.FRONTEND_URL}/schedules/${schedule.uuid}`
+              type: ComponentType.ActionRow,
+              components: [
+                {
+                  type: ComponentType.Button,
+                  style: ButtonStyle.Link,
+                  label: "View on Web",
+                  url: `${ENV.FRONTEND_URL}/schedules/${schedule.uuid}`
+                }
+              ]
             }
           ]
-        }
-      ]
+        : undefined
     });
   }
 } satisfies Command;

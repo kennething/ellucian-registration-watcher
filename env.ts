@@ -33,6 +33,7 @@ const ENV = z
     CLASS_HISTORY_28D_ENTRIES: z.coerce.number().int().positive().default(28),
     WATCHER_PURGE_INTERVAL: z.coerce.number().int().positive().default(86400),
     WATCHER_PURGE_OFFSET: z.coerce.number().int().nonnegative().default(0),
+    WATCHER_PURGE_NOTICE: z.coerce.number().int().positive().default(604800),
     RMP_FETCH_INTERVAL: z.coerce.number().int().positive().default(604800),
     RMP_FETCH_OFFSET: z.coerce.number().int().nonnegative().default(300),
     MATH_FETCH_INTERVAL: z.coerce.number().int().positive().default(86400),
@@ -40,6 +41,10 @@ const ENV = z
 
     DISCORD_TOKEN: z.string().optional(),
     APPLICATION_ID: z.string().optional(),
+    PRIMARY_COLOR: z.coerce.number().int().nonnegative().default(0x065942),
+    ERROR_COLOR: z.coerce.number().int().nonnegative().default(0xff0000),
+    SEARCH_PAGE_SIZE: z.coerce.number().int().positive().default(4),
+    PAGINATION_TIMEOUT: z.coerce.number().int().positive().default(900),
 
     FRONTEND_URL: UrlSchema.optional(),
     DISCORD_CLIENT_ID: z.string().optional(),
