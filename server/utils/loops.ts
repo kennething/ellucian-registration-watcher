@@ -1,8 +1,8 @@
+import { fetchClasses, requestSearchClasses, tryCatch } from "./fetch";
 import { ClassData, NotificationType } from "./types";
-import { fetchClasses, tryCatch } from "./fetch";
 import { CLIENT } from "../../bot/src/common";
 import { ComponentType } from "discord.js";
-import { getSchedule } from "./math";
+import { getMathSchedule } from "./math";
 import { getRMPData } from "./rmp";
 import { Cookie } from "./cookie";
 import { db } from "./sqlite";
@@ -10,11 +10,6 @@ import ENV from "../../env";
 import Fuse from "fuse.js";
 import path from "path";
 import fs from "fs";
-
-if (!ENV.FRONTEND_URL) {
-  console.error("FRONTEND_URL is not set in the environment variables.");
-  process.exit(1);
-}
 
 /** Waits for a specified interval and then calls the callback function
  * @param interval The interval in seconds at which to call the callback function. The first call will be aligned to the nearest interval.
@@ -33,7 +28,6 @@ function waitForInterval(interval: number, offset: number, callback: () => Promi
   );
 }
 
-/** Handles class watchers on a 10-minute interval */
 export function watchClassesLoop(): void {
   type NotificationData = {
     courseReferenceNumber: ClassData["courseReferenceNumber"];
@@ -264,8 +258,7 @@ export function watchClassesLoop(): void {
   });
 }
 
-/** Purges outdated watchers on a 24-hour interval */
-export function purgeWatchersLoop(): void {
+export function purgeOutdatedLoop(): void {
   const termStrings = {
     "10": "Winter",
     "20": "Spring",
@@ -274,7 +267,7 @@ export function purgeWatchersLoop(): void {
   } as const;
 
   const termsToDelete = new Map<string, number>(); // Map<termId, timestampToDelete>
-  waitForInterval(ENV.WATCHER_PURGE_INTERVAL, ENV.WATCHER_PURGE_OFFSET, async () => {
+  waitForInterval(ENV.OUTDATED_PURGE_INTERVAL, ENV.OUTDATED_PURGE_OFFSET, async () => {
     const mostRecentTerms = Cookie.getMostRecentTerms();
     if (!mostRecentTerms) return;
     const mostRecentTermStrings: `${(typeof termStrings)[keyof typeof termStrings]} ${number}`[] = mostRecentTerms.map(
@@ -285,13 +278,24 @@ export function purgeWatchersLoop(): void {
     if (isDeletingTerms) {
       fs.copyFileSync(path.resolve(ENV.DATABASE_PATH), path.resolve(ENV.BACKUP_DATABASE_PATH, `${Date.now()}-backup.sqlite3`));
 
-      let total = 0;
       for (const [termId] of termsToDelete) {
+        // * outdated watchers
         const { count } = db.prepare("DELETE FROM watchers WHERE term_id = ? RETURNING COUNT(*) as count").get(termId) as { count: number };
         termsToDelete.delete(termId);
-        total += count;
+        console.log(`${new Date().toLocaleString()}: Purged ${count} outdated watchers for term ${termId}`);
+
+        // * outdated search db
+        db.prepare(`DROP TABLE IF EXISTS "${termId}_search_db"`).run();
+        db.prepare(`DROP TABLE IF EXISTS "${termId}_search_db_attributes"`).run();
+        console.log(`${new Date().toLocaleString()}: Dropped search db table for term ${termId}`);
+
+        // * outdated math schedules
+        if (ENV.MATH_SCHEDULE_URL) {
+          db.prepare(`DROP TABLE IF EXISTS "${termId}_math_schedule"`).run();
+          console.log(`${new Date().toLocaleString()}: Dropped math schedule table for term ${termId}`);
+        }
       }
-      console.log(`${new Date().toLocaleString()}: Purged ${total} outdated watchers for terms: ${mostRecentTermStrings.join(", ")}`);
+
       termsToDelete.clear();
       return;
     }
@@ -387,16 +391,101 @@ export function fetchProfessorsLoop(): void {
 export function fetchMathScheduleLoop(): void {
   waitForInterval(ENV.MATH_FETCH_INTERVAL, ENV.MATH_FETCH_OFFSET, async () => {
     for (const term of Cookie.getMostRecentTerms() ?? []) {
-      const professors = await getSchedule(term.slice(0, -1));
+      const professors = await getMathSchedule(term.slice(0, -1));
 
       db.transaction(() => {
-        db.prepare(`DELETE FROM "${term}_math_schedule"`).run();
+        db.prepare(`DROP TABLE IF EXISTS "${term}_math_schedule"`).run();
+        db.prepare(`CREATE TABLE "${term}_math_schedule" (crn TEXT PRIMARY KEY UNIQUE, professor TEXT)`).run();
 
         const statement = db.prepare(`INSERT INTO "${term}_math_schedule" (crn, professor) VALUES (?, ?)`);
         for (const professor of professors) statement.run(...professor);
       })();
 
       console.log(`${new Date().toLocaleString()}: Fetched ${professors.size} professors from Math for term ${term}`);
+    }
+  });
+}
+
+export function fetchSearchData(): void {
+  waitForInterval(ENV.SEARCH_FETCH_INTERVAL, ENV.SEARCH_FETCH_OFFSET, async () => {
+    for (const term of Cookie.getMostRecentTerms() ?? []) {
+      console.log("a", Date.now());
+      const [allClasses] = await requestSearchClasses(term, {});
+      console.log("b", Date.now());
+
+      db.transaction(() => {
+        console.log("c");
+        db.prepare(`DROP TABLE IF EXISTS "${term}_search_db"`).run();
+        console.log("d");
+        db.prepare(`DROP TABLE IF EXISTS "${term}_search_db_attributes"`).run();
+
+        console.log("e");
+        db.prepare(
+          `CREATE TABLE "${term}_search_db" (
+    crn            TEXT    UNIQUE NOT NULL PRIMARY KEY,
+    subject        TEXT,
+    course_number  TEXT,
+    section        TEXT,
+    course_title   TEXT,
+    credit_hours   INTEGER,
+    professor_name TEXT,
+    sunday         INTEGER,
+    monday         INTEGER,
+    tuesday        INTEGER,
+    wednesday      INTEGER,
+    thursday       INTEGER,
+    friday         INTEGER,
+    saturday       INTEGER,
+    start_time     TEXT,
+    end_time       TEXT
+)`
+        ).run();
+        console.log("f");
+        db.prepare(
+          `CREATE TABLE "${term}_search_db_attributes" (
+          crn TEXT NOT NULL, 
+          attribute TEXT NOT NULL,
+          PRIMARY KEY (crn, attribute)
+        )`
+        ).run();
+        console.log("1");
+        db.prepare(`CREATE INDEX idx_202690_search_db_attributes_attribute ON "${term}_search_db_attributes"(attribute)`).run();
+
+        const insertStatement = db.prepare(
+          `INSERT INTO "${term}_search_db" (crn, subject, course_number, section, course_title, credit_hours, professor_name, sunday, monday, tuesday, wednesday, thursday, friday, saturday, start_time, end_time) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+        );
+        const insertAttributeStatement = db.prepare(`INSERT INTO "${term}_search_db_attributes" (crn, attribute) VALUES (?, ?)`);
+
+        console.log("g");
+        for (const course of allClasses) {
+          const meetingTime = course.meetingsFaculty[0]?.meetingTime;
+          insertStatement.run(
+            ...[
+              course.courseReferenceNumber,
+              course.subject,
+              course.courseNumber,
+              course.sequenceNumber,
+              course.courseTitle,
+              meetingTime.creditHourSession,
+              course.faculty[0]?.displayName,
+              Number(meetingTime.sunday === true),
+              Number(meetingTime.monday === true),
+              Number(meetingTime.tuesday === true),
+              Number(meetingTime.wednesday === true),
+              Number(meetingTime.thursday === true),
+              Number(meetingTime.friday === true),
+              Number(meetingTime.saturday === true),
+              meetingTime.beginTime,
+              meetingTime.endTime
+            ].map((val) => (val === undefined ? null : val))
+          );
+
+          for (const attribute of course.sectionAttributes) insertAttributeStatement.run(course.courseReferenceNumber, attribute.code);
+        }
+        console.log("h");
+      })();
+
+      console.log(`${new Date().toLocaleString()}: Fetched ${allClasses.length} classes for ${term}`);
     }
   });
 }

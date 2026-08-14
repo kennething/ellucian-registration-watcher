@@ -4,7 +4,7 @@ import ENV from "../../env";
 
 type Element = ReturnType<typeof htmlparser2.DomUtils.getElementsByTagName>[number];
 
-export async function getSchedule(term: string) {
+export async function getMathSchedule(term: string) {
   const form = new FormData();
   form.set("schedule", term);
   form.set("listby", "By course name");

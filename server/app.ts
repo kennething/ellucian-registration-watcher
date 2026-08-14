@@ -29,7 +29,8 @@ export async function startServer() {
   app.listen(ENV.PORT, "0.0.0.0", () => console.log(`Server is up on port ${ENV.PORT}`));
 
   if (ENV.CLASS_FETCH_INTERVAL > 0) loops.watchClassesLoop();
-  if (ENV.WATCHER_PURGE_INTERVAL > 0) loops.purgeWatchersLoop();
+  if (ENV.OUTDATED_PURGE_INTERVAL > 0) loops.purgeOutdatedLoop();
   if (ENV.RMP_FETCH_INTERVAL > 0 && ENV.RMP_SCHOOL_ID) loops.fetchProfessorsLoop();
   if (ENV.MATH_FETCH_INTERVAL > 0 && ENV.MATH_SCHEDULE_URL) loops.fetchMathScheduleLoop();
+  if (ENV.SEARCH_FETCH_INTERVAL > 0) loops.fetchSearchData();
 }

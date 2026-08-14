@@ -38,7 +38,6 @@ export default {
           });
         if (state.userId !== interaction.user.id) return;
 
-        const hasRmpFilter = (state.params.professorRating !== undefined && state.params.professorRating[0] !== 0 && state.params.professorRating[1] !== 5) || !!state.params.strictRatingSearch;
         const maxPages = Math.ceil(state.total / ENV.SEARCH_PAGE_SIZE);
 
         if (type === "first") state.page = 1;
@@ -49,7 +48,7 @@ export default {
         const offset = (state.page - 1) * ENV.SEARCH_PAGE_SIZE;
         const [parsedClasses, total] = await getClassData(state.params.term, state.params, offset);
 
-        await interaction.editReply(await generateResponse(state.params.term, state.page, total, parsedClasses, paginationId, hasRmpFilter));
+        await interaction.editReply(await generateResponse(state.params.term, state.page, total, parsedClasses, paginationId));
       } // search
     } // isButton
   }

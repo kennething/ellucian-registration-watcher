@@ -1,4 +1,4 @@
-import { fetchClassDescription, requestSearchClasses, tryCatch } from "../utils/fetch";
+import { fetchClassDescription, searchClassDb, tryCatch } from "../utils/fetch";
 import { authController } from "../controllers/auth";
 import { TruncatedClassData } from "../utils/types";
 import { db } from "../utils/sqlite";
@@ -46,7 +46,7 @@ router.get("/class/search", authController, async (req, res) => {
   const limit = parseInt(req.query.limit as string) || 20;
   if (limit > 499) return res.sendStatus(400);
 
-  const results = await requestSearchClasses(filters.term, filters, offset, limit);
+  const results = await searchClassDb(filters.term, filters, offset, limit);
   const [classes, total] = results;
 
   const parsedClasses: TruncatedClassData[] = [];

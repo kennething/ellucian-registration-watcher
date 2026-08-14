@@ -29,6 +29,98 @@ export function tryCatch<T, E = Error>(fn: () => T): Result<T, E> {
   }
 }
 
+function timeToMinutes(time: [hour: number, minute: number, "AM" | "PM"]): number {
+  let hour = time[0];
+  if (time[2] === "AM" && hour === 12) hour = 0;
+  else if (time[2] === "PM" && hour !== 12) hour += 12;
+
+  return hour * 60 + time[1];
+}
+
+const days = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"] as const;
+export async function searchClassDb(term: string, params: Partial<ClassSearchParams>, offset = 0, limit = 500): Promise<[classes: ClassData[], total: number]> {
+  limit = Math.min(limit, 500);
+
+  const queries: [query: string, value: any[]][] = [];
+  const tableName = `${term}_search_db`;
+
+  if (params.attribute?.length)
+    queries.push([`EXISTS (SELECT 1 FROM "${tableName}_attributes" WHERE "${tableName}_attributes".attribute = ? AND "${tableName}".crn = "${tableName}_attributes".crn)`, [params.attribute]]);
+  if (params.courseNumber) queries.push([`course_number = ?`, [params.courseNumber]]);
+  if (params.courseTitle) queries.push([`course_title LIKE ?`, [`%${params.courseTitle}%`]]);
+  if (params.creditHours?.length === 2) queries.push([`credit_hours BETWEEN ? AND ?`, [params.creditHours[0], params.creditHours[1]]]);
+  if (params.crn) queries.push([`crn = ?`, [params.crn]]);
+  if (params.meetingDays?.length === 7)
+    queries.push([
+      params.meetingDays
+        .map((val, i) => (val ? `${days[i]} = 1` : ""))
+        .filter(Boolean)
+        .join(" AND "),
+      []
+    ]);
+  if (params.subject?.length) queries.push([`subject = ?`, [params.subject]]);
+  if (params.time?.length === 6) {
+    if (params.time[0] !== null && params.time[1] !== null)
+      queries.push([
+        `(
+        CAST(substr(start_time, 1, 2) AS INTEGER) * 60
+        + CAST(substr(start_time, 3, 2) AS INTEGER)
+      ) >= ? AND (
+        CAST(substr(end_time, 1, 2) AS INTEGER) * 60
+        + CAST(substr(end_time, 3, 2) AS INTEGER)
+      ) >= ?`,
+        [timeToMinutes([params.time[0], params.time[1], params.time[2]]), timeToMinutes([params.time[0], params.time[1], params.time[2]])]
+      ]);
+    if (params.time[3] !== null && params.time[4] !== null)
+      queries.push([
+        `(
+        CAST(substr(start_time, 1, 2) AS INTEGER) * 60
+        + CAST(substr(start_time, 3, 2) AS INTEGER)
+      ) <= ? AND (
+        CAST(substr(end_time, 1, 2) AS INTEGER) * 60
+        + CAST(substr(end_time, 3, 2) AS INTEGER)
+      ) <= ?`,
+        [timeToMinutes([params.time[3], params.time[4], params.time[5]]), timeToMinutes([params.time[3], params.time[4], params.time[5]])]
+      ]);
+  }
+  if (params.strictRatingSearch || params.professorRating?.length === 2)
+    queries.push([
+      `(
+    (
+      SELECT professors.overall_rating
+      FROM professors
+      WHERE professors.school_name = "${tableName}".professor_name
+      ORDER BY professors.num_ratings DESC
+      LIMIT 1
+    )
+    ${
+      params.strictRatingSearch
+        ? "IS NOT NULL"
+        : `IS NULL OR (
+      SELECT professors.overall_rating
+      FROM professors
+      WHERE professors.school_name = "${tableName}".professor_name
+      ORDER BY professors.num_ratings DESC
+      LIMIT 1
+    )`
+    }
+    BETWEEN ? AND ?
+  )`,
+      [params.professorRating?.[0] ?? 0, params.professorRating?.[1] ?? 5]
+    ]);
+
+  const query = `SELECT crn, COUNT(*) OVER () as total FROM "${tableName}" ${queries.length ? `WHERE ${queries.map((query) => query[0]).join(" AND ")}` : ""} ORDER BY subject, course_number, section LIMIT ${limit} OFFSET ${offset}`;
+  const [data, error] = tryCatch<{ crn: string; total: number }[]>(() => db.prepare(query).all(...queries.flatMap((query) => query[1])) as any);
+  if (error) {
+    console.error(error);
+    return [[], 0];
+  }
+  if (data.length === 0) return [[], 0];
+
+  const [classes] = await requestSearchClasses(term, { crn: data.map((row) => row.crn).join(" OR ") });
+  return [classes, data[0].total || 0];
+}
+
 export class AsyncQueue {
   private currentTask: Promise<void | any>;
 

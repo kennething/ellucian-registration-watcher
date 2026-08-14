@@ -1,5 +1,5 @@
 import { getMeetingDaysString, getMeetingTimeString, getTermString } from "../../../server/utils/functions.ts";
-import { fetchClassDescription, requestSearchClasses, tryCatch } from "../../../server/utils/fetch.ts";
+import { fetchClassDescription, searchClassDb, tryCatch } from "../../../server/utils/fetch.ts";
 import { ErrorCodes, getErrorResponse, getSignupResponse } from "../util/responses.ts";
 import { TruncatedClassData, ClassData } from "../../../server/utils/types.ts";
 import type { ClassSearchParams } from "../../../server/routes/class.ts";
@@ -67,9 +67,7 @@ function getSearchParams(options: CommandInteractionOptionResolver): ClassSearch
 }
 
 export async function getClassData(term: string, searchParams: ClassSearchParams, offset = 0): Promise<[classes: TruncatedClassData[], total: number]> {
-  const hasRmpFilter = (searchParams.professorRating && searchParams.professorRating[0] !== 0 && searchParams.professorRating[1] !== 5) || searchParams.strictRatingSearch;
-
-  const results = await requestSearchClasses(term, searchParams, offset, ENV.SEARCH_PAGE_SIZE * 2); // get double incase rmp filtered
+  const results = await searchClassDb(term, searchParams, offset, ENV.SEARCH_PAGE_SIZE);
   const classes: ClassData[] = results[0];
   const total = results[1];
 
@@ -136,29 +134,10 @@ export async function getClassData(term: string, searchParams: ClassSearchParams
     });
   });
 
-  if (hasRmpFilter)
-    parsedClasses.sort((a, b) => {
-      const aRating = a.rmpRating ?? 0;
-      const bRating = b.rmpRating ?? 0;
-
-      if (aRating === bRating) return 0;
-      if (aRating === null) return 1;
-      if (bRating === null) return -1;
-
-      return aRating > bRating ? -1 : 1;
-    });
-
-  return [parsedClasses.slice(0, ENV.SEARCH_PAGE_SIZE), total];
+  return [parsedClasses, total];
 }
 
-export async function generateResponse(
-  term: string,
-  currentPage: number,
-  total: number,
-  classes: TruncatedClassData[],
-  paginationId: string,
-  hasRmpFilter: boolean
-): Promise<InteractionEditReplyOptions> {
+export async function generateResponse(term: string, currentPage: number, total: number, classes: TruncatedClassData[], paginationId: string): Promise<InteractionEditReplyOptions> {
   const maxPage = Math.ceil(total / ENV.SEARCH_PAGE_SIZE);
 
   const container = new ContainerBuilder();
@@ -228,9 +207,6 @@ export async function generateResponse(
       .addTextDisplayComponents((textDisplay) =>
         textDisplay.setContent(`## Search Results\n${getTermString(term)} - ${total.toLocaleString()} classes found (Page ${currentPage} of ${maxPage.toLocaleString()})`)
       );
-
-    if (ENV.FRONTEND_URL && hasRmpFilter)
-      container.addTextDisplayComponents((textDisplay) => textDisplay.setContent(`-# [*"Why do some pages have fewer results than others?"*](${ENV.FRONTEND_URL}/?faq=rmp-filter#faq)`));
 
     container.addSeparatorComponents((separator) => separator.setDivider(true));
 
@@ -469,7 +445,6 @@ export default {
     // @ts-expect-error
     const options = interaction.options as CommandInteractionOptionResolver;
     const searchParams = getSearchParams(options);
-    const hasRmpFilter = (searchParams.professorRating !== undefined && searchParams.professorRating[0] !== 0 && searchParams.professorRating[1] !== 5) || !!searchParams.strictRatingSearch;
 
     const [parsedClasses, total] = await getClassData(searchParams.term, searchParams);
     if (total === 0) return void interaction.editReply(getErrorResponse(ErrorCodes.SEARCH_NO_CLASSES, "No classes found matching your search criteria"));
@@ -478,6 +453,6 @@ export default {
     paginationState.set(paginationId, { userId: interaction.user.id, page: 1, total, params: searchParams });
     setTimeout(() => paginationState.delete(paginationId), ENV.PAGINATION_TIMEOUT * 1000);
 
-    interaction.editReply(await generateResponse(searchParams.term, 1, total, parsedClasses, paginationId, hasRmpFilter));
+    interaction.editReply(await generateResponse(searchParams.term, 1, total, parsedClasses, paginationId));
   }
 } satisfies Command;
