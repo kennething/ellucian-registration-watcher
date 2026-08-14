@@ -1,12 +1,34 @@
-import express, { Router } from "express";
+import express, { Router, Express } from "express";
 import cookieParser from "cookie-parser";
 import { Cookie } from "./utils/cookie";
 import * as loops from "./utils/loops";
-import { pathToFileURL } from "url";
 import ENV from "../env";
 import cors from "cors";
 import path from "path";
 import fs from "fs";
+
+async function registerRoutes(app: Express, dir: string, basePath: string = ""): Promise<void> {
+  const files = fs.readdirSync(dir);
+
+  for (const file of files) {
+    const fullPath = path.join(dir, file);
+    const stat = fs.statSync(fullPath);
+
+    if (stat.isDirectory()) await registerRoutes(app, fullPath, `${basePath}/${file}`);
+    if (!file.endsWith(".ts")) continue;
+
+    const routeModule = await import(fullPath);
+    const router: Router = routeModule.default ?? routeModule.router;
+    if (!router) continue;
+
+    let routeName = file.replace(/\.ts$/, "");
+    if (routeName === "index") routeName = "";
+
+    let routePath = `${basePath}/${routeName}`;
+    routePath = routePath.replace(/\/+/g, "/").replace(/\/$/, "") || "/";
+    app.use(routePath, router);
+  }
+}
 
 export async function startServer() {
   const app = express()
@@ -14,17 +36,11 @@ export async function startServer() {
     .use(cookieParser())
     .use(express.json());
 
+  await Cookie.refreshCookie();
+
   const projectRoot = process.cwd();
   const routesDir = path.join(projectRoot, "server", "routes");
-  fs.readdirSync(routesDir).forEach(async (file) => {
-    if (!file.endsWith(".ts")) return;
-
-    const routePath = path.join(routesDir, file);
-    const router = (await import(pathToFileURL(routePath).href)).default as Router;
-    app.use("/", router);
-  });
-
-  await Cookie.refreshCookie();
+  await registerRoutes(app, routesDir);
 
   app.listen(ENV.PORT, "0.0.0.0", () => console.log(`Server is up on port ${ENV.PORT}`));
 

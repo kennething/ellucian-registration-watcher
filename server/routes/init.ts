@@ -10,7 +10,7 @@ import ENV from "../../env";
 
 const router = Router();
 
-router.get("/init", authController, async (req, res) => {
+router.get("/", authController, async (req, res) => {
   const user = await CLIENT.client?.users.fetch(req.user.discordId);
   if (ENV.DISCORD_TOKEN && !user) return res.sendStatus(404);
 

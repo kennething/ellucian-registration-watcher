@@ -1,3 +1,5 @@
+import * as z from "zod";
+
 export enum NotificationType {
   /** class.seatsAvailable >= X */
   SEAT_GREATER_THAN,
@@ -8,6 +10,36 @@ export enum NotificationType {
   /** class.waitCount <= X */
   WAIT_LESS_THAN
 }
+
+export const ClassSearchSchema = z
+  .object({
+    term: z.string(),
+    crn: z.string(),
+    subject: z.string(), // "CS" - subject code
+    // too much work // // subject: z.array(z.string()), // "CS" - subject codes
+    courseNumber: z.string(), // "220"
+    courseTitle: z.string(),
+    meetingDays: z.array(z.boolean()).length(7), // bool for each day of the week, starting on sunday; sunday+monday = [true, true, ...false]
+    time: z.tuple([
+      z.number().int().min(1).max(12).nullable(),
+      z.number().int().min(0).max(59).nullable(),
+      z.enum(["AM", "PM"]),
+      z.number().int().min(1).max(12).nullable(),
+      z.number().int().min(0).max(59).nullable(),
+      z.enum(["AM", "PM"])
+    ]), // [startHour: number, startMinute: number, startAmpm: "AM" | "PM", endHour: number, endMinute: number, endAmpm: "AM" | "PM"]
+    attribute: z.string(), // attribute code
+    // too much work // // attribute: z.array(z.string()), // attribute codes
+    // too much work // // professor: z.array(z.string()), // instructor codes
+    creditHours: z.tuple([z.number().int().min(0).max(4), z.number().int().min(0).max(4)]), // [low: number, high: number]; 1-4
+    // too much work // // openSections: z.boolean(),
+    // too much work // // waitlistOpen: z.boolean(),
+    professorRating: z.tuple([z.number().min(0).max(5), z.number().min(0).max(5)]), // [low: number, high: number]; 0-5
+    strictRatingSearch: z.boolean()
+  })
+  .partial()
+  .required({ term: true });
+export type ClassSearchParams = z.infer<typeof ClassSearchSchema>;
 
 export type ClassData = {
   id: number;

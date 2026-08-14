@@ -1,4 +1,4 @@
-import { ClassSearchParams } from "../routes/class";
+import { ClassSearchParams } from "./types";
 import * as htmlparser2 from "htmlparser2";
 import { ClassData } from "./types";
 import { Cookie } from "./cookie";

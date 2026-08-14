@@ -2,7 +2,7 @@ import { getMeetingDaysString, getMeetingTimeString, getTermString } from "../..
 import { fetchClassDescription, searchClassDb, tryCatch } from "../../../server/utils/fetch.ts";
 import { ErrorCodes, getErrorResponse, getSignupResponse } from "../util/responses.ts";
 import { TruncatedClassData, ClassData } from "../../../server/utils/types.ts";
-import type { ClassSearchParams } from "../../../server/routes/class.ts";
+import type { ClassSearchParams } from "../../../server/utils/types.ts";
 import { Cookie } from "../../../server/utils/cookie.ts";
 import { db } from "../../../server/utils/sqlite.ts";
 import { getCourseColor } from "../util/index.ts";

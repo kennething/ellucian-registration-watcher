@@ -1,4 +1,4 @@
-import { ClassSearchParams } from "../../server/routes/class.ts";
+import { ClassSearchParams } from "../../server/utils/types.ts";
 import { Client } from "discord.js";
 
 /** The Discord client instance, taken from the `clientReady` event */
