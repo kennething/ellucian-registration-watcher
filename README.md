@@ -110,6 +110,7 @@ re-registering.
 | `PORT`                 | Port to run the server on                                                                                                                            | `6969`                |          |
 | `DATABASE_PATH`        | Path to the SQLite database file                                                                                                                     | `./server/db.sqlite3` |          |
 | `BACKUP_DATABASE_PATH` | Path to a folder where the database will be backed up before watchers are purged                                                                     | `./server/`           |          |
+| `TIMEZONE`             | Timezone to use for all date/time operations. See list of valid timezones [here](https://en.wikipedia.org/wiki/List_of_tz_database_time_zones)       | `America/New_York`    |          |
 | `BANNER_API_URL`       | URL with protocol to your university's course catalog, don't append `/` (ex. `https://ssb.cc.binghamton.edu:8484`, `https://banssb.yourcollege.edu`) |                       | yes      |
 | `RMP_SCHOOL_ID`        | ID of your school on [Rate My Professors](https://www.ratemyprofessors.com) - find this by searching for your school and looking at the URL          |                       |          |
 | `MATH_SCHEDULE_URL`    | You probably don't have this but the URL to the math course schedule for your school, don't append `/`                                               |                       |          |
@@ -185,6 +186,7 @@ the database used by Bad Scheduler:
 | `uuid`              | `TEXT`    |                           |
 | `owner_uuid`        | `TEXT`    |                           |
 | `last_notified`     | `INTEGER` | unix timestamp in seconds |
+| `CREATED_AT`        | `INTEGER` | unix timestamp in seconds |
 | `term_id`           | `TEXT`    |                           |
 | `crn`               | `TEXT`    |                           |
 | `notify_when`       | `INTEGER` |                           |
@@ -196,6 +198,7 @@ the database used by Bad Scheduler:
 | ------------ | --------- | ----------------------------- |
 | `uuid`       | `TEXT`    |                               |
 | `owner_uuid` | `TEXT`    |                               |
+| `created_at` | `INTEGER` | unix timestamp in seconds     |
 | `name`       | `TEXT`    |                               |
 | `term_id`    | `TEXT`    |                               |
 | `crns`       | `TEXT`    | JSON-serialized array of CRNs |

@@ -3,6 +3,7 @@ import { truncateClassData } from "../utils/functions";
 import { authController } from "../controllers/auth";
 import { CLIENT } from "../../bot/src/common";
 import { Cookie } from "../utils/cookie";
+import { timeNow } from "../utils/time";
 import { db } from "../utils/sqlite";
 import { v7 as uuidv7 } from "uuid";
 import { Router } from "express";
@@ -67,7 +68,9 @@ router.post("/schedule/create", authController, async (req, res) => {
   db.transaction(() => {
     const scheduleUuid = uuidv7();
     const [, insertError] = tryCatch(() =>
-      db.prepare(`INSERT INTO schedules (uuid, owner_uuid, term_id, name, crns) VALUES (?, ?, ?, ?, ?)`).run(scheduleUuid, req.user.uuid, schedule.term, `Schedule ${num_schedules + 1}`, "[]")
+      db
+        .prepare(`INSERT INTO schedules (uuid, owner_uuid, created_at, term_id, name, crns) VALUES (?, ?, ?, ?, ?, ?)`)
+        .run(scheduleUuid, req.user.uuid, timeNow(), schedule.term, `Schedule ${num_schedules + 1}`, "[]")
     );
     if (insertError) return res.sendStatus(500);
 

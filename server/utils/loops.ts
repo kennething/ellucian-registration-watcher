@@ -5,6 +5,7 @@ import { ComponentType } from "discord.js";
 import { getMathSchedule } from "./math";
 import { getRMPData } from "./rmp";
 import { Cookie } from "./cookie";
+import { timeNow } from "./time";
 import { db } from "./sqlite";
 import ENV from "../../env";
 import Fuse from "fuse.js";
@@ -15,15 +16,14 @@ import path from "path";
  * @param offset offset in seconds
  */
 function waitForInterval(interval: number, offset: number, callback: () => Promise<void>): void {
-  const intervalMs = interval * 1000;
-  const timeUntilInterval = intervalMs - (Date.now() % intervalMs);
+  const timeUntilInterval = interval - (timeNow() % interval);
 
   setTimeout(
     () => {
       callback();
-      setInterval(callback, intervalMs);
+      setInterval(callback, interval * 1000);
     },
-    timeUntilInterval + offset * 1000
+    (timeUntilInterval + offset) * 1000
   );
 }
 
@@ -74,7 +74,7 @@ export function watchClassesLoop(): void {
         const insertStatement = db.prepare('INSERT INTO course_history (crn, term_id, "24h_timestamp", "28d_timestamp", seat_24h, seat_28d, wait_24h, wait_28d) VALUES (?, ?, ?, ?, ?, ?, ?, ?)');
 
         db.transaction(() => {
-          const currentTime = Math.floor(Date.now() / 1000);
+          const currentTime = timeNow();
           const entries24h = ENV.CLASS_HISTORY_24H_ENTRIES;
           const entries28d = ENV.CLASS_HISTORY_28D_ENTRIES;
 
@@ -202,10 +202,10 @@ export function watchClassesLoop(): void {
 
     const notificationsToSend = new Map<string, NotificationData[]>();
     const updateLastNotified = db.transaction((crn: string, ownerUuid: string, term: string) =>
-      tryCatch(() => db.prepare("UPDATE watchers SET last_notified = ? WHERE crn = ? AND owner_uuid = ? AND term_id = ?").run(Math.floor(Date.now() / 1000), crn, ownerUuid, term))
+      tryCatch(() => db.prepare("UPDATE watchers SET last_notified = ? WHERE crn = ? AND owner_uuid = ? AND term_id = ?").run(timeNow(), crn, ownerUuid, term))
     );
     for (const watcher of watchers) {
-      if (watcher.last_notified && Date.now() / 1000 - watcher.last_notified < ENV.NOTIFICATION_COOLDOWN) continue;
+      if (watcher.last_notified && timeNow() - watcher.last_notified < ENV.NOTIFICATION_COOLDOWN) continue;
 
       const termIndex = terms.findIndex((term) => term === watcher.term_id);
       const classData = classes[termIndex]?.get(watcher.crn);
@@ -239,7 +239,7 @@ export function watchClassesLoop(): void {
                     `- **${c.subject} ${c.courseNumber} - ${c.sequenceNumber}** has ${c.notifyWhen! < 2 ? c.seatsAvailable : c.waitCount} ${c.notifyWhen! < 2 ? `seat${c.seatsAvailable === 1 ? "" : "s"} available` : `waitlist spot${c.waitCount === 1 ? "" : "s"} taken`}`
                 )
                 .join("\n") +
-              `\nTh${availableClasses.length > 1 ? "ese" : "is"} watcher${availableClasses.length > 1 ? "s" : ""} will be able to notify you again <t:${Math.floor((Date.now() + ENV.NOTIFICATION_COOLDOWN * 1000) / 1000)}:R>`,
+              `\nTh${availableClasses.length > 1 ? "ese" : "is"} watcher${availableClasses.length > 1 ? "s" : ""} will be able to notify you again <t:${timeNow() + ENV.NOTIFICATION_COOLDOWN}:R>`,
             color: ENV.PRIMARY_COLOR,
             timestamp: new Date().toISOString()
           }
@@ -281,9 +281,9 @@ export function purgeOutdatedLoop(): void {
       (term) => `${termStrings[term.slice(-2) as keyof typeof termStrings]} ${term.slice(0, -2)}`
     ) as any;
 
-    const isDeletingTerms = termsToDelete.size && Array.from(termsToDelete).some(([, deleteTimestamp]) => Date.now() >= deleteTimestamp * 1000);
+    const isDeletingTerms = termsToDelete.size && Array.from(termsToDelete).some(([, deleteTimestamp]) => timeNow() >= deleteTimestamp);
     if (isDeletingTerms) {
-      const backupPath = path.join(ENV.BACKUP_DATABASE_PATH, `backup_${Math.floor(Date.now() / 1000)}.sqlite3`);
+      const backupPath = path.join(ENV.BACKUP_DATABASE_PATH, `backup_${timeNow()}.sqlite3`);
       await db.backup(backupPath);
       console.log(`${new Date().toLocaleString()}: Backed up database before purging to ${backupPath}`);
 
@@ -313,7 +313,7 @@ export function purgeOutdatedLoop(): void {
     if (error) return;
 
     const outdatedTerms = allTerms.filter((term) => !mostRecentTerms.includes(term.term_id));
-    outdatedTerms.forEach((term) => termsToDelete.set(term.term_id, Math.floor(Date.now() / 1000) + ENV.WATCHER_PURGE_NOTICE));
+    outdatedTerms.forEach((term) => termsToDelete.set(term.term_id, timeNow() + ENV.WATCHER_PURGE_NOTICE));
     if (!outdatedTerms.length) return;
 
     const [usersToNotify, error2] = tryCatch<{ owner_uuid: string }[]>(
@@ -418,17 +418,12 @@ export function fetchMathScheduleLoop(): void {
 export function fetchSearchData(): void {
   waitForInterval(ENV.SEARCH_FETCH_INTERVAL, ENV.SEARCH_FETCH_OFFSET, async () => {
     for (const term of Cookie.getMostRecentTerms() ?? []) {
-      console.log("a", Date.now());
       const [allClasses] = await requestSearchClasses(term, {});
-      console.log("b", Date.now());
 
       db.transaction(() => {
-        console.log("c");
         db.prepare(`DROP TABLE IF EXISTS "${term}_search_db"`).run();
-        console.log("d");
         db.prepare(`DROP TABLE IF EXISTS "${term}_search_db_attributes"`).run();
 
-        console.log("e");
         db.prepare(
           `CREATE TABLE "${term}_search_db" (
     crn            TEXT    UNIQUE NOT NULL PRIMARY KEY,
@@ -449,7 +444,6 @@ export function fetchSearchData(): void {
     end_time       TEXT
 )`
         ).run();
-        console.log("f");
         db.prepare(
           `CREATE TABLE "${term}_search_db_attributes" (
           crn TEXT NOT NULL, 
@@ -457,7 +451,6 @@ export function fetchSearchData(): void {
           PRIMARY KEY (crn, attribute)
         )`
         ).run();
-        console.log("1");
         db.prepare(`CREATE INDEX idx_202690_search_db_attributes_attribute ON "${term}_search_db_attributes"(attribute)`).run();
 
         const insertStatement = db.prepare(
@@ -465,7 +458,6 @@ export function fetchSearchData(): void {
         );
         const insertAttributeStatement = db.prepare(`INSERT INTO "${term}_search_db_attributes" (crn, attribute) VALUES (?, ?)`);
 
-        console.log("g");
         for (const course of allClasses) {
           const meetingTime = course.meetingsFaculty[0]?.meetingTime;
           insertStatement.run(
@@ -491,7 +483,6 @@ export function fetchSearchData(): void {
 
           for (const attribute of course.sectionAttributes) insertAttributeStatement.run(course.courseReferenceNumber, attribute.code);
         }
-        console.log("h");
       })();
 
       console.log(`${new Date().toLocaleString()}: Fetched ${allClasses.length} classes for ${term}`);

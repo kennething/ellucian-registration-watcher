@@ -1,6 +1,7 @@
 import { authController } from "../controllers/auth";
 import { CLIENT } from "../../bot/src/common";
 import { tryCatch } from "../utils/fetch";
+import { timeNow } from "../utils/time";
 import { db } from "../utils/sqlite";
 import { v6 as uuidv6 } from "uuid";
 import { Router } from "express";
@@ -77,7 +78,7 @@ router.get("/auth/discord/callback", async (req, res) => {
     if (error) return res.sendStatus(500);
 
     const uuid = existingUser ? existingUser.uuid : uuidv6();
-    if (!existingUser) db.prepare("INSERT INTO users (uuid, discord_id, created_at) VALUES (?, ?, ?)").run(uuid, discordId, Math.floor(Date.now() / 1000));
+    if (!existingUser) db.prepare("INSERT INTO users (uuid, discord_id, created_at) VALUES (?, ?, ?)").run(uuid, discordId, timeNow());
 
     const jwtToken = jwt.sign({ uuid, discordId }, ENV.JWT_SECRET as string, { expiresIn: "7d" });
     res.cookie("token", jwtToken, { httpOnly: true, secure: ENV.NODE_ENV === "production", sameSite: ENV.NODE_ENV === "production" ? "none" : "lax" });

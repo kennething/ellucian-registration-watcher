@@ -2,6 +2,7 @@ import { authController } from "../controllers/auth";
 import { ClassData } from "../utils/types";
 import { tryCatch } from "../utils/fetch";
 import { Cookie } from "../utils/cookie";
+import { timeNow } from "../utils/time";
 import { db } from "../utils/sqlite";
 import { v7 as uuidv7 } from "uuid";
 import { Router } from "express";
@@ -96,8 +97,8 @@ router.post("/watcher/create", authController, async (req, res) => {
     const watcherUuid = uuidv7();
     const [, insertError] = tryCatch(() =>
       db
-        .prepare(`INSERT INTO watchers (uuid, owner_uuid, term_id, crn, notify_when, notify_when_value) VALUES (?, ?, ?, ?, ?, ?)`)
-        .run(watcherUuid, req.user.uuid, watcher.term, watcher.crn, watcher.notifyWhen, watcher.notifyWhenValue)
+        .prepare(`INSERT INTO watchers (uuid, owner_uuid, created_at, term_id, crn, notify_when, notify_when_value) VALUES (?, ?, ?, ?, ?, ?, ?)`)
+        .run(watcherUuid, req.user.uuid, timeNow(), watcher.term, watcher.crn, watcher.notifyWhen, watcher.notifyWhenValue)
     );
     if (insertError) return res.sendStatus(500);
 

@@ -1,7 +1,7 @@
 {
   "type": "module",
   "engines": {
-    "node": "24.14.0"
+    "node": "^24.14.0"
   },
   "scripts": {
     "deploy": "tsx bot/src/util/deploy.ts",
@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@discordjs/core": "^2.6.0",
+    "@types/luxon": "^3.7.4",
     "axios": "^1.19.0",
     "axios-cookiejar-support": "^7.0.0",
     "bcrypt": "^6.0.0",
@@ -23,6 +24,7 @@
     "fuse.js": "^7.5.0",
     "htmlparser2": "^12.0.0",
     "jsonwebtoken": "^9.0.3",
+    "luxon": "^3.7.2",
     "ratemyprofessors-client": "^3.0.0",
     "tough-cookie": "^6.0.2",
     "tsx": "^4.23.11",

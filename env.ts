@@ -20,6 +20,7 @@ const ENV = z
     PORT: z.coerce.number().int().positive().default(6969),
     DATABASE_PATH: z.string().default("./server/db.sqlite3"),
     BACKUP_DATABASE_PATH: z.string().default("./server"),
+    TIMEZONE: z.string().default("America/New_York"),
     BANNER_API_URL: UrlSchema,
     RMP_SCHOOL_ID: z.coerce.number().int().positive().optional(),
     MATH_SCHEDULE_URL: UrlSchema.optional(),
