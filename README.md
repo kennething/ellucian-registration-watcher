@@ -125,6 +125,7 @@ re-registering.
 | `CLASS_FETCH_INTERVAL`      | Interval, in seconds, to fetch new class data. Set to `0` to disable class fetching.                                                          | `600` (10 minutes)         |          |
 | `CLASS_FETCH_OFFSET`        | Offset, in seconds, to wait before fetching new class data                                                                                    | `50`                       |          |
 | `CLASS_HISTORY_24H_ENTRIES` | Number of entries to log in the class history over the last 24 hours. This should be an interval of `CLASS_FETCH_INTERVAL`.                   | `72` (once per 20 minutes) |          |
+| `CLASS_HISTORY_7D_ENTRIES`  | Number of entries to log in the class history over the last 7 days. This should be an interval of `CLASS_FETCH_INTERVAL`.                     | `28` (once per 6 hours)    |          |
 | `CLASS_HISTORY_28D_ENTRIES` | Number of entries to log in the class history over the last 28 days. This should be an interval of `CLASS_FETCH_INTERVAL`.                    | `28` (once per 1 day)      |          |
 | `SEARCH_FETCH_INTERVAL`     | Interval, in seconds, to fetch new search data. Set to `0` to disable search fetching.                                                        | `14400` (4 hours)          |          |
 | `SEARCH_FETCH_OFFSET`       | Offset, in seconds, to wait before fetching new search data                                                                                   | `360` (6 minutes)          |          |

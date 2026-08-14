@@ -31,6 +31,7 @@ const ENV = z
     CLASS_FETCH_INTERVAL: z.coerce.number().int().positive().default(600),
     CLASS_FETCH_OFFSET: z.coerce.number().int().nonnegative().default(50),
     CLASS_HISTORY_24H_ENTRIES: z.coerce.number().int().positive().default(72),
+    CLASS_HISTORY_7D_ENTRIES: z.coerce.number().int().positive().default(28),
     CLASS_HISTORY_28D_ENTRIES: z.coerce.number().int().positive().default(28),
     SEARCH_FETCH_INTERVAL: z.coerce.number().int().positive().default(14400),
     SEARCH_FETCH_OFFSET: z.coerce.number().int().nonnegative().default(360),

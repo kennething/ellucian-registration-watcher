@@ -67,10 +67,14 @@ export function truncateClassData(data: ClassData[]): Map<string, TruncatedClass
     const [history, error2] = tryCatch<{
       "24h_timestamp": number;
       seat_24h: string;
+      seat_7d: string;
       seat_28d: string;
       wait_24h: string | null;
+      wait_7d: string | null;
       wait_28d: string | null;
-    }>(() => db.prepare('SELECT "24h_timestamp", seat_24h, seat_28d, wait_24h, wait_28d FROM course_history WHERE term_id = ? AND crn = ?').get(c.term, c.courseReferenceNumber) as any);
+    }>(
+      () => db.prepare('SELECT "24h_timestamp", seat_24h, seat_7d, seat_28d, wait_24h, wait_7d, wait_28d FROM course_history WHERE term_id = ? AND crn = ?').get(c.term, c.courseReferenceNumber) as any
+    );
     if (error2) return console.error(error2);
 
     classMap.set(c.courseReferenceNumber, {
@@ -87,8 +91,10 @@ export function truncateClassData(data: ClassData[]): Map<string, TruncatedClass
 
       lastUpdated: history?.["24h_timestamp"] ?? null,
       seat24h: history ? JSON.parse(history.seat_24h) : null,
+      seat7d: history ? JSON.parse(history.seat_7d) : null,
       seat28d: history ? JSON.parse(history.seat_28d) : null,
       wait24h: history?.wait_24h ? JSON.parse(history.wait_24h) : null,
+      wait7d: history?.wait_7d ? JSON.parse(history.wait_7d) : null,
       wait28d: history?.wait_28d ? JSON.parse(history.wait_28d) : null,
 
       credits: c.meetingsFaculty[0]?.meetingTime.creditHourSession ?? 0,

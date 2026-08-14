@@ -98,8 +98,10 @@ export async function getClassData(term: string, searchParams: ClassSearchParams
 
       lastUpdated: null,
       seat24h: null,
+      seat7d: null,
       seat28d: null,
       wait24h: null,
+      wait7d: null,
       wait28d: null,
 
       credits: c.meetingsFaculty[0]?.meetingTime.creditHourSession ?? 0,

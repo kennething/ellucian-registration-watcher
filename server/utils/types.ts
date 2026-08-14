@@ -152,8 +152,10 @@ export type TruncatedClassData = {
   waitCapacity: ClassData["waitCapacity"];
   lastUpdated: number | null;
   seat24h: number | null;
+  seat7d: number | null;
   seat28d: number | null;
   wait24h: number | null;
+  wait7d: number | null;
   wait28d: number | null;
   credits: ClassData["meetingsFaculty"][number]["meetingTime"]["creditHourSession"];
   meeting: {
