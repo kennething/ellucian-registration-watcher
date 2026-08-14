@@ -9,7 +9,6 @@ import { db } from "./sqlite";
 import ENV from "../../env";
 import Fuse from "fuse.js";
 import path from "path";
-import fs from "fs";
 
 /** Waits for a specified interval and then calls the callback function
  * @param interval The interval in seconds at which to call the callback function. The first call will be aligned to the nearest interval.

@@ -261,7 +261,7 @@ export default {
                   type: ComponentType.Button,
                   style: ButtonStyle.Link,
                   label: "View on Web",
-                  url: `${ENV.FRONTEND_URL}/schedules/${schedule.uuid}`
+                  url: `${ENV.FRONTEND_URL}/schedule/${schedule.uuid}`
                 }
               ]
             }
