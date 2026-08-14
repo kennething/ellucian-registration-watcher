@@ -284,7 +284,9 @@ export function purgeOutdatedLoop(): void {
 
     const isDeletingTerms = termsToDelete.size && Array.from(termsToDelete).some(([, deleteTimestamp]) => Date.now() >= deleteTimestamp * 1000);
     if (isDeletingTerms) {
-      fs.copyFileSync(path.resolve(ENV.DATABASE_PATH), path.resolve(ENV.BACKUP_DATABASE_PATH, `${Date.now()}-backup.sqlite3`));
+      const backupPath = path.join(ENV.BACKUP_DATABASE_PATH, `backup_${Math.floor(Date.now() / 1000)}.sqlite3`);
+      await db.backup(backupPath);
+      console.log(`${new Date().toLocaleString()}: Backed up database before purging to ${backupPath}`);
 
       for (const [termId] of termsToDelete) {
         // * outdated watchers

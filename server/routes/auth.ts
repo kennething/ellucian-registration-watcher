@@ -15,31 +15,42 @@ if (!ENV.FRONTEND_URL) {
 
 const router = Router();
 
+/** /auth/discord?redirect= */
 router.get("/auth/discord", async (req, res) => {
   if (!ENV.DISCORD_CLIENT_ID) {
     console.error("DISCORD_CLIENT_ID is not set in the environment variables.");
     return res.redirect(`${ENV.FRONTEND_URL}/setup`);
   }
 
+  const redirect = req.query.redirect;
+  const state = redirect ? Buffer.from(String(redirect)).toString("base64") : undefined;
+
   const params = new URLSearchParams({
     client_id: ENV.DISCORD_CLIENT_ID,
     redirect_uri: `${ENV.BACKEND_URL}/auth/discord/callback`,
     response_type: "code",
     scope: "identify applications.commands",
-    integration_type: "1"
+    integration_type: "1",
+    prompt: "none"
   });
+  if (state) params.append("state", state);
 
   res.redirect(`https://discord.com/oauth2/authorize?${params}`);
 });
 
+/** /auth/discord/callback?code=&state= */
 router.get("/auth/discord/callback", async (req, res) => {
   const code = req.query.code as string;
   if (!code) return res.redirect(`${ENV.FRONTEND_URL}/setup`);
+
+  const state = req.query.state as string | undefined;
 
   if (!ENV.DISCORD_CLIENT_ID || !ENV.DISCORD_CLIENT_SECRET || !ENV.JWT_SECRET) {
     console.error("DISCORD_CLIENT_ID is not set in the environment variables.");
     return res.redirect(`${ENV.FRONTEND_URL}/setup`);
   }
+
+  const redirect = req.query.redirect;
 
   try {
     const token = (
@@ -71,7 +82,8 @@ router.get("/auth/discord/callback", async (req, res) => {
     const jwtToken = jwt.sign({ uuid, discordId }, ENV.JWT_SECRET as string, { expiresIn: "7d" });
     res.cookie("token", jwtToken, { httpOnly: true, secure: ENV.NODE_ENV === "production", sameSite: ENV.NODE_ENV === "production" ? "none" : "lax" });
 
-    res.redirect(`${ENV.FRONTEND_URL}/schedule`);
+    const redirectPath = state ? Buffer.from(state, "base64").toString("utf-8") : "/schedule";
+    res.redirect(`${ENV.FRONTEND_URL}${redirectPath}`);
 
     if (!existingUser) {
       const user = await CLIENT.client?.users.fetch(discordId);

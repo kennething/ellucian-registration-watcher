@@ -48,8 +48,8 @@ minimize the number of requests sent to the Banner API.
 4. Under the "OAuth2" tab, copy the Client ID and reset the Client Secret.
    These will be your `DISCORD_CLIENT_ID` and `DISCORD_CLIENT_SECRET`.
 
-5. Create redirect URLs to `<BACKEND_URL>/auth/discord/callback` and
-   `<BACKEND_URL>/auth/discord/bot/callback` (with your backend URL replaced).
+5. Create a redirect URL to `<BACKEND_URL>/auth/discord/callback` (with your
+   backend URL replaced).
 
 6. Go to `<BACKEND_URL>/auth/discord` and you can add your bot!
 
