@@ -95,7 +95,7 @@ export async function searchClassDb(term: string, params: Partial<ClassSearchPar
     )
     ${
       params.strictRatingSearch
-        ? "IS NOT NULL"
+        ? ""
         : `IS NULL OR (
       SELECT professors.overall_rating
       FROM professors
