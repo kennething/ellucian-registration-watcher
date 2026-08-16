@@ -62,7 +62,6 @@ export default {
         try {
           const [term, crn, subject, courseNumber, sequenceNumber] = interaction.values[0].split(":");
 
-          console.log(term, crn);
           db.prepare("UPDATE watchers SET is_active = 0 WHERE owner_uuid = (SELECT uuid FROM users WHERE discord_id = ?) AND term_id = ? AND crn = ?").run(interaction.user.id, term, crn);
 
           await interaction.followUp({
