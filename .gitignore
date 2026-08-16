@@ -1,6 +1,6 @@
-**/node_modules
-**/.env
-**/dist
+node_modules
+.env
+.env.*
 **/db.sqlite3
 **/.DS_Store
 **/*.sqlite*
