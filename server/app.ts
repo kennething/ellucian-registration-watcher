@@ -1,7 +1,7 @@
 import express, { Router, Express } from "express";
+import * as events from "./events/index";
 import cookieParser from "cookie-parser";
 import { Cookie } from "./utils/cookie";
-import * as loops from "./utils/loops";
 import ENV from "../env";
 import cors from "cors";
 import path from "path";
@@ -44,9 +44,9 @@ export async function startServer() {
 
   app.listen(ENV.PORT, "0.0.0.0", () => console.log(`Server is up on port ${ENV.PORT}`));
 
-  if (ENV.CLASS_FETCH_INTERVAL > 0) loops.watchClassesLoop();
-  if (ENV.OUTDATED_PURGE_INTERVAL > 0) loops.purgeOutdatedLoop();
-  if (ENV.RMP_FETCH_INTERVAL > 0 && ENV.RMP_SCHOOL_ID) loops.fetchProfessorsLoop();
-  if (ENV.MATH_FETCH_INTERVAL > 0 && ENV.MATH_SCHEDULE_URL) loops.fetchMathScheduleLoop();
-  if (ENV.SEARCH_FETCH_INTERVAL > 0) loops.fetchSearchData();
+  if (ENV.CLASS_FETCH_INTERVAL > 0) events.watchClassesLoop();
+  if (ENV.OUTDATED_PURGE_INTERVAL > 0) events.purgeOutdatedLoop();
+  if (ENV.RMP_FETCH_INTERVAL > 0 && ENV.RMP_SCHOOL_ID) events.fetchProfessorsLoop();
+  if (ENV.MATH_FETCH_INTERVAL > 0 && ENV.MATH_SCHEDULE_URL) events.fetchMathScheduleLoop();
+  if (ENV.SEARCH_FETCH_INTERVAL > 0) events.fetchSearchData();
 }

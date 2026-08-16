@@ -1,6 +1,23 @@
 import { ClassData, TruncatedClassData } from "./types";
 import { tryCatch } from "./fetch";
+import { timeNow } from "./time";
 import { db } from "./sqlite";
+
+/** Waits for a specified interval and then calls the callback function
+ * @param interval The interval in seconds at which to call the callback function. The first call will be aligned to the nearest interval.
+ * @param offset offset in seconds
+ */
+export function waitForInterval(interval: number, offset: number, callback: () => Promise<void>): void {
+  const timeUntilInterval = interval - (timeNow() % interval);
+
+  setTimeout(
+    () => {
+      callback();
+      setInterval(callback, interval * 1000);
+    },
+    (timeUntilInterval + offset) * 1000
+  );
+}
 
 /** Deserializes a `snake_case` object to `camelCase`.
  */
