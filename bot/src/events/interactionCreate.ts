@@ -61,6 +61,7 @@ export default {
       if (command === "alert") {
         try {
           const value = interaction.values[0];
+          if (value === "") return;
           const [term, crn, subject, courseNumber, sequenceNumber] = value.split(":");
 
           db.prepare("UPDATE watchers SET is_active = 0 WHERE owner_uuid = (SELECT uuid FROM users WHERE discord_id = ?) AND term_id = ? AND crn = ?").run(interaction.user.id, term, crn);
@@ -68,24 +69,22 @@ export default {
           const components = interaction.message.components;
           const actionRow = components[0] as ActionRow<StringSelectMenuComponent>;
           let selectOptions = actionRow.components[0].options;
-          selectOptions = selectOptions.filter((option) => option.value !== value);
+          selectOptions = selectOptions.filter((option) => option.value !== value).slice(0, 25); // ? discord api limit
 
-          await interaction.editReply({
+          const newActionRow = {
+            type: ComponentType.ActionRow,
             components: [
               {
-                type: ComponentType.ActionRow,
-                components: [
-                  {
-                    type: ComponentType.StringSelect,
-                    custom_id: "alert",
-                    placeholder: "Disable a watcher",
-                    options: selectOptions
-                  }
-                ]
-              },
-              components[1]
+                type: ComponentType.StringSelect,
+                custom_id: "alert",
+                placeholder: "Disable a watcher",
+                options: selectOptions
+              }
             ]
-          });
+          };
+          const newComponents = selectOptions.length === 0 ? [components[1]] : [newActionRow, components[1]];
+
+          await interaction.editReply({ components: newComponents });
           await interaction.followUp({
             content: `Watcher for (${getTermString(term)}) ${subject} ${courseNumber} - ${sequenceNumber} has been disabled.`,
             ephemeral: true
