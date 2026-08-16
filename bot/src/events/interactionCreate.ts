@@ -1,6 +1,7 @@
 import { Events, InteractionReplyOptions, MessageFlags } from "discord.js";
 import { generateResponse, getClassData } from "../commands/search.ts";
 import { ErrorCodes, getErrorResponse } from "../util/responses.ts";
+import { getTermString } from "../../../server/utils/functions.ts";
 import { db } from "../../../server/utils/sqlite.ts";
 import { loadCommands } from "../util/loaders.ts";
 import { paginationState } from "../common.ts";
@@ -53,16 +54,19 @@ export default {
       } // search
     } // isButton
     else if (interaction.isStringSelectMenu()) {
+      await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+
       const command = interaction.customId as "alert";
 
       if (command === "alert") {
         try {
-          const [term, crn] = interaction.values[0].split(":");
+          const [term, crn, subject, courseNumber, sequenceNumber] = interaction.values[0].split(":");
 
-          db.prepare("UPDATE watchers SET is_active = 0 WHERE owner_uuid = ? AND term_id = ? AND crn = ?").run(interaction.user.id, term, crn);
+          console.log(term, crn);
+          db.prepare("UPDATE watchers SET is_active = 0 WHERE owner_uuid = (SELECT uuid FROM users WHERE discord_id = ?) AND term_id = ? AND crn = ?").run(interaction.user.id, term, crn);
 
           await interaction.followUp({
-            content: `Watcher for ${term} ${crn} has been disabled.`,
+            content: `Watcher for (${getTermString(term)}) ${subject} ${courseNumber} - ${sequenceNumber} has been disabled.`,
             ephemeral: true
           });
         } catch (error) {

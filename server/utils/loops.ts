@@ -1,7 +1,8 @@
 import { fetchClasses, requestSearchClasses, tryCatch } from "./fetch";
 import { ClassData, Mutable, NotificationType } from "./types";
-import { CLIENT } from "../../bot/src/common";
 import { BaseMessageOptions, ComponentType } from "discord.js";
+import { CLIENT } from "../../bot/src/common";
+import { getTermString } from "./functions";
 import { getMathSchedule } from "./math";
 import { getRMPData } from "./rmp";
 import { Cookie } from "./cookie";
@@ -16,15 +17,15 @@ import path from "path";
  * @param offset offset in seconds
  */
 function waitForInterval(interval: number, offset: number, callback: () => Promise<void>): void {
-  const timeUntilInterval = interval - (timeNow() % interval);
+  // const timeUntilInterval = interval - (timeNow() % interval);
 
-  setTimeout(
-    () => {
-      callback();
-      setInterval(callback, interval * 1000);
-    },
-    (timeUntilInterval + offset) * 1000
-  );
+  // setTimeout(
+  //   () => {
+  callback();
+  //     setInterval(callback, interval * 1000);
+  //   },
+  //   (timeUntilInterval + offset) * 1000
+  // );
 }
 
 export function watchClassesLoop(): void {
@@ -291,9 +292,8 @@ export function watchClassesLoop(): void {
               custom_id: "alert",
               placeholder: "Disable a watcher",
               options: availableClasses.map((c) => ({
-                label: `${allSameTerm ? "" : `(${c.term}) `}${c.subject} ${c.courseNumber} - ${c.sequenceNumber}`,
-                value: `${c.term}:${c.courseReferenceNumber}`,
-                description: `Disable watcher for ${allSameTerm ? "" : `(${c.term}) `}${c.subject} ${c.courseNumber} - ${c.sequenceNumber}`
+                label: `${allSameTerm ? "" : `(${getTermString(c.term)}) `}${c.subject} ${c.courseNumber} - ${c.sequenceNumber}`,
+                value: `${c.term}:${c.courseReferenceNumber}:${c.subject}:${c.courseNumber}:${c.sequenceNumber}`
               }))
             }
           ]
@@ -320,7 +320,7 @@ export function watchClassesLoop(): void {
               availableClasses
                 .map(
                   (c) =>
-                    `- ${allSameTerm ? "" : `(${c.term}) `}**${c.subject} ${c.courseNumber} - ${c.sequenceNumber}** has ${c.notifyWhen! < 2 ? c.seatsAvailable : c.waitCount} ${c.notifyWhen! < 2 ? `seat${c.seatsAvailable === 1 ? "" : "s"} available` : `waitlist spot${c.waitCount === 1 ? "" : "s"} taken`}`
+                    `- ${allSameTerm ? "" : `(${getTermString(c.term)}) `}**${c.subject} ${c.courseNumber} - ${c.sequenceNumber}** has ${c.notifyWhen! < 2 ? c.seatsAvailable : c.waitCount} ${c.notifyWhen! < 2 ? `seat${c.seatsAvailable === 1 ? "" : "s"} available` : `waitlist spot${c.waitCount === 1 ? "" : "s"} taken`}`
                 )
                 .join("\n") +
               `\nTh${availableClasses.length > 1 ? "ese" : "is"} watcher${availableClasses.length > 1 ? "s" : ""} will be able to notify you again <t:${timeNow() + ENV.NOTIFICATION_COOLDOWN}:R>`,
