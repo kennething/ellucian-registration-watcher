@@ -4,3 +4,5 @@ import path from "path";
 
 export const db = new Database(path.resolve(ENV.DATABASE_PATH), { fileMustExist: true });
 db.pragma("journal_mode = WAL");
+
+process.on("exit", () => db.close());
