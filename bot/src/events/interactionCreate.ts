@@ -1,4 +1,4 @@
-import { Events, InteractionReplyOptions, MessageFlags } from "discord.js";
+import { ActionRow, ComponentType, Events, InteractionReplyOptions, MessageFlags, StringSelectMenuComponent } from "discord.js";
 import { generateResponse, getClassData } from "../commands/search.ts";
 import { ErrorCodes, getErrorResponse } from "../util/responses.ts";
 import { getTermString } from "../../../server/utils/functions.ts";
@@ -54,16 +54,38 @@ export default {
       } // search
     } // isButton
     else if (interaction.isStringSelectMenu()) {
-      await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+      await interaction.deferUpdate();
 
       const command = interaction.customId as "alert";
 
       if (command === "alert") {
         try {
-          const [term, crn, subject, courseNumber, sequenceNumber] = interaction.values[0].split(":");
+          const value = interaction.values[0];
+          const [term, crn, subject, courseNumber, sequenceNumber] = value.split(":");
 
           db.prepare("UPDATE watchers SET is_active = 0 WHERE owner_uuid = (SELECT uuid FROM users WHERE discord_id = ?) AND term_id = ? AND crn = ?").run(interaction.user.id, term, crn);
 
+          const components = interaction.message.components;
+          const actionRow = components[0] as ActionRow<StringSelectMenuComponent>;
+          let selectOptions = actionRow.components[0].options;
+          selectOptions = selectOptions.filter((option) => option.value !== value);
+
+          await interaction.editReply({
+            components: [
+              {
+                type: ComponentType.ActionRow,
+                components: [
+                  {
+                    type: ComponentType.StringSelect,
+                    custom_id: "alert",
+                    placeholder: "Disable a watcher",
+                    options: selectOptions
+                  }
+                ]
+              },
+              components[1]
+            ]
+          });
           await interaction.followUp({
             content: `Watcher for (${getTermString(term)}) ${subject} ${courseNumber} - ${sequenceNumber} has been disabled.`,
             ephemeral: true
