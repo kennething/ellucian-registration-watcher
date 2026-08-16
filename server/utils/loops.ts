@@ -17,15 +17,15 @@ import path from "path";
  * @param offset offset in seconds
  */
 function waitForInterval(interval: number, offset: number, callback: () => Promise<void>): void {
-  // const timeUntilInterval = interval - (timeNow() % interval);
+  const timeUntilInterval = interval - (timeNow() % interval);
 
-  // setTimeout(
-  //   () => {
-  callback();
-  //     setInterval(callback, interval * 1000);
-  //   },
-  //   (timeUntilInterval + offset) * 1000
-  // );
+  setTimeout(
+    () => {
+      callback();
+      setInterval(callback, interval * 1000);
+    },
+    (timeUntilInterval + offset) * 1000
+  );
 }
 
 export function watchClassesLoop(): void {
