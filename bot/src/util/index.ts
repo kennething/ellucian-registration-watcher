@@ -1,7 +1,3 @@
-export type Mutable<T> = {
-  -readonly [P in keyof T]: T[P];
-};
-
 type CourseParam = {
   subject: string;
   courseNumber: string;

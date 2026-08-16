@@ -14,8 +14,8 @@ router.get("/", authController, async (req, res) => {
   const user = await CLIENT.client?.users.fetch(req.user.discordId);
   if (ENV.DISCORD_TOKEN && !user) return res.sendStatus(404);
 
-  const [watchers, error2] = tryCatch<{ uuid: string; term_id: string; crn: string; notify_when: NotificationType; notify_when_value: number }[]>(
-    () => db.prepare("SELECT uuid, term_id, crn, notify_when, notify_when_value FROM watchers WHERE owner_uuid = ?").all(req.user.uuid) as any
+  const [watchers, error2] = tryCatch<{ uuid: string; term_id: string; is_active: number; crn: string; notify_when: NotificationType; notify_when_value: number }[]>(
+    () => db.prepare("SELECT uuid, term_id, is_active, crn, notify_when, notify_when_value FROM watchers WHERE owner_uuid = ?").all(req.user.uuid) as any
   );
   if (error2) return res.sendStatus(500);
 
@@ -34,6 +34,7 @@ router.get("/", authController, async (req, res) => {
 
   const watchersWithData = watchers.map((watcher) => ({
     ...toCamelCase(watcher),
+    isActive: Boolean(watcher.is_active),
     ...classes[terms.findIndex((term) => term === watcher.term_id)]?.get(watcher.crn)
   }));
 

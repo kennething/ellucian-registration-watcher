@@ -1,6 +1,7 @@
 import { Events, InteractionReplyOptions, MessageFlags } from "discord.js";
 import { generateResponse, getClassData } from "../commands/search.ts";
 import { ErrorCodes, getErrorResponse } from "../util/responses.ts";
+import { db } from "../../../server/utils/sqlite.ts";
 import { loadCommands } from "../util/loaders.ts";
 import { paginationState } from "../common.ts";
 import type { Event } from "./index.ts";
@@ -51,5 +52,26 @@ export default {
         await interaction.editReply(await generateResponse(state.params.term, state.page, total, parsedClasses, paginationId));
       } // search
     } // isButton
+    else if (interaction.isStringSelectMenu()) {
+      const command = interaction.customId as "alert";
+
+      if (command === "alert") {
+        try {
+          const [term, crn] = interaction.values[0].split(":");
+
+          db.prepare("UPDATE watchers SET is_active = 0 WHERE owner_uuid = ? AND term_id = ? AND crn = ?").run(interaction.user.id, term, crn);
+
+          await interaction.followUp({
+            content: `Watcher for ${term} ${crn} has been disabled.`,
+            ephemeral: true
+          });
+        } catch (error) {
+          await interaction.followUp({
+            components: getErrorResponse(ErrorCodes.WATCHER_DB_UPDATE_FAIL)["components"]!,
+            flags: [MessageFlags.Ephemeral, MessageFlags.IsComponentsV2]
+          });
+        }
+      } // alert
+    } // string select
   }
 } satisfies Event<Events.InteractionCreate>;

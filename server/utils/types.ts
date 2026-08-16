@@ -1,5 +1,9 @@
 import * as z from "zod";
 
+export type Mutable<T> = {
+  -readonly [K in keyof T]: T[K];
+};
+
 export enum NotificationType {
   /** class.seatsAvailable >= X */
   SEAT_GREATER_THAN,

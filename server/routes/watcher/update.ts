@@ -11,13 +11,16 @@ router.patch("/", authController, async (req, res) => {
     .object({
       uuid: z.string().length(36),
       notifyWhen: z.number().int().min(0).max(3),
-      notifyWhenValue: z.number().int()
+      notifyWhenValue: z.number().int(),
+      isActive: z.boolean()
     })
     .safeParse(req.body);
   if (parseError) return res.status(400).json({ error: "Invalid body" });
 
   const [, error2] = tryCatch(() =>
-    db.prepare(`UPDATE watchers SET notify_when = ?, notify_when_value = ? WHERE uuid = ? AND owner_uuid = ?`).run(watcher.notifyWhen, watcher.notifyWhenValue, watcher.uuid, req.user.uuid)
+    db
+      .prepare(`UPDATE watchers SET is_active = ?, notify_when = ?, notify_when_value = ? WHERE uuid = ? AND owner_uuid = ?`)
+      .run(Number(watcher.isActive), watcher.notifyWhen, watcher.notifyWhenValue, watcher.uuid, req.user.uuid)
   );
   if (error2) return res.sendStatus(500);
 

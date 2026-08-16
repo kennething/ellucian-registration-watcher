@@ -20,7 +20,8 @@ router.post("/", authController, async (req, res) => {
       term: z.string(),
       crn: z.string(),
       notifyWhen: z.number().int().min(0).max(3),
-      notifyWhenValue: z.number().int()
+      notifyWhenValue: z.number().int(),
+      isActive: z.boolean()
     })
     .safeParse(req.body);
   if (parseError) return res.status(400).json({ error: "Invalid body" });
@@ -44,8 +45,8 @@ router.post("/", authController, async (req, res) => {
     const watcherUuid = uuidv7();
     const [, insertError] = tryCatch(() =>
       db
-        .prepare(`INSERT INTO watchers (uuid, owner_uuid, created_at, term_id, crn, notify_when, notify_when_value) VALUES (?, ?, ?, ?, ?, ?, ?)`)
-        .run(watcherUuid, req.user.uuid, timeNow(), watcher.term, watcher.crn, watcher.notifyWhen, watcher.notifyWhenValue)
+        .prepare(`INSERT INTO watchers (uuid, owner_uuid, is_active, created_at, term_id, crn, notify_when, notify_when_value) VALUES (?, ?, ?, ?, ?, ?, ?)`)
+        .run(watcherUuid, req.user.uuid, Number(watcher.isActive), timeNow(), watcher.term, watcher.crn, watcher.notifyWhen, watcher.notifyWhenValue)
     );
     if (insertError) return res.sendStatus(500);
 
@@ -55,7 +56,8 @@ router.post("/", authController, async (req, res) => {
       termId: watcher.term,
       crn: watcher.crn,
       notifyWhen: watcher.notifyWhen,
-      notifyWhenValue: watcher.notifyWhenValue
+      notifyWhenValue: watcher.notifyWhenValue,
+      isActive: watcher.isActive
     });
   })();
 });

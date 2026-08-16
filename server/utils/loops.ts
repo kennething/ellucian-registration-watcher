@@ -1,7 +1,7 @@
 import { fetchClasses, requestSearchClasses, tryCatch } from "./fetch";
-import { ClassData, NotificationType } from "./types";
+import { ClassData, Mutable, NotificationType } from "./types";
 import { CLIENT } from "../../bot/src/common";
-import { ComponentType } from "discord.js";
+import { BaseMessageOptions, ComponentType } from "discord.js";
 import { getMathSchedule } from "./math";
 import { getRMPData } from "./rmp";
 import { Cookie } from "./cookie";
@@ -36,6 +36,7 @@ export function watchClassesLoop(): void {
     courseNumber: ClassData["courseNumber"];
     waitCount: ClassData["waitCount"];
     waitCapacity: ClassData["waitCapacity"];
+    term: ClassData["term"];
   } & Partial<{
     notifyWhen: NotificationType;
     notifyWhenValue: number;
@@ -60,10 +61,12 @@ export function watchClassesLoop(): void {
 
     if (!mostRecentTerms) return;
 
-    const [watchers, error] = tryCatch<{ owner_uuid: string; last_notified: number | null; term_id: string; crn: string; notify_when: NotificationType; notify_when_value: number }[]>(
+    const [watchers, error] = tryCatch<
+      { owner_uuid: string; last_notified: number | null; is_active: number; term_id: string; crn: string; notify_when: NotificationType; notify_when_value: number }[]
+    >(
       () =>
         db
-          .prepare(`SELECT owner_uuid, last_notified, term_id, crn, notify_when, notify_when_value FROM watchers WHERE term_id IN (${mostRecentTerms?.map(() => "?").join(", ")})`)
+          .prepare(`SELECT owner_uuid, last_notified, is_active, term_id, crn, notify_when, notify_when_value FROM watchers WHERE term_id IN (${mostRecentTerms?.map(() => "?").join(", ")})`)
           .all(...mostRecentTerms) as any
     );
     if (error) return;
@@ -239,6 +242,7 @@ export function watchClassesLoop(): void {
             sequenceNumber: c.sequenceNumber,
             subject: c.subject,
             courseNumber: c.courseNumber,
+            term: c.term,
             waitCount: c.waitCount,
             waitCapacity: c.waitCapacity
           })
@@ -252,6 +256,7 @@ export function watchClassesLoop(): void {
       tryCatch(() => db.prepare("UPDATE watchers SET last_notified = ? WHERE crn = ? AND owner_uuid = ? AND term_id = ?").run(timeNow(), crn, ownerUuid, term))
     );
     for (const watcher of watchers) {
+      if (!watcher.is_active) continue;
       if (watcher.last_notified && timeNow() - watcher.last_notified < ENV.NOTIFICATION_COOLDOWN) continue;
 
       const termIndex = terms.findIndex((term) => term === watcher.term_id);
@@ -275,6 +280,38 @@ export function watchClassesLoop(): void {
       if (error) return;
 
       const user = await CLIENT.client?.users.fetch(discordId);
+      const allSameTerm = availableClasses.every((c) => c.term === availableClasses[0].term);
+
+      const components: Mutable<BaseMessageOptions["components"]> = [
+        {
+          type: ComponentType.ActionRow,
+          components: [
+            {
+              type: ComponentType.StringSelect,
+              custom_id: "alert",
+              placeholder: "Disable a watcher",
+              options: availableClasses.map((c) => ({
+                label: `${allSameTerm ? "" : `(${c.term}) `}${c.subject} ${c.courseNumber} - ${c.sequenceNumber}`,
+                value: `${c.term}:${c.courseReferenceNumber}`,
+                description: `Disable watcher for ${allSameTerm ? "" : `(${c.term}) `}${c.subject} ${c.courseNumber} - ${c.sequenceNumber}`
+              }))
+            }
+          ]
+        }
+      ];
+      if (ENV.FRONTEND_URL)
+        components.push({
+          type: ComponentType.ActionRow,
+          components: [
+            {
+              type: ComponentType.Button,
+              label: `Edit Watcher${availableClasses.length > 1 ? "s" : ""}`,
+              style: 5,
+              url: `${ENV.FRONTEND_URL}/watch`
+            }
+          ]
+        });
+
       user?.send({
         embeds: [
           {
@@ -283,7 +320,7 @@ export function watchClassesLoop(): void {
               availableClasses
                 .map(
                   (c) =>
-                    `- **${c.subject} ${c.courseNumber} - ${c.sequenceNumber}** has ${c.notifyWhen! < 2 ? c.seatsAvailable : c.waitCount} ${c.notifyWhen! < 2 ? `seat${c.seatsAvailable === 1 ? "" : "s"} available` : `waitlist spot${c.waitCount === 1 ? "" : "s"} taken`}`
+                    `- ${allSameTerm ? "" : `(${c.term}) `}**${c.subject} ${c.courseNumber} - ${c.sequenceNumber}** has ${c.notifyWhen! < 2 ? c.seatsAvailable : c.waitCount} ${c.notifyWhen! < 2 ? `seat${c.seatsAvailable === 1 ? "" : "s"} available` : `waitlist spot${c.waitCount === 1 ? "" : "s"} taken`}`
                 )
                 .join("\n") +
               `\nTh${availableClasses.length > 1 ? "ese" : "is"} watcher${availableClasses.length > 1 ? "s" : ""} will be able to notify you again <t:${timeNow() + ENV.NOTIFICATION_COOLDOWN}:R>`,
@@ -291,21 +328,7 @@ export function watchClassesLoop(): void {
             timestamp: new Date().toISOString()
           }
         ],
-        components: ENV.FRONTEND_URL
-          ? [
-              {
-                type: ComponentType.ActionRow,
-                components: [
-                  {
-                    type: ComponentType.Button,
-                    label: `Edit Watcher${availableClasses.length > 1 ? "s" : ""}`,
-                    style: 5,
-                    url: `${ENV.FRONTEND_URL}/watch`
-                  }
-                ]
-              }
-            ]
-          : undefined
+        components
         // flags: availableClasses.every((c) => c.notification_priority === 0) ? MessageFlags.SuppressNotifications : undefined
       });
     }
