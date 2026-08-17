@@ -50,7 +50,12 @@ router.get("/", async (req, res) => {
     if (!existingUser) db.prepare("INSERT INTO users (uuid, discord_id, created_at) VALUES (?, ?, ?)").run(uuid, discordId, timeNow());
 
     const jwtToken = jwt.sign({ uuid, discordId }, ENV.JWT_SECRET as string, { expiresIn: "7d" });
-    res.cookie("token", jwtToken, { httpOnly: true, secure: ENV.NODE_ENV === "production", sameSite: ENV.NODE_ENV === "production" ? "none" : "lax" });
+    res.cookie("token", jwtToken, {
+      httpOnly: true,
+      secure: ENV.NODE_ENV === "production",
+      sameSite: ENV.NODE_ENV === "production" ? "none" : "lax",
+      expires: new Date(Date.now() + 86400 * 7 * 1000)
+    });
 
     const redirectPath = state ? Buffer.from(state, "base64").toString("utf-8") : "/schedule";
     res.redirect(`${ENV.FRONTEND_URL}${redirectPath}`);
