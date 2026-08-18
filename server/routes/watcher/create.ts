@@ -47,7 +47,7 @@ router.post("/", authController, async (req, res) => {
     const watcherUuid = uuidv7();
     const [, insertError] = tryCatch(() =>
       db
-        .prepare(`INSERT INTO watchers (uuid, owner_uuid, is_active, created_at, term_id, crn, notify_when, notify_when_value) VALUES (?, ?, ?, ?, ?, ?, ?)`)
+        .prepare(`INSERT INTO watchers (uuid, owner_uuid, is_active, created_at, term_id, crn, notify_when, notify_when_value) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`)
         .run(watcherUuid, req.user.uuid, Number(watcher.isActive), timeNow(), watcher.term, watcher.crn, watcher.notifyWhen, watcher.notifyWhenValue)
     );
     if (insertError) return res.sendStatus(500);

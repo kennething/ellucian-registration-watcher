@@ -90,7 +90,7 @@ export default {
             ephemeral: true
           });
         } catch (error) {
-          console.error(error);
+          console.error(`${new Date().toLocaleString()}: `, error);
           await interaction.followUp({
             components: getErrorResponse(ErrorCodes.WATCHER_DB_UPDATE_FAIL)["components"]!,
             flags: [MessageFlags.Ephemeral, MessageFlags.IsComponentsV2]
