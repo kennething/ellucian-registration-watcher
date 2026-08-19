@@ -28,9 +28,6 @@ router.get("/", authController, async (req, res) => {
       : [];
     if (error) return console.error(error);
 
-    if (filters.strictRatingSearch && (!rmpData || !rmpData.overall_rating)) return;
-    if (filters.professorRating && rmpData?.overall_rating && (rmpData.overall_rating < filters.professorRating[0] || rmpData.overall_rating > filters.professorRating[1])) return;
-
     parsedClasses.push({
       term: c.term,
       courseReferenceNumber: c.courseReferenceNumber,

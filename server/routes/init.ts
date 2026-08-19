@@ -12,7 +12,7 @@ const router = Router();
 
 router.get("/", authController, async (req, res) => {
   const user = await CLIENT.client?.users.fetch(req.user.discordId);
-  if (ENV.DISCORD_TOKEN && !user) return res.sendStatus(404);
+  if (ENV.DISCORD_TOKEN && !user) return res.status(400).json({ error: "App not authorized on Discord" });
 
   const [watchers, error2] = tryCatch<{ uuid: string; term_id: string; is_active: number; crn: string; notify_when: NotificationType; notify_when_value: number }[]>(
     () => db.prepare("SELECT uuid, term_id, is_active, crn, notify_when, notify_when_value FROM watchers WHERE owner_uuid = ?").all(req.user.uuid) as any

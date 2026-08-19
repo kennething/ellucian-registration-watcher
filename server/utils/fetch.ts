@@ -106,7 +106,7 @@ export async function searchClassDb(term: string, params: Partial<ClassSearchPar
     }
     BETWEEN ? AND ?
   )`,
-      [params.professorRating?.[0] ?? 0, params.professorRating?.[1] ?? 5]
+      [Math.round((params.professorRating?.[0] ?? 0) * 100) / 100, Math.round((params.professorRating?.[1] ?? 5) * 100) / 100]
     ]);
 
   const query = `SELECT crn, COUNT(*) OVER () as total FROM "${tableName}" ${queries.length ? `WHERE ${queries.map((query) => query[0]).join(" AND ")}` : ""} ORDER BY subject, course_number, section LIMIT ${limit} OFFSET ${offset}`;
