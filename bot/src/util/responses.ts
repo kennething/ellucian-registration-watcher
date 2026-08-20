@@ -2,6 +2,8 @@ import { ButtonStyle, ContainerBuilder, InteractionEditReplyOptions, MessageFlag
 import ENV from "../../../env.ts";
 
 export enum ErrorCodes {
+  UNKNOWN = 69,
+
   UNAUUTHORIZED = 418,
 
   USER_DB_FETCH_FAIL = 2000,

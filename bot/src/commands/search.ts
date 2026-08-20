@@ -23,6 +23,12 @@ import {
 } from "discord.js";
 
 function getSearchParams(options: CommandInteractionOptionResolver): ClassSearchParams {
+  const recentTerms = Cookie.getMostRecentTerms();
+  const userTerm = options.getString("term");
+  if (!userTerm && !recentTerms) throw new Error("No term provided and no recent terms found");
+
+  const term = userTerm ?? (recentTerms?.length === 1 ? recentTerms[0] : recentTerms![1]);
+
   const meetingDays = [
     options.getBoolean("sunday") ?? false,
     options.getBoolean("monday") ?? false,
@@ -50,7 +56,7 @@ function getSearchParams(options: CommandInteractionOptionResolver): ClassSearch
   const creditHigh = options.getInteger("credit_hours_maximum");
 
   const searchParams: ClassSearchParams = {
-    term: options.getString("term")!,
+    term,
     attribute: options.getString("attribute") ?? undefined,
     subject: options.getString("subject") ?? undefined,
     courseNumber: options.getString("course_number") ?? undefined,
@@ -298,11 +304,10 @@ export default {
     options: [
       {
         name: "term",
-        description: "The term to search for classes",
+        description: "Defaults to the latest major term (fall/spring)",
         max_length: 6,
         type: ApplicationCommandOptionType.String,
-        autocomplete: true,
-        required: true
+        autocomplete: true
       },
       {
         name: "attribute",
@@ -383,21 +388,21 @@ export default {
       },
       {
         name: "rmp_rating_minimum",
-        description: "Filter by minimum RateMyProfessor rating (0.0 - 5.0)",
+        description: "Filter by minimum RateMyProfessors rating (0.0 - 5.0)",
         min_value: 0,
         max_value: 5,
         type: ApplicationCommandOptionType.Number
       },
       {
         name: "rmp_rating_maximum",
-        description: "Filter by maximum RateMyProfessor rating (0.0 - 5.0)",
+        description: "Filter by maximum RateMyProfessors rating (0.0 - 5.0)",
         min_value: 0,
         max_value: 5,
         type: ApplicationCommandOptionType.Number
       },
       {
         name: "strict_rating_search",
-        description: "If enabled, only classes with professors that have a RateMyProfessor rating will be shown",
+        description: "Show only professors with a RateMyProfessors page",
         type: ApplicationCommandOptionType.Boolean
       },
       {
@@ -446,7 +451,8 @@ export default {
 
     // @ts-expect-error
     const options = interaction.options as CommandInteractionOptionResolver;
-    const searchParams = getSearchParams(options);
+    const [searchParams, searchParamsError] = tryCatch(() => getSearchParams(options));
+    if (searchParamsError) return void interaction.editReply(getErrorResponse(ErrorCodes.UNKNOWN));
 
     const [parsedClasses, total] = await getClassData(searchParams.term, searchParams);
     if (total === 0) return void interaction.editReply(getErrorResponse(ErrorCodes.SEARCH_NO_CLASSES, "No classes found matching your search criteria"));
