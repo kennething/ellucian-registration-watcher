@@ -3,6 +3,7 @@ import { requestSearchClasses, tryCatch } from "../../../server/utils/fetch.ts";
 import { getTermString } from "../../../server/utils/functions.ts";
 import { ClassData } from "../../../server/utils/types.ts";
 import { db } from "../../../server/utils/sqlite.ts";
+import { themes } from "../util/scheduleThemes.ts";
 import { getCourseColor } from "../util/index.ts";
 import type { Command } from "./index.ts";
 import { createCanvas } from "canvas";
@@ -82,6 +83,12 @@ export default {
         name: "share",
         description: "If provided, the schedule will not be displayed as an ephemeral message.",
         type: ApplicationCommandOptionType.Boolean
+      },
+      {
+        name: "theme",
+        description: "Theme of the schedule image. Defaults to dark.",
+        type: ApplicationCommandOptionType.String,
+        choices: Object.keys(themes).map((theme) => ({ name: theme.slice(0, 1).toUpperCase() + theme.slice(1), value: theme }))
       }
     ]
   },
@@ -154,17 +161,17 @@ export default {
     });
 
     const canvas = createCanvas(WIDTH, HEIGHT);
-    // TODO: themes
+    const theme = themes[options.getString("theme") as keyof typeof themes] ?? themes.dark;
     (() => {
       const ctx = canvas.getContext("2d");
 
-      ctx.fillStyle = "#1a1a1e";
+      ctx.fillStyle = theme.bg;
       ctx.fillRect(0, 0, WIDTH, HEIGHT);
 
-      ctx.fillStyle = "#afe696";
+      ctx.fillStyle = theme.header;
       ctx.fillRect(0, 0, WIDTH, HEADER_HEIGHT);
 
-      ctx.fillStyle = "#0b1308";
+      ctx.fillStyle = theme.headerText;
       ctx.font = "bold 24px Inter";
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
@@ -173,7 +180,7 @@ export default {
         ctx.fillText(day.charAt(0).toUpperCase() + day.slice(1), x, HEADER_HEIGHT / 2);
       });
 
-      ctx.strokeStyle = "#474f5a";
+      ctx.strokeStyle = theme.lines;
       ctx.lineWidth = 1;
       for (let i = 0; i <= GRID_HEIGHT / SLOT_HEIGHT; i++) {
         const y = HEADER_HEIGHT + i * SLOT_HEIGHT;
@@ -191,7 +198,7 @@ export default {
         ctx.stroke();
       }
 
-      ctx.fillStyle = "#b5c9d2";
+      ctx.fillStyle = theme.timeText;
       ctx.font = "16px Inter";
       ctx.textAlign = "left";
 
