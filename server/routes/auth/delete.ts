@@ -7,7 +7,6 @@ const router = Router();
 
 router.get("/", authController, async (req, res) => {
   const user = req.user;
-  if (!user) return res.sendStatus(401);
 
   try {
     res.clearCookie("token");
