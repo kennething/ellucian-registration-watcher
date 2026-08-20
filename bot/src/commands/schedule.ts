@@ -3,11 +3,12 @@ import { requestSearchClasses, tryCatch } from "../../../server/utils/fetch.ts";
 import { getTermString } from "../../../server/utils/functions.ts";
 import { ClassData } from "../../../server/utils/types.ts";
 import { db } from "../../../server/utils/sqlite.ts";
+import { createCanvas, registerFont } from "canvas";
 import { themes } from "../util/scheduleThemes.ts";
 import { getCourseColor } from "../util/index.ts";
 import type { Command } from "./index.ts";
-import { createCanvas } from "canvas";
 import ENV from "../../../env.ts";
+import path from "path";
 import {
   ApplicationCommandOptionType,
   ApplicationIntegrationType,
@@ -29,6 +30,9 @@ type MiniClassData = {
   faculty: ClassData["faculty"];
   rmpRating: number | null;
 };
+
+registerFont(path.resolve("./bot/fonts/PlaypenSans-Regular.ttf"), { family: "Playpen Sans", weight: "400" });
+registerFont(path.resolve("./bot/fonts/PlaypenSans-Bold.ttf"), { family: "Playpen Sans", weight: "700" });
 
 const TIME_WIDTH = 100 as const;
 const DAY_WIDTH = 250 as const;
@@ -172,7 +176,7 @@ export default {
       ctx.fillRect(0, 0, WIDTH, HEADER_HEIGHT);
 
       ctx.fillStyle = theme.headerText;
-      ctx.font = "bold 24px Inter";
+      ctx.font = 'bold 24px "Playpen Sans"';
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
       DAYS.forEach((day, i) => {
@@ -199,15 +203,15 @@ export default {
       }
 
       ctx.fillStyle = theme.timeText;
-      ctx.font = "16px Inter";
+      ctx.font = '16px "Playpen Sans"';
       ctx.textAlign = "left";
 
       for (let i = 0; i < GRID_HEIGHT / SLOT_HEIGHT; i++) {
         const minutes = SCHEDULE_START + i * 15;
-        const y = HEADER_HEIGHT + i * SLOT_HEIGHT + 15;
+        const y = HEADER_HEIGHT + i * SLOT_HEIGHT + 14;
 
-        if (minutes % 60 === 0) ctx.font = "bold 16px Inter";
-        else ctx.font = "16px Inter";
+        if (minutes % 60 === 0) ctx.font = 'bold 16px "Playpen Sans"';
+        else ctx.font = '16px "Playpen Sans"';
 
         ctx.fillText(getTimeLabel(minutes), 10, y);
       }
@@ -229,15 +233,22 @@ export default {
           ctx.fillStyle = color;
           ctx.fillRect(x + 4, y + 2, DAY_WIDTH - 8, height - 4);
 
+          const xOffset = x + 12;
+          let yOffset = y + 4;
+
           ctx.fillStyle = "#000000";
-          ctx.font = "bold 18px Inter";
+          ctx.font = 'bold 18px "Playpen Sans"';
           ctx.textAlign = "left";
           ctx.textBaseline = "top";
-          ctx.fillText(`${course.subject} ${course.courseNumber} - ${course.sequenceNumber}`, x + 12, y + 10, DAY_WIDTH - 24);
+          ctx.fillText(`${course.subject} ${course.courseNumber} - ${course.sequenceNumber}`, xOffset, yOffset, DAY_WIDTH - 24);
+          yOffset += 26;
 
-          ctx.font = "14px Inter";
+          ctx.font = '14px "Playpen Sans"';
           const professor = course.faculty[0];
-          if (professor) ctx.fillText(`${professor.displayName.split(",").reverse().join(" ")}${course.rmpRating ? ` (${course.rmpRating.toFixed(1)}/5)` : ""}`, x + 12, y + 34, DAY_WIDTH - 24);
+          if (professor) {
+            ctx.fillText(`${professor.displayName.split(",").reverse().join(" ")}${course.rmpRating ? ` (${course.rmpRating.toFixed(1)}/5)` : ""}`, xOffset, yOffset, DAY_WIDTH - 24);
+            yOffset += 20;
+          }
 
           const startHour = Number(course.startTime?.slice(0, 2));
           const startMinutes = Number(course.startTime?.slice(2, 4));
@@ -249,9 +260,10 @@ export default {
           if (!sameAmpm) startStr += startHour < 12 ? " AM" : " PM";
 
           const meetingTimeString = `${startStr} - ${endHour > 12 ? endHour - 12 : endHour}:${endMinutes.toString().padStart(2, "0")} ${endHour < 12 ? "AM" : "PM"}`;
-          ctx.fillText(`${meetingTimeString}`, x + 12, y + (professor ? 54 : 34), DAY_WIDTH - 24);
+          ctx.fillText(`${meetingTimeString}`, xOffset, yOffset, DAY_WIDTH - 24);
+          yOffset += 20;
 
-          ctx.fillText(`${course.meetingsFaculty[0]?.meetingTime.building} ${course.meetingsFaculty[0]?.meetingTime.room}`, x + 12, y + (professor ? 74 : 54), DAY_WIDTH - 24);
+          ctx.fillText(`${course.meetingsFaculty[0]?.meetingTime.building} ${course.meetingsFaculty[0]?.meetingTime.room}`, xOffset, yOffset, DAY_WIDTH - 24);
         });
       }
     })();
