@@ -1,6 +1,5 @@
+import { requestSearchClasses, tryCatch } from "../../utils/fetch";
 import { authController } from "../../controllers/auth";
-import { ClassData } from "../../utils/types";
-import { tryCatch } from "../../utils/fetch";
 import { Cookie } from "../../utils/cookie";
 import { timeNow } from "../../utils/time";
 import { db } from "../../utils/sqlite";
@@ -26,22 +25,22 @@ router.post("/", authController, async (req, res) => {
     .safeParse(req.body);
   if (parseError) return res.status(400).json({ error: "Invalid body" });
 
-  const [{ num_watchers }, watcherLimitError] = tryCatch<{ num_watchers: number }>(() => db.prepare("SELECT COUNT(*) as num_watchers FROM watchers WHERE owner_uuid = ?").get(req.user.uuid) as any);
-  if (watcherLimitError) return res.sendStatus(500);
-
-  if (num_watchers + 1 > ENV.USER_WATCHER_LIMIT) return res.status(400).json({ error: "Watcher limit exceeded" });
-
-  const course = (await Cookie.requestClient.get<ClassData>(`${ENV.BANNER_API_URL}/StudentRegistrationSsb/ssb/searchResults/searchResults?txt_term=${watcher.term}&txt_keywordany=${watcher.crn}`))
-    .data;
-  if (course.waitCapacity === 0 && watcher.notifyWhen >= 2) return res.status(400).json({ error: "Cannot create watcher for a class with no waitlist" });
-  if (watcher.notifyWhen < 2 && watcher.notifyWhenValue > course.maximumEnrollment) return res.status(400).json({ error: "Notify when value cannot exceed maximum enrollment" });
-  if (watcher.notifyWhen >= 2 && watcher.notifyWhenValue > course.waitCapacity) return res.status(400).json({ error: "Notify when value cannot exceed waitlist capacity" });
-
   const [existingWatcher, existingWatcherError] = tryCatch<{ uuid: string }>(
     () => db.prepare("SELECT uuid FROM watchers WHERE owner_uuid = ? AND term_id = ? AND crn = ?").get(req.user.uuid, watcher.term, watcher.crn) as any
   );
   if (existingWatcherError) return res.sendStatus(500);
   if (existingWatcher) return res.status(418).json({ error: `Watcher already exists for term ${watcher.term} and CRN ${watcher.crn}` });
+
+  const [{ num_watchers }, watcherLimitError] = tryCatch<{ num_watchers: number }>(() => db.prepare("SELECT COUNT(*) as num_watchers FROM watchers WHERE owner_uuid = ?").get(req.user.uuid) as any);
+  if (watcherLimitError) return res.sendStatus(500);
+
+  if (num_watchers + 1 > ENV.USER_WATCHER_LIMIT) return res.status(400).json({ error: "Watcher limit exceeded" });
+
+  const course = (await requestSearchClasses(watcher.term, { crn: watcher.crn }, 0, 1))[0][0];
+  if (!course) return res.status(400).json({ error: "Course not found" });
+  if (course.waitCapacity === 0 && watcher.notifyWhen >= 2) return res.status(400).json({ error: "Cannot create watcher for a class with no waitlist" });
+  if (watcher.notifyWhen < 2 && watcher.notifyWhenValue > course.maximumEnrollment) return res.status(400).json({ error: "Notify when value cannot exceed maximum enrollment" });
+  if (watcher.notifyWhen >= 2 && watcher.notifyWhenValue > course.waitCapacity) return res.status(400).json({ error: "Notify when value cannot exceed waitlist capacity" });
 
   db.transaction(() => {
     const watcherUuid = uuidv7();

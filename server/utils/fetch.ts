@@ -60,6 +60,8 @@ export async function searchClassDb(term: string, params: Partial<ClassSearchPar
     ]);
   if (params.subject?.length) queries.push([`subject = ?`, [params.subject]]);
   if (params.time?.length === 6) {
+    if (params.time[0] === params.time[3] && params.time[1] === params.time[4] && params.time[2] === params.time[5]) return [[], 0];
+
     if (params.time[0] !== null && params.time[1] !== null)
       queries.push([
         `(

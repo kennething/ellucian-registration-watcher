@@ -115,7 +115,7 @@ re-registering.
 | `RMP_SCHOOL_ID`        | ID of your school on [Rate My Professors](https://www.ratemyprofessors.com) - find this by searching for your school and looking at the URL          |                       |          |
 | `MATH_SCHEDULE_URL`    | You probably don't have this but the URL to the math course schedule for your school, don't append `/`                                               |                       |          |
 | `USER_WATCHER_LIMIT`   | Maximum number of watchers a user can create                                                                                                         | 67                    |          |
-| `USER_SCHEDULE_LIMIT`  | Maximum number of schedules a user can create                                                                                                        | 5                     |          |
+| `USER_SCHEDULE_LIMIT`  | Maximum number of schedules a user can create                                                                                                        | 10                    |          |
 
 ## Automation
 

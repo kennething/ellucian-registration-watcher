@@ -25,7 +25,7 @@ const ENV = z
     RMP_SCHOOL_ID: z.coerce.number().int().positive().optional(),
     MATH_SCHEDULE_URL: UrlSchema.optional(),
     USER_WATCHER_LIMIT: z.coerce.number().int().positive().default(67),
-    USER_SCHEDULE_LIMIT: z.coerce.number().int().positive().default(5),
+    USER_SCHEDULE_LIMIT: z.coerce.number().int().positive().default(10),
 
     NOTIFICATION_COOLDOWN: z.coerce.number().int().positive().default(43200),
     CLASS_FETCH_INTERVAL: z.coerce.number().int().positive().default(600),
