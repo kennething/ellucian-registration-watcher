@@ -14,6 +14,9 @@ router.get("/", authController, async (req, res) => {
   const user = await CLIENT.client?.users.fetch(req.user.discordId);
   if (ENV.DISCORD_TOKEN && !user) return res.status(400).json({ error: "App not authorized on Discord" });
 
+  const [userSettings, error] = tryCatch<{ web_theme: number }>(() => db.prepare("SELECT web_theme FROM users WHERE uuid = ?").get(req.user.uuid) as any);
+  if (error) return res.sendStatus(500);
+
   const [watchers, error2] = tryCatch<{ uuid: string; term_id: string; is_active: number; crn: string; notify_when: NotificationType; notify_when_value: number }[]>(
     () => db.prepare("SELECT uuid, term_id, is_active, crn, notify_when, notify_when_value FROM watchers WHERE owner_uuid = ?").all(req.user.uuid) as any
   );
@@ -44,7 +47,10 @@ router.get("/", authController, async (req, res) => {
       discordId: req.user.discordId,
       displayName: user?.displayName,
       username: user?.username,
-      avatar: user?.avatar
+      avatar: user?.avatar,
+      settings: {
+        theme: userSettings.web_theme
+      }
     },
     validTerms: Cookie.getMostRecentTerms(),
     attributes: Cookie.attributes,

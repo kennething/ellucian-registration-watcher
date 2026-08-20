@@ -30,32 +30,35 @@ router.post("/", authController, async (req, res) => {
   const [scheduleTerm, error] = tryCatch<{ term_id: string }>(() => db.prepare("SELECT term_id FROM schedules WHERE uuid = ?").get(schedule.uuid) as any);
   if (error) return res.status(400).json({ error: "Schedule not found" });
 
-  const classes = missingCrns.length ? truncateClassData((await requestSearchClasses(scheduleTerm.term_id, { crn: missingCrns.join(" OR ") }))[0]) : [];
+  const classes = truncateClassData((await requestSearchClasses(scheduleTerm.term_id, { crn: uniqueCrns.join(" OR ") }))[0]);
   const classesArray = Array.from(classes.values());
-  const watchers = classesArray.map((c) => ({
-    uuid: uuidv7(),
-    ownerUuid: req.user.uuid,
-    termId: scheduleTerm.term_id,
-    crn: c.courseReferenceNumber,
-    notifyWhen: 1,
-    notifyWhenValue: 1,
-    isActive: false
-  }));
-  if (missingCrns.length)
-    db.transaction(() => {
-      for (const watcher of watchers) {
-        db.prepare("INSERT INTO watchers (uuid, owner_uuid, is_active, created_at, term_id, crn, notify_when, notify_when_value) VALUES (?, ?, ?, ?, ?, ?, ?, ?)").run(
-          watcher.uuid,
-          req.user.uuid,
-          Number(watcher.isActive),
-          timeNow(),
-          watcher.termId,
-          watcher.crn,
-          watcher.notifyWhen,
-          watcher.notifyWhenValue
-        );
-      }
-    })();
+  if (classesArray.length === 0) return res.status(400).json({ error: "No classes found for the provided CRNs" });
+
+  const watchers = classesArray
+    .filter((c) => missingCrns.includes(c.courseReferenceNumber))
+    .map((c) => ({
+      uuid: uuidv7(),
+      ownerUuid: req.user.uuid,
+      termId: scheduleTerm.term_id,
+      crn: c.courseReferenceNumber,
+      notifyWhen: 1,
+      notifyWhenValue: 1,
+      isActive: false
+    }));
+  db.transaction(() => {
+    for (const watcher of watchers) {
+      db.prepare("INSERT INTO watchers (uuid, owner_uuid, is_active, created_at, term_id, crn, notify_when, notify_when_value) VALUES (?, ?, ?, ?, ?, ?, ?, ?)").run(
+        watcher.uuid,
+        req.user.uuid,
+        Number(watcher.isActive),
+        timeNow(),
+        watcher.termId,
+        watcher.crn,
+        watcher.notifyWhen,
+        watcher.notifyWhenValue
+      );
+    }
+  })();
 
   db.prepare(`UPDATE schedules SET crns = ? WHERE uuid = ? AND owner_uuid = ?`).run(JSON.stringify(uniqueCrns), schedule.uuid, req.user.uuid);
 
