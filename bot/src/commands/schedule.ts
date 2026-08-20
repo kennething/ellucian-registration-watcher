@@ -154,6 +154,7 @@ export default {
     });
 
     const canvas = createCanvas(WIDTH, HEIGHT);
+    // TODO: themes
     (() => {
       const ctx = canvas.getContext("2d");
 
