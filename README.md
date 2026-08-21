@@ -119,23 +119,48 @@ re-registering.
 
 ## Automation
 
-| Variable                    | Description                                                                                                                                   | Default                    | Required |
-| --------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------- | -------- |
-| `NOTIFICATION_COOLDOWN`     | Cooldown, in seconds, to wait before sending another notification for the same watcher to the same user                                       | `43200` (12 hours)         |          |
-| `CLASS_FETCH_INTERVAL`      | Interval, in seconds, to fetch new class data. Set to `0` to disable class fetching.                                                          | `600` (10 minutes)         |          |
-| `CLASS_FETCH_OFFSET`        | Offset, in seconds, to wait before fetching new class data                                                                                    | `50`                       |          |
-| `CLASS_HISTORY_24H_ENTRIES` | Number of entries to log in the class history over the last 24 hours. This should be an interval of `CLASS_FETCH_INTERVAL`.                   | `72` (once per 20 minutes) |          |
-| `CLASS_HISTORY_7D_ENTRIES`  | Number of entries to log in the class history over the last 7 days. This should be an interval of `CLASS_FETCH_INTERVAL`.                     | `28` (once per 6 hours)    |          |
-| `CLASS_HISTORY_28D_ENTRIES` | Number of entries to log in the class history over the last 28 days. This should be an interval of `CLASS_FETCH_INTERVAL`.                    | `28` (once per 1 day)      |          |
-| `SEARCH_FETCH_INTERVAL`     | Interval, in seconds, to fetch new search data. Set to `0` to disable search fetching.                                                        | `14400` (4 hours)          |          |
-| `SEARCH_FETCH_OFFSET`       | Offset, in seconds, to wait before fetching new search data                                                                                   | `360` (6 minutes)          |          |
-| `OUTDATED_PURGE_INTERVAL`   | Interval, in seconds, to search for outdated watchers and tables. Set to `0` to disable watcher purging.                                      | `86400` (1 day)            |          |
-| `OUTDATED_PURGE_OFFSET`     | Offset, in seconds, to wait before searching for outdated watchers and tables                                                                 | `0`                        |          |
-| `WATCHER_PURGE_NOTICE`      | Number of seconds to wait before purging outdated watchers after the term has ended. This should be an interval of `OUTDATED_PURGE_INTERVAL`. | `604800` (7 days)          |          |
-| `RMP_FETCH_INTERVAL`        | Interval, in seconds, to fetch new RateMyProfessors data. Set to `0` to disable RateMyProfessors fetching.                                    | `604800` (7 days)          |          |
-| `RMP_FETCH_OFFSET`          | Offset, in seconds, to wait before fetching new Rate My Professors data                                                                       | `300` (5 minutes)          |          |
-| `MATH_FETCH_INTERVAL`       | Interval, in seconds, to fetch new math course schedule data. Set to `0` to disable math course schedule fetching.                            | `86400` (1 day)            |          |
-| `MATH_FETCH_OFFSET`         | Offset, in seconds, to wait before fetching new math course schedule data                                                                     | `32400` (9 hours)          |          |
+| Variable                    | Description                                                                                                                 | Default                    | Required |
+| --------------------------- | --------------------------------------------------------------------------------------------------------------------------- | -------------------------- | -------- |
+| `CLASS_HISTORY_24H_ENTRIES` | Number of entries to log in the class history over the last 24 hours. This should be an interval of `CLASS_FETCH_INTERVAL`. | `72` (once per 20 minutes) |          |
+| `CLASS_HISTORY_7D_ENTRIES`  | Number of entries to log in the class history over the last 7 days. This should be an interval of `CLASS_FETCH_INTERVAL`.   | `28` (once per 6 hours)    |          |
+| `CLASS_HISTORY_28D_ENTRIES` | Number of entries to log in the class history over the last 28 days. This should be an interval of `CLASS_FETCH_INTERVAL`.  | `28` (once per 1 day)      |          |
+
+### Class Scraping
+
+| Variable                | Description                                                                                             | Default            | Required |
+| ----------------------- | ------------------------------------------------------------------------------------------------------- | ------------------ | -------- |
+| `CLASS_FETCH_INTERVAL`  | Interval, in seconds, to fetch new class data. Set to `0` to disable class fetching.                    | `600` (10 minutes) |          |
+| `CLASS_FETCH_OFFSET`    | Offset, in seconds, to wait before fetching new class data                                              | `50`               |          |
+| `NOTIFICATION_COOLDOWN` | Cooldown, in seconds, to wait before sending another notification for the same watcher to the same user | `43200` (12 hours) |          |
+
+### Search Scraping
+
+| Variable                | Description                                                                            | Default           | Required |
+| ----------------------- | -------------------------------------------------------------------------------------- | ----------------- | -------- |
+| `SEARCH_FETCH_INTERVAL` | Interval, in seconds, to fetch new search data. Set to `0` to disable search fetching. | `14400` (4 hours) |          |
+| `SEARCH_FETCH_OFFSET`   | Offset, in seconds, to wait before fetching new search data                            | `360` (6 minutes) |          |
+
+### Purging
+
+| Variable                  | Description                                                                                                                                   | Default           | Required |
+| ------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- | ----------------- | -------- |
+| `OUTDATED_PURGE_INTERVAL` | Interval, in seconds, to search for outdated watchers and tables. Set to `0` to disable watcher purging.                                      | `86400` (1 day)   |          |
+| `OUTDATED_PURGE_OFFSET`   | Offset, in seconds, to wait before searching for outdated watchers and tables                                                                 | `0`               |          |
+| `WATCHER_PURGE_NOTICE`    | Number of seconds to wait before purging outdated watchers after the term has ended. This should be an interval of `OUTDATED_PURGE_INTERVAL`. | `604800` (7 days) |          |
+
+### RateMyProfessors Scraping
+
+| Variable             | Description                                                                                                | Default           | Required |
+| -------------------- | ---------------------------------------------------------------------------------------------------------- | ----------------- | -------- |
+| `RMP_FETCH_INTERVAL` | Interval, in seconds, to fetch new RateMyProfessors data. Set to `0` to disable RateMyProfessors fetching. | `604800` (7 days) |          |
+| `RMP_FETCH_OFFSET`   | Offset, in seconds, to wait before fetching new Rate My Professors data                                    | `300` (5 minutes) |          |
+
+### Other
+
+| Variable              | Description                                                                                                        | Default           | Required |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------ | ----------------- | -------- |
+| `MATH_FETCH_INTERVAL` | Interval, in seconds, to fetch new math course schedule data. Set to `0` to disable math course schedule fetching. | `86400` (1 day)   |          |
+| `MATH_FETCH_OFFSET`   | Offset, in seconds, to wait before fetching new math course schedule data                                          | `32400` (9 hours) |          |
 
 ## Discord Bot
 
@@ -179,6 +204,7 @@ the database used by Bad Scheduler:
 | `uuid`       | `TEXT`    |
 | `discord_id` | `TEXT`    |
 | `created_at` | `INTEGER` |
+| `web_theme`  | `INTEGER` |
 
 ### `watchers` table
 
@@ -187,7 +213,7 @@ the database used by Bad Scheduler:
 | `uuid`              | `TEXT`    |                           |
 | `owner_uuid`        | `TEXT`    |                           |
 | `last_notified`     | `INTEGER` | unix timestamp in seconds |
-| `CREATED_AT`        | `INTEGER` | unix timestamp in seconds |
+| `created_at`        | `INTEGER` | unix timestamp in seconds |
 | `term_id`           | `TEXT`    |                           |
 | `crn`               | `TEXT`    |                           |
 | `notify_when`       | `INTEGER` |                           |
@@ -224,8 +250,11 @@ the database used by Bad Scheduler:
 | `crn`           | `TEXT`    |                                  |
 | `term_id`       | `TEXT`    |                                  |
 | `24h_timestamp` | `INTEGER` | unix timestamp in seconds        |
+| `7d_timestamp`  | `INTEGER` | unix timestamp in seconds        |
 | `28d_timestamp` | `INTEGER` | unix timestamp in seconds        |
 | `seat_24h`      | `TEXT`    | JSON-serialized array of numbers |
+| `seat_7d`       | `TEXT`    | JSON-serialized array of numbers |
 | `seat_28d`      | `TEXT`    | JSON-serialized array of numbers |
 | `wait_24h`      | `TEXT`    | JSON-serialized array of numbers |
+| `wait_7d`       | `TEXT`    | JSON-serialized array of numbers |
 | `wait_28d`      | `TEXT`    | JSON-serialized array of numbers |
