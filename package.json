@@ -10,10 +10,8 @@
   },
   "dependencies": {
     "@discordjs/core": "^2.6.0",
-    "@types/luxon": "^3.7.4",
     "axios": "^1.19.0",
     "axios-cookiejar-support": "^7.0.0",
-    "bcrypt": "^6.0.0",
     "better-sqlite3": "^13.0.3",
     "canvas": "^3.2.3",
     "cookie-parser": "^1.4.7",
@@ -27,19 +25,19 @@
     "luxon": "^3.7.2",
     "ratemyprofessors-client": "^3.0.0",
     "tough-cookie": "^6.0.2",
-    "tsx": "^4.23.11",
+    "tsx": "^4.23.12",
     "typescript": "^7.0.2",
-    "uuid": "^14.0.1",
+    "uuid": "^14.0.2",
     "zod": "^4.4.3"
   },
   "devDependencies": {
     "@sapphire/ts-config": "^5.0.3",
-    "@types/bcrypt": "^6.0.0",
     "@types/better-sqlite3": "^9.6.0",
     "@types/cookie-parser": "^1.4.10",
     "@types/cors": "^2.8.19",
     "@types/express": "^5.0.6",
     "@types/jsonwebtoken": "^9.0.10",
+    "@types/luxon": "^3.7.5",
     "@types/node": "^24.12.2",
     "typescript": "^7.0.2"
   }
