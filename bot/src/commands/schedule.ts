@@ -139,7 +139,7 @@ export default {
 
     if (schedule.crns.length === 0) return void interaction.editReply(getErrorResponse(ErrorCodes.EMPTY_SCHEDULE, "This schedule is empty. Add some classes first!"));
 
-    const classData = await requestSearchClasses(schedule.term_id, { crn: schedule.crns.join(" OR ") }, 0, ENV.USER_WATCHER_LIMIT);
+    const classData = await requestSearchClasses(schedule.term_id, { crn: schedule.crns }, 0, ENV.USER_WATCHER_LIMIT);
     const classes = classData[0] as ClassData[];
 
     const parsedClasses: MiniClassData[] = [];

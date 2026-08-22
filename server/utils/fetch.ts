@@ -49,7 +49,7 @@ export async function searchClassDb(term: string, params: Partial<ClassSearchPar
   if (params.courseNumber) queries.push([`course_number = ?`, [params.courseNumber]]);
   if (params.courseTitle) queries.push([`course_title LIKE ?`, [`%${params.courseTitle}%`]]);
   if (params.creditHours?.length === 2) queries.push([`credit_hours BETWEEN ? AND ?`, [params.creditHours[0], params.creditHours[1]]]);
-  if (params.crn) queries.push([`crn = ?`, [params.crn]]);
+  if (params.crn) queries.push([`crn IN (${params.crn.map(() => "?").join(", ")})`, params.crn]);
   if (params.meetingDays?.length === 7)
     queries.push([
       params.meetingDays
@@ -119,7 +119,7 @@ export async function searchClassDb(term: string, params: Partial<ClassSearchPar
   }
   if (data.length === 0) return [[], 0];
 
-  const [classes] = await requestSearchClasses(term, { crn: data.map((row) => row.crn).join(" OR ") });
+  const [classes] = await requestSearchClasses(term, { crn: data.map((row) => row.crn) });
   return [classes, data[0].total || 0];
 }
 
@@ -146,9 +146,9 @@ async function searchClasses(term: string, params: Partial<ClassSearchParams>, o
 
   if (params.attribute?.length) url += `txt_attribute=${params.attribute}&`;
   if (params.courseNumber) url += `txt_courseNumber=${params.courseNumber}&`;
-  if (params.courseTitle) url += `txt_courseTitle=${encodeURIComponent(`%${params.courseTitle}%`)}&`;
+  if (params.courseTitle) url += `txt_courseTitle=%${params.courseTitle}%&`;
   if (params.creditHours?.length === 2) url += `txt_credithourlow=${params.creditHours[0]}&txt_credithourhigh=${params.creditHours[1]}&`;
-  if (params.crn) url += `txt_keywordany=${params.crn}&`;
+  if (params.crn) url += `txt_keywordany=${params.crn.slice(offset, offset + limit).join(" OR ")}&`;
   if (params.meetingDays?.length === 7)
     url += params.meetingDays
       .map((val, i) => (val ? `chk_include_${i}=true&` : null))
@@ -214,7 +214,7 @@ export async function requestSearchClasses(term: string, params: Partial<ClassSe
 /** Fetches the specified classes and automatically refreshes the cookie if needed */
 export async function fetchClasses(term: string, crns: Set<string>): Promise<ClassData[]> {
   const uniqueCrns = Array.from(crns);
-  const classes = await requestSearchClasses(term, { crn: uniqueCrns.join(" OR ") });
+  const classes = await requestSearchClasses(term, { crn: uniqueCrns });
 
   return classes[0];
 }

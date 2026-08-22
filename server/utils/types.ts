@@ -18,7 +18,7 @@ export enum NotificationType {
 export const ClassSearchSchema = z
   .object({
     term: z.string(),
-    crn: z.string(),
+    crn: z.array(z.string()),
     subject: z.string(), // "CS" - subject code
     // too much work // // subject: z.array(z.string()), // "CS" - subject codes
     courseNumber: z.string(), // "220"

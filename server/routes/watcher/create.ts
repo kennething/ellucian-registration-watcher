@@ -38,7 +38,7 @@ router.post("/", authController, async (req, res) => {
 
   if (num_watchers + 1 > ENV.USER_WATCHER_LIMIT) return res.status(400).json({ error: "Watcher limit exceeded" });
 
-  const course = (await requestSearchClasses(watcher.term, { crn: watcher.crn }, 0, 1))[0][0];
+  const course = (await requestSearchClasses(watcher.term, { crn: [watcher.crn] }, 0, 1))[0][0];
   if (!course) return res.status(400).json({ error: "Course not found" });
   if (course.waitCapacity === 0 && watcher.notifyWhen >= 2) return res.status(400).json({ error: "Cannot create watcher for a class with no waitlist" });
   if (watcher.notifyWhen < 2 && watcher.notifyWhenValue > course.maximumEnrollment) return res.status(400).json({ error: "Notify when value cannot exceed maximum enrollment" });

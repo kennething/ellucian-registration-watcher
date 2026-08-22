@@ -55,13 +55,14 @@ function getSearchParams(options: CommandInteractionOptionResolver): ClassSearch
   const creditLow = options.getInteger("credit_hours_minimum");
   const creditHigh = options.getInteger("credit_hours_maximum");
 
+  const crnField = options.getString("crn");
   const searchParams: ClassSearchParams = {
     term,
     attribute: options.getString("attribute") ?? undefined,
     subject: options.getString("subject") ?? undefined,
     courseNumber: options.getString("course_number") ?? undefined,
     courseTitle: options.getString("course_title") ?? undefined,
-    crn: options.getString("crn") ?? undefined,
+    crn: crnField ? [crnField] : undefined,
     meetingDays: meetingDays.every((day) => !day) ? undefined : meetingDays,
     time: parsedStartTime && parsedEndTime ? [...parsedStartTime, ...parsedEndTime] : undefined,
     professorRating: rmpLow && rmpHigh ? [rmpLow, rmpHigh] : undefined,

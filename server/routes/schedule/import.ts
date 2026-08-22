@@ -30,7 +30,7 @@ router.post("/", authController, async (req, res) => {
   const [scheduleTerm, error] = tryCatch<{ term_id: string }>(() => db.prepare("SELECT term_id FROM schedules WHERE uuid = ?").get(schedule.uuid) as any);
   if (error) return res.status(400).json({ error: "Schedule not found" });
 
-  const classes = truncateClassData((await requestSearchClasses(scheduleTerm.term_id, { crn: uniqueCrns.join(" OR ") }))[0]);
+  const classes = truncateClassData((await requestSearchClasses(scheduleTerm.term_id, { crn: uniqueCrns }))[0]);
   const classesArray = Array.from(classes.values());
   if (classesArray.length === 0) return res.status(400).json({ error: "No classes found for the provided CRNs" });
 
