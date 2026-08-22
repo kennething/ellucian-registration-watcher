@@ -40,7 +40,7 @@ export function fetchSearchData(): void {
           PRIMARY KEY (crn, attribute)
         )`
         ).run();
-        db.prepare(`CREATE INDEX idx_202690_search_db_attributes_attribute ON "${term}_search_db_attributes"(attribute)`).run();
+        db.prepare(`CREATE INDEX idx_${term}_search_db_attributes_attribute ON "${term}_search_db_attributes"(attribute)`).run();
 
         const insertStatement = db.prepare(
           `INSERT INTO "${term}_search_db" (crn, subject, course_number, section, course_title, credit_hours, professor_name, sunday, monday, tuesday, wednesday, thursday, friday, saturday, start_time, end_time) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
