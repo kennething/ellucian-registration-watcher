@@ -123,7 +123,7 @@ export default {
     const scheduleUuid = options.getString("name");
     if (!scheduleUuid) {
       const [fetchedSchedule, error2] = tryCatch<{ uuid: string; term_id: string; name: string; crns: string }>(
-        () => db.prepare("SELECT uuid, term_id, name, crns FROM schedules WHERE owner_uuid = ?").get(user.uuid) as any
+        () => db.prepare("SELECT uuid, term_id, name, crns FROM schedules WHERE owner_uuid = ? LIMIT 1").get(user.uuid) as any
       );
       if (error2) return void interaction.editReply(getErrorResponse(ErrorCodes.SCHEDULE_DB_FETCH_FAIL));
       if (!fetchedSchedule) return void interaction.editReply(getErrorResponse(ErrorCodes.NO_SCHEDULE, "You don't have any schedules yet. Create one first!"));
@@ -147,7 +147,7 @@ export default {
       const professor = c.faculty.find((f) => f.primaryIndicator);
       const [rmpData, error] = professor
         ? tryCatch<{ rmp_id: number; overall_rating: number; num_ratings: number; percent_take_again: number; level_of_difficulty: number }>(
-            () => db.prepare("SELECT rmp_id, overall_rating, num_ratings, percent_take_again, level_of_difficulty FROM professors WHERE school_name = ?").get(professor.displayName) as any
+            () => db.prepare("SELECT rmp_id, overall_rating, num_ratings, percent_take_again, level_of_difficulty FROM professors WHERE school_name = ? LIMIT 1").get(professor.displayName) as any
           )
         : [];
       if (error) return console.error(error);

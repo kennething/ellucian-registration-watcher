@@ -73,7 +73,7 @@ export function purgeOutdatedLoop(): void {
           {
             title: "A watcher is being removed",
             description: `One or more of your watchers is for an outdated term and will be automatically deleted in 7 days.\nWatchers for the ${mostRecentTermStrings.join(" and ")} term${mostRecentTermStrings.length > 1 ? "s" : ""} will not be affected.`,
-            color: 0xff0000,
+            color: ENV.ERROR_COLOR,
             footer: { text: "No action is required from you." },
             timestamp: new Date().toISOString()
           }

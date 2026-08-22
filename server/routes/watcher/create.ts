@@ -31,7 +31,9 @@ router.post("/", authController, async (req, res) => {
   if (existingWatcherError) return res.sendStatus(500);
   if (existingWatcher) return res.status(418).json({ error: `Watcher already exists for term ${watcher.term} and CRN ${watcher.crn}` });
 
-  const [{ num_watchers }, watcherLimitError] = tryCatch<{ num_watchers: number }>(() => db.prepare("SELECT COUNT(*) as num_watchers FROM watchers WHERE owner_uuid = ?").get(req.user.uuid) as any);
+  const [{ num_watchers }, watcherLimitError] = tryCatch<{ num_watchers: number }>(
+    () => db.prepare("SELECT COUNT(*) as num_watchers FROM watchers WHERE owner_uuid = ? LIMIT ?").get(req.user.uuid, ENV.USER_WATCHER_LIMIT) as any
+  );
   if (watcherLimitError) return res.sendStatus(500);
 
   if (num_watchers + 1 > ENV.USER_WATCHER_LIMIT) return res.status(400).json({ error: "Watcher limit exceeded" });

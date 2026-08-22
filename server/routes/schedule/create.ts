@@ -22,7 +22,7 @@ router.post("/", authController, async (req, res) => {
   if (parseError) return res.status(400).json({ error: "Invalid body" });
 
   const [{ num_schedules }, watcherLimitError] = tryCatch<{ num_schedules: number }>(
-    () => db.prepare("SELECT COUNT(*) as num_schedules FROM schedules WHERE owner_uuid = ?").get(req.user.uuid) as any
+    () => db.prepare("SELECT COUNT(*) as num_schedules FROM schedules WHERE owner_uuid = ? LIMIT ?").get(req.user.uuid, ENV.USER_SCHEDULE_LIMIT) as any
   );
   if (watcherLimitError) return res.sendStatus(500);
 

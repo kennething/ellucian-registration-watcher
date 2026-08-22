@@ -21,7 +21,7 @@ export default {
     if (error) return void interaction.editReply(getErrorResponse(ErrorCodes.USER_DB_FETCH_FAIL));
 
     const [watchers, error2] = tryCatch<{ term_id: string; crn: string; notify_when: number; notify_when_value: number }[]>(
-      () => db.prepare("SELECT term_id, crn, notify_when, notify_when_value FROM watchers WHERE owner_uuid = ?").all(user.uuid) as any
+      () => db.prepare("SELECT term_id, crn, notify_when, notify_when_value FROM watchers WHERE owner_uuid = ? LIMIT ?").all(user.uuid, ENV.USER_WATCHER_LIMIT) as any
     );
     if (error2) return void interaction.editReply(getErrorResponse(ErrorCodes.WATCHER_DB_FETCH_FAIL));
 

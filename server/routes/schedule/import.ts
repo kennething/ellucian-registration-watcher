@@ -24,7 +24,7 @@ router.post("/", authController, async (req, res) => {
   const duplicateCrns = db.prepare(`SELECT crn FROM watchers WHERE owner_uuid = ? AND crn IN (${uniqueCrns.map(() => "?").join(",")})`).all(req.user.uuid, ...uniqueCrns) as { crn: string }[];
   const missingCrns = uniqueCrns.filter((crn) => !duplicateCrns.some((d) => d.crn === crn));
 
-  const totalWatchers = db.prepare(`SELECT COUNT(*) as num_watchers FROM watchers WHERE owner_uuid = ?`).get(req.user.uuid) as { num_watchers: number };
+  const totalWatchers = db.prepare(`SELECT COUNT(*) as num_watchers FROM watchers WHERE owner_uuid = ? LIMIT ?`).get(req.user.uuid, ENV.USER_WATCHER_LIMIT) as { num_watchers: number };
   if (totalWatchers.num_watchers + missingCrns.length > ENV.USER_WATCHER_LIMIT) return res.status(400).json({ error: "Watcher limit exceeded" });
 
   const [scheduleTerm, error] = tryCatch<{ term_id: string }>(() => db.prepare("SELECT term_id FROM schedules WHERE uuid = ?").get(schedule.uuid) as any);

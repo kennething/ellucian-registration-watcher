@@ -14,9 +14,7 @@ router.delete("/", authController, async (req, res) => {
     .safeParse(req.body);
   if (parseError) return res.status(400).json({ error: "Invalid body" });
 
-  const [fetchedWatcher, watcherError] = tryCatch<{ term_id: string; crn: string }>(
-    () => db.prepare("SELECT term_id, crn FROM watchers WHERE uuid = ? AND owner_uuid = ?").get(watcher.uuid, req.user.uuid) as any
-  );
+  const [fetchedWatcher, watcherError] = tryCatch<{ term_id: string; crn: string }>(() => db.prepare("SELECT term_id, crn FROM watchers WHERE uuid = ?").get(watcher.uuid) as any);
   if (watcherError) return res.sendStatus(500);
 
   const [schedules, scheduleError] = tryCatch<{ term_id: string; crns: string }[]>(() => db.prepare("SELECT term_id, crns FROM schedules WHERE owner_uuid = ?").all(req.user.uuid) as any);

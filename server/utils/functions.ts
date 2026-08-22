@@ -76,7 +76,7 @@ export function truncateClassData(data: ClassData[]): Map<string, TruncatedClass
     const professor = c.faculty.find((f) => f.primaryIndicator);
     const [rmpData, error] = professor
       ? tryCatch<{ rmp_id: number; overall_rating: number; num_ratings: number; percent_take_again: number; level_of_difficulty: number }>(
-          () => db.prepare("SELECT rmp_id, overall_rating, num_ratings, percent_take_again, level_of_difficulty FROM professors WHERE school_name = ?").get(professor.displayName) as any
+          () => db.prepare("SELECT rmp_id, overall_rating, num_ratings, percent_take_again, level_of_difficulty FROM professors WHERE school_name = ? LIMIT 1").get(professor.displayName) as any
         )
       : [];
     if (error) return console.error(error);
