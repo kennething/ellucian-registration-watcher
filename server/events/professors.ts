@@ -1,6 +1,6 @@
 import { waitForInterval } from "../utils/functions";
+import { ClientManager } from "../utils/cookie";
 import { getRMPData } from "../utils/rmp";
-import { Cookie } from "../utils/cookie";
 import { db } from "../utils/sqlite";
 import ENV from "../../env";
 import Fuse from "fuse.js";
@@ -18,7 +18,9 @@ export function fetchProfessorsLoop(): void {
     }));
     // ! bing professor id isnt consistent ??
     const bingProfessors = (
-      await Cookie.requestClient.get<{ code: string; description: string }[]>(`${ENV.BANNER_API_URL}/StudentRegistrationSsb/ssb/classSearch/get_instructor?searchTerm=&term=202690&offset=1&max=2000`)
+      await ClientManager.requestInternalClient((client) =>
+        client.get<{ code: string; description: string }[]>(`${ENV.BANNER_API_URL}/StudentRegistrationSsb/ssb/classSearch/get_instructor?searchTerm=&term=202690&offset=1&max=2000`)
+      )
     ).data.map((professor) => ({
       ...professor,
       sortedName: professor.description

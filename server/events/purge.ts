@@ -1,7 +1,7 @@
 import { waitForInterval } from "../utils/functions";
+import { ClientManager } from "../utils/cookie";
 import { CLIENT } from "../../bot/src/common";
 import { tryCatch } from "../utils/fetch";
-import { Cookie } from "../utils/cookie";
 import { timeNow } from "../utils/time";
 import { db } from "../utils/sqlite";
 import ENV from "../../env";
@@ -17,7 +17,7 @@ export function purgeOutdatedLoop(): void {
 
   const termsToDelete = new Map<string, number>(); // Map<termId, timestampToDelete>
   waitForInterval(ENV.OUTDATED_PURGE_INTERVAL, ENV.OUTDATED_PURGE_OFFSET, async () => {
-    const mostRecentTerms = Cookie.getMostRecentTerms();
+    const mostRecentTerms = ClientManager.getMostRecentTerms();
     if (!mostRecentTerms) return;
     const mostRecentTermStrings: `${(typeof termStrings)[keyof typeof termStrings]} ${number}`[] = mostRecentTerms.map(
       (term) => `${termStrings[term.slice(-2) as keyof typeof termStrings]} ${term.slice(0, -2)}`

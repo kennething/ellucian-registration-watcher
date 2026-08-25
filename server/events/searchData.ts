@@ -1,13 +1,13 @@
-import { requestSearchClasses } from "../utils/fetch";
 import { waitForInterval } from "../utils/functions";
-import { Cookie } from "../utils/cookie";
+import { ClientManager } from "../utils/cookie";
+import { searchClasses } from "../utils/fetch";
 import { db } from "../utils/sqlite";
 import ENV from "../../env";
 
 export function fetchSearchData(): void {
   waitForInterval(ENV.SEARCH_FETCH_INTERVAL, ENV.SEARCH_FETCH_OFFSET, async () => {
-    for (const term of Cookie.getMostRecentTerms() ?? []) {
-      const [allClasses] = await requestSearchClasses(term, {});
+    for (const term of ClientManager.getMostRecentTerms() ?? []) {
+      const [allClasses] = await searchClasses(term, {});
 
       db.transaction(() => {
         db.prepare(`DROP TABLE IF EXISTS "${term}_search_db"`).run();

@@ -1,5 +1,5 @@
 import { authController } from "../../controllers/auth";
-import { Cookie } from "../../utils/cookie";
+import { ClientManager } from "../../utils/cookie";
 import { tryCatch } from "../../utils/fetch";
 import { timeNow } from "../../utils/time";
 import { db } from "../../utils/sqlite";
@@ -11,7 +11,7 @@ import * as z from "zod";
 const router = Router();
 
 router.post("/", authController, async (req, res) => {
-  const validTerms = Cookie.getMostRecentTerms();
+  const validTerms = ClientManager.getMostRecentTerms();
   if (!validTerms) return res.sendStatus(500);
 
   const { data: schedule, error: parseError } = z

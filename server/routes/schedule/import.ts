@@ -1,4 +1,4 @@
-import { requestSearchClasses, tryCatch } from "../../utils/fetch";
+import { searchClasses, tryCatch } from "../../utils/fetch";
 import { truncateClassData } from "../../utils/functions";
 import { authController } from "../../controllers/auth";
 import { timeNow } from "../../utils/time";
@@ -30,7 +30,7 @@ router.post("/", authController, async (req, res) => {
   const [scheduleTerm, error] = tryCatch<{ term_id: string }>(() => db.prepare("SELECT term_id FROM schedules WHERE uuid = ?").get(schedule.uuid) as any);
   if (error) return res.status(400).json({ error: "Schedule not found" });
 
-  const classes = truncateClassData((await requestSearchClasses(scheduleTerm.term_id, { crn: uniqueCrns }))[0]);
+  const classes = truncateClassData((await searchClasses(scheduleTerm.term_id, { crn: uniqueCrns }))[0]);
   const classesArray = Array.from(classes.values());
   if (classesArray.length === 0) return res.status(400).json({ error: "No classes found for the provided CRNs" });
 

@@ -1,12 +1,12 @@
 import { waitForInterval } from "../utils/functions";
 import { getMathSchedule } from "../utils/math";
-import { Cookie } from "../utils/cookie";
+import { ClientManager } from "../utils/cookie";
 import { db } from "../utils/sqlite";
 import ENV from "../../env";
 
 export function fetchMathScheduleLoop(): void {
   waitForInterval(ENV.MATH_FETCH_INTERVAL, ENV.MATH_FETCH_OFFSET, async () => {
-    for (const term of Cookie.getMostRecentTerms() ?? []) {
+    for (const term of ClientManager.getMostRecentTerms() ?? []) {
       const professors = await getMathSchedule(term.slice(0, -1));
 
       db.transaction(() => {

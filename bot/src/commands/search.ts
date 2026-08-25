@@ -3,7 +3,7 @@ import { fetchClassDescription, searchClassDb, tryCatch } from "../../../server/
 import { ErrorCodes, getErrorResponse, getSignupResponse } from "../util/responses.ts";
 import { TruncatedClassData, ClassData } from "../../../server/utils/types.ts";
 import type { ClassSearchParams } from "../../../server/utils/types.ts";
-import { Cookie } from "../../../server/utils/cookie.ts";
+import { ClientManager } from "../../../server/utils/cookie.ts";
 import { db } from "../../../server/utils/sqlite.ts";
 import { getCourseColor } from "../util/index.ts";
 import { paginationState } from "../common.ts";
@@ -23,7 +23,7 @@ import {
 } from "discord.js";
 
 function getSearchParams(options: CommandInteractionOptionResolver): ClassSearchParams {
-  const recentTerms = Cookie.getMostRecentTerms();
+  const recentTerms = ClientManager.getMostRecentTerms();
   const userTerm = options.getString("term");
   if (!userTerm && !recentTerms) throw new Error("No term provided and no recent terms found");
 
@@ -199,7 +199,7 @@ export async function generateResponse(term: string, currentPage: number, total:
 - <:scheduletype:1537261058635595846> **Schedule Type**: ${course.meeting.scheduleType}
 - <:instructionmethod:1537262270114037845> **Instructional Method**: ${course.meeting.instructionalMethodDescription}`;
         if (course.attributes.length > 0)
-          str += `\n- <:attributes:1537275293738336386> **Attributes**:\n${course.attributes.map((attribute) => `  - ${Cookie.attributes?.find((a) => a.code === attribute)?.name ?? attribute}`).join("\n")}`;
+          str += `\n- <:attributes:1537275293738336386> **Attributes**:\n${course.attributes.map((attribute) => `  - ${ClientManager.attributes?.find((a) => a.code === attribute)?.name ?? attribute}`).join("\n")}`;
 
         textDisplay.setContent(str);
         return textDisplay;
@@ -425,17 +425,17 @@ export default {
   async autocomplete(interaction) {
     const focusedValue = interaction.options.getFocused(true);
 
-    if (focusedValue.name === "term") return interaction.respond(Cookie.getMostRecentTerms()?.map((term) => ({ name: getTermString(term), value: term })) ?? []);
+    if (focusedValue.name === "term") return interaction.respond(ClientManager.getMostRecentTerms()?.map((term) => ({ name: getTermString(term), value: term })) ?? []);
     else if (focusedValue.name === "attribute")
       return interaction.respond(
-        Cookie.attributes
+        ClientManager.attributes
           ?.filter((attribute) => (focusedValue.value ? attribute.name.toLowerCase().includes(focusedValue.value.toLowerCase()) : true))
           .map((attribute) => ({ name: attribute.name, value: attribute.code }))
           .slice(0, 25) ?? []
       );
     else if (focusedValue.name === "subject")
       return interaction.respond(
-        Cookie.subjects
+        ClientManager.subjects
           ?.filter((subject) => (focusedValue.value ? subject.name.toLowerCase().includes(focusedValue.value.toLowerCase()) : true))
           .map((subject) => ({ name: subject.name, value: subject.code }))
           .slice(0, 25) ?? []

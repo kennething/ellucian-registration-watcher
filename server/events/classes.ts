@@ -2,8 +2,8 @@ import { ClassData, Mutable, NotificationType } from "../utils/types";
 import { getTermString, waitForInterval } from "../utils/functions";
 import { BaseMessageOptions, ComponentType } from "discord.js";
 import { fetchClasses, tryCatch } from "../utils/fetch";
+import { ClientManager } from "../utils/cookie";
 import { CLIENT } from "../../bot/src/common";
-import { Cookie } from "../utils/cookie";
 import { timeNow } from "../utils/time";
 import { db } from "../utils/sqlite";
 import ENV from "../../env";
@@ -38,7 +38,7 @@ export function watchClassesLoop(): void {
   };
 
   waitForInterval(ENV.CLASS_FETCH_INTERVAL, ENV.CLASS_FETCH_OFFSET, async () => {
-    const mostRecentTerms = Cookie.getMostRecentTerms();
+    const mostRecentTerms = ClientManager.getMostRecentTerms();
 
     if (!mostRecentTerms) return;
 

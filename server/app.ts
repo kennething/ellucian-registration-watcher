@@ -1,7 +1,7 @@
 import express, { Router, Express } from "express";
+import { ClientManager } from "./utils/cookie";
 import * as events from "./events/index";
 import cookieParser from "cookie-parser";
-import { Cookie } from "./utils/cookie";
 import ENV from "../env";
 import cors from "cors";
 import path from "path";
@@ -35,8 +35,6 @@ export async function startServer() {
     .use(cors({ origin: ENV.FRONTEND_URL, optionsSuccessStatus: 200, credentials: true }))
     .use(cookieParser())
     .use(express.json());
-
-  await Cookie.refreshCookie();
 
   const projectRoot = process.cwd();
   const routesDir = path.join(projectRoot, "server", "routes");

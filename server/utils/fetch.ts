@@ -1,7 +1,7 @@
 import { ClassSearchParams } from "./types";
 import * as htmlparser2 from "htmlparser2";
+import { ClientManager } from "./cookie";
 import { ClassData } from "./types";
-import { Cookie } from "./cookie";
 import { db } from "./sqlite";
 import ENV from "../../env";
 
@@ -119,28 +119,19 @@ export async function searchClassDb(term: string, params: Partial<ClassSearchPar
   }
   if (data.length === 0) return [[], 0];
 
-  const [classes] = await requestSearchClasses(term, { crn: data.map((row) => row.crn) });
+  const [classes] = await searchClasses(term, { crn: data.map((row) => row.crn) });
   return [classes, data[0].total || 0];
 }
 
-export class AsyncQueue {
-  private currentTask: Promise<void | any>;
-
-  constructor() {
-    this.currentTask = Promise.resolve();
-  }
-
-  enqueue<T>(task: () => Promise<T> | T): Promise<T> {
-    const taskCompletion = this.currentTask.then(() => task());
-    this.currentTask = taskCompletion.catch(() => {});
-
-    return taskCompletion;
-  }
-}
-const requestQueue = new AsyncQueue();
-
 /** @param params !! does not handle `professorRating` */
-async function searchClasses(term: string, params: Partial<ClassSearchParams>, offset = 0, limit = 500, isRetry = false, classes: ClassData[] = []): Promise<[classes: ClassData[], total: number]> {
+export async function searchClasses(
+  term: string,
+  params: Partial<ClassSearchParams>,
+  offset = 0,
+  limit = 500,
+  isRetry = false,
+  classes: ClassData[] = []
+): Promise<[classes: ClassData[], total: number]> {
   limit = Math.min(limit, 500);
   let url = `${ENV.BANNER_API_URL}/StudentRegistrationSsb/ssb/searchResults/searchResults?pageOffset=${offset}&pageMaxSize=${limit}&txt_term=${term}&`;
 
@@ -166,11 +157,15 @@ async function searchClasses(term: string, params: Partial<ClassSearchParams>, o
 
   url = encodeURI(url.slice(0, -1)).replaceAll(",", "%2C");
 
-  await Cookie.requestClient.post(`${ENV.BANNER_API_URL}/StudentRegistrationSsb/ssb/classSearch/resetDataForm`);
-  const data = (await Cookie.requestClient.get<{ data: ClassData[] | null; totalCount: number }>(url)).data;
+  const [request, id] = ClientManager.requestExternalClient(async (client) => {
+    await client.post(`${ENV.BANNER_API_URL}/StudentRegistrationSsb/ssb/classSearch/resetDataForm`);
+    return client.get<{ data: ClassData[] | null; totalCount: number }>(url);
+  });
+
+  const data = (await request).data;
 
   if (data.data === null && !isRetry) {
-    await Cookie.refreshCookie();
+    await ClientManager.refreshExternalClient(id);
     return await searchClasses(term, params, offset, limit, true, classes);
   } else if (data.data === null) return [classes, data.totalCount];
 
@@ -207,14 +202,10 @@ async function searchClasses(term: string, params: Partial<ClassSearchParams>, o
   return [classes, data.totalCount];
 }
 
-export async function requestSearchClasses(term: string, params: Partial<ClassSearchParams>, offset = 0, limit = 500, isRetry = false, classes: ClassData[] = []) {
-  return requestQueue.enqueue(() => searchClasses(term, params, offset, limit, isRetry, classes));
-}
-
 /** Fetches the specified classes and automatically refreshes the cookie if needed */
 export async function fetchClasses(term: string, crns: Set<string>): Promise<ClassData[]> {
   const uniqueCrns = Array.from(crns);
-  const classes = await requestSearchClasses(term, { crn: uniqueCrns });
+  const classes = await searchClasses(term, { crn: uniqueCrns });
 
   return classes[0];
 }
@@ -227,7 +218,7 @@ export async function fetchClassDescription(term: string, crn: string): Promise<
   formData.append("courseReferenceNumber", crn);
 
   try {
-    const html = (await Cookie.requestClient.post(`${ENV.BANNER_API_URL}/StudentRegistrationSsb/ssb/searchResults/getCourseDescription`, formData)).data as string;
+    const html = (await ClientManager.requestInternalClient((client) => client.post(`${ENV.BANNER_API_URL}/StudentRegistrationSsb/ssb/searchResults/getCourseDescription`, formData))).data as string;
     const dom = htmlparser2.parseDocument(html);
 
     const children = htmlparser2.DomUtils.getChildren(dom) as Element[];

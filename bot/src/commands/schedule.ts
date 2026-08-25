@@ -1,5 +1,5 @@
 import { ErrorCodes, getErrorResponse, getSignupResponse } from "../util/responses.ts";
-import { requestSearchClasses, tryCatch } from "../../../server/utils/fetch.ts";
+import { searchClasses, tryCatch } from "../../../server/utils/fetch.ts";
 import { getTermString } from "../../../server/utils/functions.ts";
 import { ClassData } from "../../../server/utils/types.ts";
 import { db } from "../../../server/utils/sqlite.ts";
@@ -139,7 +139,7 @@ export default {
 
     if (schedule.crns.length === 0) return void interaction.editReply(getErrorResponse(ErrorCodes.EMPTY_SCHEDULE, "This schedule is empty. Add some classes first!"));
 
-    const classData = await requestSearchClasses(schedule.term_id, { crn: schedule.crns }, 0, ENV.USER_WATCHER_LIMIT);
+    const classData = await searchClasses(schedule.term_id, { crn: schedule.crns }, 0, ENV.USER_WATCHER_LIMIT);
     const classes = classData[0] as ClassData[];
 
     const parsedClasses: MiniClassData[] = [];

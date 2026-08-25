@@ -2,8 +2,8 @@ import { toCamelCase, truncateClassData } from "../utils/functions";
 import { fetchClasses, tryCatch } from "../utils/fetch";
 import { authController } from "../controllers/auth";
 import { NotificationType } from "../utils/types";
+import { ClientManager } from "../utils/cookie";
 import { CLIENT } from "../../bot/src/common";
-import { Cookie } from "../utils/cookie";
 import { db } from "../utils/sqlite";
 import { Router } from "express";
 import ENV from "../../env";
@@ -52,9 +52,9 @@ router.get("/", authController, async (req, res) => {
         theme: userSettings.web_theme
       }
     },
-    validTerms: Cookie.getMostRecentTerms(),
-    attributes: Cookie.attributes,
-    subjects: Cookie.subjects,
+    validTerms: ClientManager.getMostRecentTerms(),
+    attributes: ClientManager.attributes,
+    subjects: ClientManager.subjects,
     watchers: toCamelCase(watchersWithData),
     schedules: toCamelCase(schedules.map((schedule) => ({ ...schedule, crns: JSON.parse(schedule.crns) })))
   });
