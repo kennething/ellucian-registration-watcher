@@ -3,7 +3,7 @@ import { fetchClassDescription, searchClassDb, tryCatch } from "../../../server/
 import { ErrorCodes, getErrorResponse, getSignupResponse } from "../util/responses.ts";
 import { TruncatedClassData, ClassData } from "../../../server/utils/types.ts";
 import type { ClassSearchParams } from "../../../server/utils/types.ts";
-import { ClientManager } from "../../../server/utils/cookie.ts";
+import { ClientManager } from "../../../server/utils/clientManager.ts";
 import { db } from "../../../server/utils/sqlite.ts";
 import { getCourseColor } from "../util/index.ts";
 import { paginationState } from "../common.ts";

@@ -1,6 +1,6 @@
+import { ClientManager } from "./clientManager";
 import { ClassSearchParams } from "./types";
 import * as htmlparser2 from "htmlparser2";
-import { ClientManager } from "./cookie";
 import { ClassData } from "./types";
 import { db } from "./sqlite";
 import ENV from "../../env";

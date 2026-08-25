@@ -1,5 +1,4 @@
 import express, { Router, Express } from "express";
-import { ClientManager } from "./utils/cookie";
 import * as events from "./events/index";
 import cookieParser from "cookie-parser";
 import ENV from "../env";

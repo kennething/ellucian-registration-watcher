@@ -1,5 +1,5 @@
+import { ClientManager } from "../utils/clientManager";
 import { waitForInterval } from "../utils/functions";
-import { ClientManager } from "../utils/cookie";
 import { searchClasses } from "../utils/fetch";
 import { db } from "../utils/sqlite";
 import ENV from "../../env";

@@ -1,6 +1,6 @@
 import { searchClasses, tryCatch } from "../../utils/fetch";
+import { ClientManager } from "../../utils/clientManager";
 import { authController } from "../../controllers/auth";
-import { ClientManager } from "../../utils/cookie";
 import { timeNow } from "../../utils/time";
 import { db } from "../../utils/sqlite";
 import { v7 as uuidv7 } from "uuid";

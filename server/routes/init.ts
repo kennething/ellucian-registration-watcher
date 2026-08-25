@@ -1,9 +1,9 @@
 import { toCamelCase, truncateClassData } from "../utils/functions";
 import { fetchClasses, tryCatch } from "../utils/fetch";
+import { ClientManager } from "../utils/clientManager";
 import { authController } from "../controllers/auth";
 import { NotificationType } from "../utils/types";
 import { botClient } from "../../bot/src/common";
-import { ClientManager } from "../utils/cookie";
 import { db } from "../utils/sqlite";
 import { Router } from "express";
 import ENV from "../../env";

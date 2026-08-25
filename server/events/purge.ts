@@ -1,6 +1,6 @@
+import { ClientManager } from "../utils/clientManager";
 import { waitForInterval } from "../utils/functions";
 import { botClient } from "../../bot/src/common";
-import { ClientManager } from "../utils/cookie";
 import { tryCatch } from "../utils/fetch";
 import { timeNow } from "../utils/time";
 import { db } from "../utils/sqlite";

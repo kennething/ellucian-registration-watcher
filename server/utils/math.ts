@@ -1,5 +1,5 @@
+import { ClientManager } from "./clientManager";
 import * as htmlparser2 from "htmlparser2";
-import { ClientManager } from "./cookie";
 import ENV from "../../env";
 
 type Element = ReturnType<typeof htmlparser2.DomUtils.getElementsByTagName>[number];
