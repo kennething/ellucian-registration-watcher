@@ -34,7 +34,6 @@ class InternalClient {
    * @returns whether all requests were successful
    */
   private async setup(): Promise<boolean> {
-    console.log(`${new Date().toLocaleString()}: refreshing cookie`);
     const terms = (await this.requestClient.get<{ code: string; description: string }[]>(`${ENV.BANNER_API_URL}/StudentRegistrationSsb/ssb/classSearch/getTerms?searchTerm=&offset=1&max=2`)).data;
     ClientManager.setRecentTerms(terms.map((term) => term.code) as [string, string]);
 
