@@ -1,6 +1,6 @@
 import { waitForInterval } from "../utils/functions";
+import { botClient } from "../../bot/src/common";
 import { ClientManager } from "../utils/cookie";
-import { CLIENT } from "../../bot/src/common";
 import { tryCatch } from "../utils/fetch";
 import { timeNow } from "../utils/time";
 import { db } from "../utils/sqlite";
@@ -67,7 +67,7 @@ export function purgeOutdatedLoop(): void {
       const [{ discord_id: discordId }, error] = tryCatch<{ discord_id: string }>(() => db.prepare("SELECT discord_id FROM users WHERE uuid = ?").get(user.owner_uuid) as any);
       if (error) return;
 
-      const discordUser = await CLIENT.client?.users.fetch(discordId);
+      const discordUser = await botClient.client?.users.fetch(discordId);
       discordUser?.send({
         embeds: [
           {

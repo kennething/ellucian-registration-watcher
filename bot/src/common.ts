@@ -2,7 +2,7 @@ import { ClassSearchParams } from "../../server/utils/types.ts";
 import { Client } from "discord.js";
 
 /** The Discord client instance, taken from the `clientReady` event */
-export const CLIENT = {
+export const botClient = {
   client: null as Client<true> | null
 };
 

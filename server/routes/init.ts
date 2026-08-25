@@ -2,8 +2,8 @@ import { toCamelCase, truncateClassData } from "../utils/functions";
 import { fetchClasses, tryCatch } from "../utils/fetch";
 import { authController } from "../controllers/auth";
 import { NotificationType } from "../utils/types";
+import { botClient } from "../../bot/src/common";
 import { ClientManager } from "../utils/cookie";
-import { CLIENT } from "../../bot/src/common";
 import { db } from "../utils/sqlite";
 import { Router } from "express";
 import ENV from "../../env";
@@ -11,7 +11,7 @@ import ENV from "../../env";
 const router = Router();
 
 router.get("/", authController, async (req, res) => {
-  const user = await CLIENT.client?.users.fetch(req.user.discordId);
+  const user = await botClient.client?.users.fetch(req.user.discordId);
   if (ENV.DISCORD_TOKEN && !user) return res.status(400).json({ error: "App not authorized on Discord" });
 
   const [userSettings, error] = tryCatch<{ web_theme: number }>(() => db.prepare("SELECT web_theme FROM users WHERE uuid = ?").get(req.user.uuid) as any);

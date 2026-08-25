@@ -2,8 +2,8 @@ import { ClassData, Mutable, NotificationType } from "../utils/types";
 import { getTermString, waitForInterval } from "../utils/functions";
 import { BaseMessageOptions, ComponentType } from "discord.js";
 import { fetchClasses, tryCatch } from "../utils/fetch";
+import { botClient } from "../../bot/src/common";
 import { ClientManager } from "../utils/cookie";
-import { CLIENT } from "../../bot/src/common";
 import { timeNow } from "../utils/time";
 import { db } from "../utils/sqlite";
 import ENV from "../../env";
@@ -260,7 +260,7 @@ export function watchClassesLoop(): void {
       const [{ discord_id: discordId }, error] = tryCatch<{ discord_id: string }>(() => db.prepare("SELECT discord_id FROM users WHERE uuid = ?").get(uuid) as any);
       if (error) return;
 
-      const user = await CLIENT.client?.users.fetch(discordId);
+      const user = await botClient.client?.users.fetch(discordId);
       const allSameTerm = availableClasses.every((c) => c.term === availableClasses[0].term);
 
       const components: Mutable<BaseMessageOptions["components"]> = [

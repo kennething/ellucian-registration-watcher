@@ -1,6 +1,6 @@
 import { fetchClasses, tryCatch } from "../../utils/fetch";
 import { truncateClassData } from "../../utils/functions";
-import { CLIENT } from "../../../bot/src/common";
+import { botClient } from "../../../bot/src/common";
 import { db } from "../../utils/sqlite";
 import { Router } from "express";
 
@@ -20,7 +20,7 @@ router.get("/:uuid", async (req, res) => {
   const truncatedClasses = Array.from(truncateClassData(classes).values());
 
   const [ownerDiscordId, _error2] = tryCatch<{ discord_id: string }>(() => db.prepare("SELECT discord_id FROM users WHERE uuid = ?").get(schedule.owner_uuid) as any);
-  const owner = ownerDiscordId ? await CLIENT.client?.users.fetch(ownerDiscordId.discord_id) : undefined;
+  const owner = ownerDiscordId ? await botClient.client?.users.fetch(ownerDiscordId.discord_id) : undefined;
 
   res.status(200).json({
     uuid: schedule.uuid,

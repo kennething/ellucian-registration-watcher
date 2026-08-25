@@ -1,5 +1,5 @@
 import { authController } from "../../../../controllers/auth";
-import { CLIENT } from "../../../../../bot/src/common";
+import { botClient } from "../../../../../bot/src/common";
 import { tryCatch } from "../../../../utils/fetch";
 import { db } from "../../../../utils/sqlite";
 import ENV from "../../../../../env";
@@ -58,11 +58,11 @@ router.get("/", authController, async (req, res) => {
 
     res.redirect(`${ENV.FRONTEND_URL}/settings`);
 
-    const oldUser = await CLIENT.client?.users.fetch(existingUser.discord_id);
+    const oldUser = await botClient.client?.users.fetch(existingUser.discord_id);
     oldUser?.send(
       `## Your Bad Scheduler account has been linked to a different Discord account.\n\n### You can now revoke the Bad Scheduler app's permissions from this account:\n\n1. Go to your user settings\n2. Under *Games & Apps*, go to **Connected Apps**\n3. Deauthorize the Bad Scheduler app\n\n-# If you did not initiate this change, womp womp`
     );
-    const newUser = await CLIENT.client?.users.fetch(discordId);
+    const newUser = await botClient.client?.users.fetch(discordId);
     newUser?.send("Your Bad Scheduler account has now been linked to this Discord account.");
   } catch (error) {
     res.sendStatus(500);
