@@ -66,25 +66,18 @@ class InternalClient {
 
 class Client extends InternalClient {
   id: symbol;
-  private deleteId: symbol;
-  private deleteTimer: NodeJS.Timeout;
+  private deleteId: symbol | null = null;
+  private deleteTimer: NodeJS.Timeout | null = null;
 
   constructor() {
     super();
-
     this.id = Symbol();
-
-    const deleteId = Symbol();
-    this.deleteId = deleteId;
-    this.deleteTimer = setTimeout(() => {
-      if (this.deleteId === deleteId) ClientManager.flushExternalClient(this.id);
-    }, ENV.CLIENT_LIFETIME * 1000);
   }
 
   override enqueue<T>(task: (client: AxiosInstance) => Promise<T> | T): Promise<T> {
     this.queueLength++;
     const taskCompletion = this.currentTask.then(() => {
-      clearTimeout(this.deleteTimer);
+      if (this.deleteTimer) clearTimeout(this.deleteTimer);
 
       const deleteId = Symbol();
       this.deleteId = deleteId;
