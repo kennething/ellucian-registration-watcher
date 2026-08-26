@@ -35,11 +35,16 @@ router.get("/", authController, async (req, res) => {
     })
   );
 
-  const watchersWithData = watchers.map((watcher) => ({
-    ...toCamelCase(watcher),
-    isActive: Boolean(watcher.is_active),
-    ...classes[terms.findIndex((term) => term === watcher.term_id)]?.get(watcher.crn)
-  }));
+  const watchersWithData = watchers.map((watcher) => {
+    const data = classes[terms.findIndex((term) => term === watcher.term_id)];
+
+    return {
+      ...toCamelCase(watcher),
+      isActive: Boolean(watcher.is_active),
+      hasData: Boolean(data?.get(watcher.crn)),
+      ...data?.get(watcher.crn)
+    };
+  });
 
   res.status(200).json({
     user: {

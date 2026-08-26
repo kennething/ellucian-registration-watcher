@@ -60,7 +60,8 @@ router.post("/", authController, async (req, res) => {
       crn: watcher.crn,
       notifyWhen: watcher.notifyWhen,
       notifyWhenValue: watcher.notifyWhenValue,
-      isActive: watcher.isActive
+      isActive: watcher.isActive,
+      hasData: true
     });
   })();
 });
