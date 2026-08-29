@@ -182,7 +182,7 @@ export async function generateResponse(term: string, currentPage: number, total:
         // * seats
         str += `\n- <:seats:1537238779268694117> **Seats Available**: __**${course.seatsAvailable}**__ of ${course.maximumEnrollment}`;
         // * waitlist
-        if (course.waitCapacity > 0) str += `\n- <:waitlist:1537262126647877632> **Waitlist**: ${course.waitCount}`;
+        str += `\n- <:waitlist:1537262126647877632> **Waitlist**: ${course.waitCapacity === 0 ? "--" : course.waitCount}`;
 
         textDisplay.setContent(str);
         return textDisplay;
