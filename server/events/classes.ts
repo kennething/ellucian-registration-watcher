@@ -8,35 +8,73 @@ import { timeNow } from "../utils/time";
 import { db } from "../utils/sqlite";
 import ENV from "../../env";
 
+type NotificationData = {
+  courseReferenceNumber: ClassData["courseReferenceNumber"];
+  seatsAvailable: ClassData["seatsAvailable"];
+  sequenceNumber: ClassData["sequenceNumber"];
+  subject: ClassData["subject"];
+  courseNumber: ClassData["courseNumber"];
+  waitCount: ClassData["waitCount"];
+  waitCapacity: ClassData["waitCapacity"];
+  term: ClassData["term"];
+} & Partial<{
+  notifyWhen: NotificationType;
+  notifyWhenValue: number;
+}>;
+
+type CourseHistory = {
+  crn: string;
+  term_id: string;
+  "24h_timestamp": number;
+  "7d_timestamp": number;
+  "28d_timestamp": number;
+  seat_24h: string;
+  seat_7d: string;
+  seat_28d: string;
+  wait_24h: string;
+  wait_7d: string;
+  wait_28d: string;
+};
+
+const currentTime = timeNow();
+const entries24h = ENV.CLASS_HISTORY_24H_ENTRIES;
+const entries7d = ENV.CLASS_HISTORY_7D_ENTRIES;
+const entries28d = ENV.CLASS_HISTORY_28D_ENTRIES;
+
+const interval24h = 86400 / ENV.CLASS_HISTORY_24H_ENTRIES;
+const interval7d = (86400 * 7) / ENV.CLASS_HISTORY_7D_ENTRIES;
+const interval28d = (86400 * 28) / ENV.CLASS_HISTORY_28D_ENTRIES;
+
+function updateHistoryRow(arrayString: string, insert: number, crn: string, term: string, entryType: "seat" | "wait", timeType: "24h" | "7d" | "28d") {
+  let array = JSON.parse(arrayString) as number[];
+  if (!array) return;
+
+  const entries = (() => {
+    if (entryType === "seat") {
+      if (timeType === "24h") return entries24h;
+      if (timeType === "7d") return entries7d;
+      return entries28d;
+    }
+    if (timeType === "24h") return entries24h;
+    if (timeType === "7d") return entries7d;
+    return entries28d;
+  })();
+
+  if (array.length !== entries) {
+    const newArray = new Array(entries - 1).fill(-1);
+    const fill = array.slice(-1 * entries);
+    newArray.length = entries - fill.length;
+    newArray.push(...fill);
+    array = newArray;
+  }
+
+  array.shift();
+  array.push(insert);
+
+  db.prepare(`UPDATE course_history SET ${entryType}_${timeType} = ?, "${timeType}_timestamp" = ? WHERE crn = ? AND term_id = ?`).run(JSON.stringify(array), currentTime, crn, term);
+}
+
 export function watchClassesLoop(): void {
-  type NotificationData = {
-    courseReferenceNumber: ClassData["courseReferenceNumber"];
-    seatsAvailable: ClassData["seatsAvailable"];
-    sequenceNumber: ClassData["sequenceNumber"];
-    subject: ClassData["subject"];
-    courseNumber: ClassData["courseNumber"];
-    waitCount: ClassData["waitCount"];
-    waitCapacity: ClassData["waitCapacity"];
-    term: ClassData["term"];
-  } & Partial<{
-    notifyWhen: NotificationType;
-    notifyWhenValue: number;
-  }>;
-
-  type CourseHistory = {
-    crn: number;
-    term_id: number;
-    "24h_timestamp": number;
-    "7d_timestamp": number;
-    "28d_timestamp": number;
-    seat_24h: string;
-    seat_7d: string;
-    seat_28d: string;
-    wait_24h: string;
-    wait_7d: string;
-    wait_28d: string;
-  };
-
   waitForInterval(ENV.CLASS_FETCH_INTERVAL, ENV.CLASS_FETCH_OFFSET, async () => {
     const mostRecentTerms = ClientManager.getMostRecentTerms();
 
@@ -63,15 +101,6 @@ export function watchClassesLoop(): void {
         );
 
         db.transaction(() => {
-          const currentTime = timeNow();
-          const entries24h = ENV.CLASS_HISTORY_24H_ENTRIES;
-          const entries7d = ENV.CLASS_HISTORY_7D_ENTRIES;
-          const entries28d = ENV.CLASS_HISTORY_28D_ENTRIES;
-
-          const interval24h = 86400 / ENV.CLASS_HISTORY_24H_ENTRIES;
-          const interval7d = (86400 * 7) / ENV.CLASS_HISTORY_7D_ENTRIES;
-          const interval28d = (86400 * 28) / ENV.CLASS_HISTORY_28D_ENTRIES;
-
           for (const course of data) {
             const row = getStatement.get(course.courseReferenceNumber, course.term) as CourseHistory | undefined;
 
@@ -105,109 +134,28 @@ export function watchClassesLoop(): void {
               continue;
             }
 
-            if (currentTime - row["24h_timestamp"] >= interval24h) {
-              const seat24h = JSON.parse(row.seat_24h) as number[];
-              if (!seat24h) continue;
-              seat24h.shift();
-              seat24h.push(course.seatsAvailable);
-              db.prepare('UPDATE course_history SET seat_24h = ?, "24h_timestamp" = ? WHERE crn = ? AND term_id = ?').run(
-                JSON.stringify(seat24h),
-                currentTime,
-                course.courseReferenceNumber,
-                course.term
-              );
-            }
-            if (currentTime - row["7d_timestamp"] >= interval7d) {
-              const seat7d = JSON.parse(row.seat_7d) as number[];
-              if (!seat7d) continue;
-              seat7d.shift();
-              seat7d.push(course.seatsAvailable);
-              db.prepare('UPDATE course_history SET seat_7d = ?, "7d_timestamp" = ? WHERE crn = ? AND term_id = ?').run(JSON.stringify(seat7d), currentTime, course.courseReferenceNumber, course.term);
-            }
-            if (currentTime - row["28d_timestamp"] >= interval28d) {
-              const seat28d = JSON.parse(row.seat_28d) as number[];
-              if (!seat28d) continue;
-              seat28d.shift();
-              seat28d.push(course.seatsAvailable);
-              db.prepare('UPDATE course_history SET seat_28d = ?, "28d_timestamp" = ? WHERE crn = ? AND term_id = ?').run(
-                JSON.stringify(seat28d),
-                currentTime,
-                course.courseReferenceNumber,
-                course.term
-              );
-            }
+            if (currentTime - row["24h_timestamp"] >= interval24h) updateHistoryRow(row.seat_24h, course.seatsAvailable, course.courseReferenceNumber, course.term, "seat", "24h");
+            if (currentTime - row["7d_timestamp"] >= interval7d) updateHistoryRow(row.seat_7d, course.seatsAvailable, course.courseReferenceNumber, course.term, "seat", "7d");
+            if (currentTime - row["28d_timestamp"] >= interval28d) updateHistoryRow(row.seat_28d, course.seatsAvailable, course.courseReferenceNumber, course.term, "seat", "28d");
             if (course.waitCapacity !== 0) {
-              if (currentTime - row["24h_timestamp"] >= interval24h) {
-                const wait24h = JSON.parse(row.wait_24h) as number[];
-                if (!wait24h) continue;
-                wait24h.shift();
-                wait24h.push(course.waitCount);
-                db.prepare("UPDATE course_history SET wait_24h = ? WHERE crn = ? AND term_id = ?").run(JSON.stringify(wait24h), course.courseReferenceNumber, course.term);
-              }
-              if (currentTime - row["7d_timestamp"] >= interval7d) {
-                const wait7d = JSON.parse(row.wait_7d) as number[];
-                if (!wait7d) continue;
-                wait7d.shift();
-                wait7d.push(course.waitCount);
-                db.prepare("UPDATE course_history SET wait_7d = ? WHERE crn = ? AND term_id = ?").run(JSON.stringify(wait7d), course.courseReferenceNumber, course.term);
-              }
-              if (currentTime - row["28d_timestamp"] >= interval28d) {
-                const wait28d = JSON.parse(row.wait_28d) as number[];
-                if (!wait28d) continue;
-                wait28d.shift();
-                wait28d.push(course.waitCount);
-                db.prepare("UPDATE course_history SET wait_28d = ? WHERE crn = ? AND term_id = ?").run(JSON.stringify(wait28d), course.courseReferenceNumber, course.term);
-              }
+              if (currentTime - row["24h_timestamp"] >= interval24h) updateHistoryRow(row.wait_24h, course.waitCapacity, course.courseReferenceNumber, course.term, "wait", "24h");
+              if (currentTime - row["7d_timestamp"] >= interval7d) updateHistoryRow(row.wait_7d, course.waitCapacity, course.courseReferenceNumber, course.term, "wait", "7d");
+              if (currentTime - row["28d_timestamp"] >= interval28d) updateHistoryRow(row.wait_28d, course.waitCapacity, course.courseReferenceNumber, course.term, "wait", "28d");
             }
           }
 
           const oldWatchers = db
             .prepare('SELECT * FROM course_history WHERE "24h_timestamp" < ? OR "7d_timestamp" < ? OR "28d_timestamp" < ?')
             .all(currentTime - interval24h, currentTime - interval7d, currentTime - interval28d) as CourseHistory[];
+
           for (const row of oldWatchers) {
-            if (currentTime - row["24h_timestamp"] >= interval24h) {
-              const seat24h = JSON.parse(row.seat_24h) as number[];
-              if (!seat24h) continue;
-              seat24h.shift();
-              seat24h.push(-1);
-              db.prepare('UPDATE course_history SET seat_24h = ?, "24h_timestamp" = ? WHERE crn = ? AND term_id = ?').run(JSON.stringify(seat24h), currentTime, row.crn, row.term_id);
-            }
-            if (currentTime - row["7d_timestamp"] >= interval7d) {
-              const seat7d = JSON.parse(row.seat_7d) as number[];
-              if (!seat7d) continue;
-              seat7d.shift();
-              seat7d.push(-1);
-              db.prepare('UPDATE course_history SET seat_7d = ?, "7d_timestamp" = ? WHERE crn = ? AND term_id = ?').run(JSON.stringify(seat7d), currentTime, row.crn, row.term_id);
-            }
-            if (currentTime - row["28d_timestamp"] >= interval28d) {
-              const seat28d = JSON.parse(row.seat_28d) as number[];
-              if (!seat28d) continue;
-              seat28d.shift();
-              seat28d.push(-1);
-              db.prepare('UPDATE course_history SET seat_28d = ?, "28d_timestamp" = ? WHERE crn = ? AND term_id = ?').run(JSON.stringify(seat28d), currentTime, row.crn, row.term_id);
-            }
+            if (currentTime - row["24h_timestamp"] >= interval24h) updateHistoryRow(row.seat_24h, -1, row.crn, row.term_id, "seat", "24h");
+            if (currentTime - row["7d_timestamp"] >= interval7d) updateHistoryRow(row.seat_7d, -1, row.crn, row.term_id, "seat", "7d");
+            if (currentTime - row["28d_timestamp"] >= interval28d) updateHistoryRow(row.seat_28d, -1, row.crn, row.term_id, "seat", "28d");
             if (row.wait_24h !== null && row.wait_28d !== null) {
-              if (currentTime - row["24h_timestamp"] >= interval24h) {
-                const wait24h = JSON.parse(row.wait_24h) as number[];
-                if (!wait24h) continue;
-                wait24h.shift();
-                wait24h.push(-1);
-                db.prepare("UPDATE course_history SET wait_24h = ? WHERE crn = ? AND term_id = ?").run(JSON.stringify(wait24h), row.crn, row.term_id);
-              }
-              if (currentTime - row["7d_timestamp"] >= interval7d) {
-                const wait7d = JSON.parse(row.wait_7d) as number[];
-                if (!wait7d) continue;
-                wait7d.shift();
-                wait7d.push(-1);
-                db.prepare("UPDATE course_history SET wait_7d = ? WHERE crn = ? AND term_id = ?").run(JSON.stringify(wait7d), row.crn, row.term_id);
-              }
-              if (currentTime - row["28d_timestamp"] >= interval28d) {
-                const wait28d = JSON.parse(row.wait_28d) as number[];
-                if (!wait28d) continue;
-                wait28d.shift();
-                wait28d.push(-1);
-                db.prepare("UPDATE course_history SET wait_28d = ? WHERE crn = ? AND term_id = ?").run(JSON.stringify(wait28d), row.crn, row.term_id);
-              }
+              if (currentTime - row["24h_timestamp"] >= interval24h) updateHistoryRow(row.wait_24h, -1, row.crn, row.term_id, "wait", "24h");
+              if (currentTime - row["7d_timestamp"] >= interval7d) updateHistoryRow(row.wait_7d, -1, row.crn, row.term_id, "wait", "7d");
+              if (currentTime - row["28d_timestamp"] >= interval28d) updateHistoryRow(row.wait_28d, -1, row.crn, row.term_id, "wait", "28d");
             }
           }
 
