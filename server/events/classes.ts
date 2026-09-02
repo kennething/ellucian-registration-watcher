@@ -138,9 +138,9 @@ export function watchClassesLoop(): void {
             if (currentTime - row["7d_timestamp"] >= interval7d) updateHistoryRow(row.seat_7d, course.seatsAvailable, course.courseReferenceNumber, course.term, "seat", "7d");
             if (currentTime - row["28d_timestamp"] >= interval28d) updateHistoryRow(row.seat_28d, course.seatsAvailable, course.courseReferenceNumber, course.term, "seat", "28d");
             if (course.waitCapacity !== 0) {
-              if (currentTime - row["24h_timestamp"] >= interval24h) updateHistoryRow(row.wait_24h, course.waitCapacity, course.courseReferenceNumber, course.term, "wait", "24h");
-              if (currentTime - row["7d_timestamp"] >= interval7d) updateHistoryRow(row.wait_7d, course.waitCapacity, course.courseReferenceNumber, course.term, "wait", "7d");
-              if (currentTime - row["28d_timestamp"] >= interval28d) updateHistoryRow(row.wait_28d, course.waitCapacity, course.courseReferenceNumber, course.term, "wait", "28d");
+              if (currentTime - row["24h_timestamp"] >= interval24h) updateHistoryRow(row.wait_24h, course.waitCount, course.courseReferenceNumber, course.term, "wait", "24h");
+              if (currentTime - row["7d_timestamp"] >= interval7d) updateHistoryRow(row.wait_7d, course.waitCount, course.courseReferenceNumber, course.term, "wait", "7d");
+              if (currentTime - row["28d_timestamp"] >= interval28d) updateHistoryRow(row.wait_28d, course.waitCount, course.courseReferenceNumber, course.term, "wait", "28d");
             }
           }
 
