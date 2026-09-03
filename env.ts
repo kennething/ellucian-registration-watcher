@@ -18,6 +18,7 @@ const ENV = z
 
     BACKEND_URL: UrlSchema,
     PORT: z.coerce.number().int().positive().default(6969),
+    LOG_LEVEL: z.enum(["debug", "info", "warn", "error"]).default("warn"),
     MAX_REQUEST_CLIENTS: z.coerce.number().int().positive().default(10),
     CLIENT_LIFETIME: z.coerce.number().int().positive().default(1200),
     DATABASE_PATH: z.string().default("./server/db.sqlite3"),

@@ -6,6 +6,7 @@ import { ClientManager } from "../utils/clientManager";
 import { botClient } from "../../bot/src/common";
 import { timeNow } from "../utils/time";
 import { db } from "../utils/sqlite";
+import { Log } from "../utils/log";
 import ENV from "../../env";
 
 type NotificationData = {
@@ -159,7 +160,7 @@ export function watchClassesLoop(): void {
             }
           }
 
-          console.log(`${new Date().toLocaleString()}: Updated course history for ${data.length} classes for term ${term}`);
+          Log.info(`Updated course history for ${data.length} classes for term ${term}`);
         })();
 
         const classMap = new Map<string, NotificationData>(); // Map<CRN, NotificationData>

@@ -2,6 +2,7 @@ import { ClientManager } from "../utils/clientManager";
 import { waitForInterval } from "../utils/functions";
 import { searchClasses } from "../utils/fetch";
 import { db } from "../utils/sqlite";
+import { Log } from "../utils/log";
 import ENV from "../../env";
 
 export function fetchSearchData(): void {
@@ -74,7 +75,7 @@ export function fetchSearchData(): void {
         }
       })();
 
-      console.log(`${new Date().toLocaleString()}: Fetched ${allClasses.length} classes for ${term}`);
+      Log.info(`Fetched ${allClasses.length} classes for ${term}`);
     }
   });
 }

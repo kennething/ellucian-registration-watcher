@@ -3,6 +3,7 @@ import { generateResponse, getClassData } from "../commands/search.ts";
 import { ErrorCodes, getErrorResponse } from "../util/responses.ts";
 import { getTermString } from "../../../server/utils/functions.ts";
 import { db } from "../../../server/utils/sqlite.ts";
+import { Log } from "../../../server/utils/log.ts";
 import { loadCommands } from "../util/loaders.ts";
 import { paginationState } from "../common.ts";
 import type { Event } from "./index.ts";
@@ -90,7 +91,7 @@ export default {
             ephemeral: true
           });
         } catch (error) {
-          console.error(`${new Date().toLocaleString()}: `, error);
+          Log.error(error);
           await interaction.followUp({
             components: getErrorResponse(ErrorCodes.WATCHER_DB_UPDATE_FAIL)["components"]!,
             flags: [MessageFlags.Ephemeral, MessageFlags.IsComponentsV2]

@@ -2,6 +2,7 @@ import { ClassSearchSchema, TruncatedClassData } from "../../utils/types";
 import { searchClassDb, tryCatch } from "../../utils/fetch";
 import { authController } from "../../controllers/auth";
 import { db } from "../../utils/sqlite";
+import { Log } from "../../utils/log";
 import { Router } from "express";
 
 const router = Router();
@@ -26,7 +27,7 @@ router.get("/", authController, async (req, res) => {
           () => db.prepare("SELECT rmp_id, overall_rating, num_ratings, percent_take_again, level_of_difficulty FROM professors WHERE school_name = ? LIMIT 1").get(professor.displayName) as any
         )
       : [];
-    if (error) return console.error(error);
+    if (error) return Log.error(error);
 
     parsedClasses.push({
       term: c.term,

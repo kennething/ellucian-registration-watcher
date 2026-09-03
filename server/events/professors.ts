@@ -2,6 +2,7 @@ import { ClientManager } from "../utils/clientManager";
 import { waitForInterval } from "../utils/functions";
 import { getRMPData } from "../utils/rmp";
 import { db } from "../utils/sqlite";
+import { Log } from "../utils/log";
 import ENV from "../../env";
 import Fuse from "fuse.js";
 
@@ -57,6 +58,6 @@ export function fetchProfessorsLoop(): void {
       for (const professor of finalProfessors) statement.run(professor);
     })();
 
-    console.log(`${new Date().toLocaleString()}: Fetched ${finalProfessors.length} professors from RMP and Binghamton`);
+    Log.info(`Fetched ${finalProfessors.length} professors from RMP and Banner`);
   });
 }

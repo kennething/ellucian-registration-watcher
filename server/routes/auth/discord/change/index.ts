@@ -1,4 +1,5 @@
 import { authController } from "../../../../controllers/auth";
+import { Log } from "../../../../utils/log";
 import ENV from "../../../../../env";
 import { Router } from "express";
 
@@ -6,8 +7,9 @@ const router = Router();
 
 router.get("/", authController, async (req, res) => {
   if (!ENV.DISCORD_CLIENT_ID) {
-    console.error("DISCORD_CLIENT_ID is not set in the environment variables.");
-    return res.redirect(`${ENV.FRONTEND_URL}/setup`);
+    Log.error("DISCORD_CLIENT_ID is not set in the environment variables.");
+    res.redirect(`${ENV.FRONTEND_URL}/setup`);
+    process.exit(1);
   }
 
   const params = new URLSearchParams({

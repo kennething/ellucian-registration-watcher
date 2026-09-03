@@ -4,6 +4,7 @@ import { botClient } from "../../bot/src/common";
 import { tryCatch } from "../utils/fetch";
 import { timeNow } from "../utils/time";
 import { db } from "../utils/sqlite";
+import { Log } from "../utils/log";
 import ENV from "../../env";
 import path from "path";
 
@@ -27,23 +28,23 @@ export function purgeOutdatedLoop(): void {
     if (isDeletingTerms) {
       const backupPath = path.join(ENV.BACKUP_DATABASE_PATH, `backup_${timeNow()}.sqlite3`);
       await db.backup(backupPath);
-      console.log(`${new Date().toLocaleString()}: Backed up database before purging to ${backupPath}`);
+      Log.info(`${new Date().toLocaleString()}: Backed up database before purging to ${backupPath}`);
 
       for (const [termId] of termsToDelete) {
         // * outdated watchers
         const { count } = db.prepare("DELETE FROM watchers WHERE term_id = ? RETURNING COUNT(*) as count").get(termId) as { count: number };
         termsToDelete.delete(termId);
-        console.log(`${new Date().toLocaleString()}: Purged ${count} outdated watchers for term ${termId}`);
+        Log.info(`${new Date().toLocaleString()}: Purged ${count} outdated watchers for term ${termId}`);
 
         // * outdated search db
         db.prepare(`DROP TABLE IF EXISTS "${termId}_search_db"`).run();
         db.prepare(`DROP TABLE IF EXISTS "${termId}_search_db_attributes"`).run();
-        console.log(`${new Date().toLocaleString()}: Dropped search db table for term ${termId}`);
+        Log.info(`${new Date().toLocaleString()}: Dropped search db table for term ${termId}`);
 
         // * outdated math schedules
         if (ENV.MATH_SCHEDULE_URL) {
           db.prepare(`DROP TABLE IF EXISTS "${termId}_math_schedule"`).run();
-          console.log(`${new Date().toLocaleString()}: Dropped math schedule table for term ${termId}`);
+          Log.info(`${new Date().toLocaleString()}: Dropped math schedule table for term ${termId}`);
         }
       }
 
@@ -81,6 +82,6 @@ export function purgeOutdatedLoop(): void {
       });
     }
 
-    console.log(`${new Date().toLocaleString()}: Purging ${outdatedTerms.join(", ")} in 7 days`);
+    Log.info(`Purging ${outdatedTerms.join(", ")} at ${new Date(timeNow() + ENV.WATCHER_PURGE_NOTICE).toLocaleString()}`);
   });
 }

@@ -1,6 +1,7 @@
 import express, { Router, Express } from "express";
 import * as events from "./events/index";
 import cookieParser from "cookie-parser";
+import { Log } from "./utils/log";
 import ENV from "../env";
 import cors from "cors";
 import path from "path";
@@ -39,7 +40,7 @@ export async function startServer() {
   const routesDir = path.join(projectRoot, "server", "routes");
   await registerRoutes(app, routesDir);
 
-  app.listen(ENV.PORT, "0.0.0.0", () => console.log(`Server is up on port ${ENV.PORT}`));
+  app.listen(ENV.PORT, "0.0.0.0", () => Log.info(`Server running on port ${ENV.PORT}`));
 
   if (ENV.CLASS_FETCH_INTERVAL > 0) events.watchClassesLoop();
   if (ENV.OUTDATED_PURGE_INTERVAL > 0) events.purgeOutdatedLoop();

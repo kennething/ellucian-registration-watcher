@@ -4,6 +4,7 @@ import * as htmlparser2 from "htmlparser2";
 import { ClassData } from "./types";
 import { db } from "./sqlite";
 import ENV from "../../env";
+import { Log } from "./log";
 
 export type Success<T> = [data: T, error: never];
 export type Failure<E> = [data: never, error: E];
@@ -114,7 +115,7 @@ export async function searchClassDb(term: string, params: Partial<ClassSearchPar
   const query = `SELECT crn, COUNT(*) OVER () as total FROM "${tableName}" ${queries.length ? `WHERE ${queries.map((query) => query[0]).join(" AND ")}` : ""} ORDER BY subject, course_number, section LIMIT ${limit} OFFSET ${offset}`;
   const [data, error] = tryCatch<{ crn: string; total: number }[]>(() => db.prepare(query).all(...queries.flatMap((query) => query[1])) as any);
   if (error) {
-    console.error(error);
+    Log.error(error);
     return [[], 0];
   }
   if (data.length === 0) return [[], 0];
@@ -231,7 +232,7 @@ export async function fetchClassDescription(term: string, crn: string): Promise<
     const text = br.nextSibling?.type === "text" ? br.nextSibling.data.trim() : "";
     return text;
   } catch (error) {
-    console.error(error);
+    Log.error(error);
     throw error;
   }
 }

@@ -2,6 +2,7 @@ import { authController } from "../../../../controllers/auth";
 import { botClient } from "../../../../../bot/src/common";
 import { tryCatch } from "../../../../utils/fetch";
 import { db } from "../../../../utils/sqlite";
+import { Log } from "../../../../utils/log";
 import ENV from "../../../../../env";
 import { Router } from "express";
 import jwt from "jsonwebtoken";
@@ -14,8 +15,9 @@ router.get("/", authController, async (req, res) => {
   if (!code) return res.redirect(`${ENV.FRONTEND_URL}/settings`);
 
   if (!ENV.DISCORD_CLIENT_ID || !ENV.DISCORD_CLIENT_SECRET || !ENV.JWT_SECRET) {
-    console.error("DISCORD_CLIENT_ID is not set in the environment variables.");
-    return res.redirect(`${ENV.FRONTEND_URL}/setup`);
+    Log.error("DISCORD_CLIENT_ID, DISCORD_CLIENT_SECRET, or JWT_SECRET is not set in the environment variables.");
+    res.redirect(`${ENV.FRONTEND_URL}/setup`);
+    process.exit(1);
   }
 
   try {

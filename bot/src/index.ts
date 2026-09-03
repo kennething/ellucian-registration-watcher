@@ -1,4 +1,5 @@
 import { ActivityType, Client, GatewayIntentBits } from "discord.js";
+import { Log } from "../../server/utils/log.ts";
 import { loadEvents } from "./util/loaders.ts";
 import { URL } from "node:url";
 import ENV from "../../env.ts";
@@ -16,7 +17,7 @@ export async function startBot() {
       try {
         await event.execute(...args);
       } catch (error) {
-        console.error(`Error executing event ${String(event.name)}:`, error);
+        Log.error(`Error executing event ${String(event.name)}:`, error);
       }
     });
   }

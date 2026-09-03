@@ -2,6 +2,7 @@ import { ClassData, TruncatedClassData } from "./types";
 import { tryCatch } from "./fetch";
 import { timeNow } from "./time";
 import { db } from "./sqlite";
+import { Log } from "./log";
 
 /** Waits for a specified interval and then calls the callback function
  * @param interval The interval in seconds at which to call the callback function. The first call will be aligned to the nearest interval.
@@ -79,7 +80,7 @@ export function truncateClassData(data: ClassData[]): Map<string, TruncatedClass
           () => db.prepare("SELECT rmp_id, overall_rating, num_ratings, percent_take_again, level_of_difficulty FROM professors WHERE school_name = ? LIMIT 1").get(professor.displayName) as any
         )
       : [];
-    if (error) return console.error(error);
+    if (error) return Log.error(error);
 
     const [history, error2] = tryCatch<{
       "24h_timestamp": number;
@@ -92,7 +93,7 @@ export function truncateClassData(data: ClassData[]): Map<string, TruncatedClass
     }>(
       () => db.prepare('SELECT "24h_timestamp", seat_24h, seat_7d, seat_28d, wait_24h, wait_7d, wait_28d FROM course_history WHERE term_id = ? AND crn = ?').get(c.term, c.courseReferenceNumber) as any
     );
-    if (error2) return console.error(error2);
+    if (error2) return Log.error(error2);
 
     classMap.set(c.courseReferenceNumber, {
       term: c.term,

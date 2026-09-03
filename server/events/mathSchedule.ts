@@ -2,6 +2,7 @@ import { ClientManager } from "../utils/clientManager";
 import { waitForInterval } from "../utils/functions";
 import { getMathSchedule } from "../utils/math";
 import { db } from "../utils/sqlite";
+import { Log } from "../utils/log";
 import ENV from "../../env";
 
 export function fetchMathScheduleLoop(): void {
@@ -17,7 +18,7 @@ export function fetchMathScheduleLoop(): void {
         for (const professor of professors) statement.run(...professor);
       })();
 
-      console.log(`${new Date().toLocaleString()}: Fetched ${professors.size} professors from Math for term ${term}`);
+      Log.info(`Fetched ${professors.size} professors from Math for term ${term}`);
     }
   });
 }

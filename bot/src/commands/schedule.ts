@@ -5,6 +5,7 @@ import { ClassData } from "../../../server/utils/types.ts";
 import { db } from "../../../server/utils/sqlite.ts";
 import { createCanvas, registerFont } from "canvas";
 import { themes } from "../util/scheduleThemes.ts";
+import { Log } from "../../../server/utils/log.ts";
 import { getCourseColor } from "../util/index.ts";
 import type { Command } from "./index.ts";
 import ENV from "../../../env.ts";
@@ -150,7 +151,7 @@ export default {
             () => db.prepare("SELECT rmp_id, overall_rating, num_ratings, percent_take_again, level_of_difficulty FROM professors WHERE school_name = ? LIMIT 1").get(professor.displayName) as any
           )
         : [];
-      if (error) return console.error(error);
+      if (error) return Log.error(error);
 
       parsedClasses.push({
         subject: c.subject,

@@ -1,6 +1,7 @@
 import { tryCatch } from "../utils/fetch";
 import { RequestHandler } from "express";
 import { db } from "../utils/sqlite";
+import { Log } from "../utils/log";
 import jwt from "jsonwebtoken";
 import ENV from "../../env";
 
@@ -8,13 +9,10 @@ export const authController: RequestHandler = (req, res, next) => {
   const jwtToken = req.cookies.token;
 
   if (!jwtToken) return res.sendStatus(401);
-  if (!ENV.JWT_SECRET) {
-    console.error("JWT_SECRET is not set in the environment variables.");
-    return res.sendStatus(500);
-  }
+  if (!ENV.JWT_SECRET) Log.warn("JWT_SECRET is not set in the environment variables. You should set it to a secure value for production use.");
 
   try {
-    const user = jwt.verify(jwtToken, ENV.JWT_SECRET);
+    const user = jwt.verify(jwtToken, ENV.JWT_SECRET ?? "");
     if (typeof user === "string") throw new Error("Invalid token");
 
     const [fetchedUser, userError] = tryCatch(() => db.prepare("SELECT * FROM users WHERE uuid = ?").get(user.uuid) as any);

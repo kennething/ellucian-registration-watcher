@@ -1,4 +1,5 @@
 import { ButtonStyle, ContainerBuilder, InteractionEditReplyOptions, MessageFlags } from "discord.js";
+import { Log } from "../../../server/utils/log.ts";
 import ENV from "../../../env.ts";
 
 export enum ErrorCodes {
@@ -20,6 +21,8 @@ export enum ErrorCodes {
 }
 
 export function getSignupResponse(): InteractionEditReplyOptions {
+  Log.debug("Sending signup response");
+
   const container = new ContainerBuilder().setAccentColor(ENV.ERROR_COLOR).addSectionComponents((section) => {
     section.addTextDisplayComponents((textDisplay) => textDisplay.setContent(`You need an account first womp womp\n-# error code ${ErrorCodes.UNAUUTHORIZED}`));
     if (ENV.FRONTEND_URL) section.setButtonAccessory((button) => button.setURL(ENV.FRONTEND_URL!).setLabel("Sign up").setStyle(ButtonStyle.Link));
@@ -34,6 +37,8 @@ export function getSignupResponse(): InteractionEditReplyOptions {
 
 /** @params message - if omitted, a generic error message */
 export function getErrorResponse(code: ErrorCodes, message?: string): InteractionEditReplyOptions {
+  Log.debug(`Sending error response with code ${code} and message: ${message ?? "generic error message"}`);
+
   const container = new ContainerBuilder()
     .setAccentColor(ENV.ERROR_COLOR)
     .addTextDisplayComponents((textDisplay) => textDisplay.setContent(`${message ?? "Something went wrong. Try again later"}\n-# error code ${code}`));
