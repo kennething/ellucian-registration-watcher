@@ -14,6 +14,7 @@
     "axios-cookiejar-support": "^7.0.0",
     "better-sqlite3": "^13.0.3",
     "canvas": "^3.2.3",
+    "chalk": "^6.0.0",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.6",
     "discord.js": "^14.27.0",
@@ -33,6 +34,7 @@
   "devDependencies": {
     "@sapphire/ts-config": "^5.0.3",
     "@types/better-sqlite3": "^9.6.0",
+    "@types/chalk": "^0.4.31",
     "@types/cookie-parser": "^1.4.10",
     "@types/cors": "^2.8.19",
     "@types/express": "^5.0.6",
