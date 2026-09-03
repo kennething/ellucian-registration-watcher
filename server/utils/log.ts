@@ -17,19 +17,19 @@ export class Log {
     }
   })();
 
-  static debug<T>(...message: T[]) {
+  static debug(...message: unknown[]) {
     if (Log.logLevel <= 0) console.debug(chalk.green.bold("[DEBUG] ") + chalk.green(new Date().toLocaleString()) + " | " + chalk.reset(message.join(" ")));
   }
 
-  static info<T>(...message: T[]) {
+  static info(...message: unknown[]) {
     if (Log.logLevel <= 1) console.info(chalk.blue.bold("[INFO] ") + chalk.blue(new Date().toLocaleString()) + " | " + chalk.reset(message.join(" ")));
   }
 
-  static warn<T>(...message: T[]) {
+  static warn(...message: unknown[]) {
     if (Log.logLevel <= 2) console.warn(chalk.yellow.bold("[WARN] ") + chalk.yellow(new Date().toLocaleString()) + " | " + chalk.reset(message.join(" ")));
   }
 
-  static error<T>(...message: T[]) {
+  static error(...message: unknown[]) {
     if (Log.logLevel <= 3) console.error(chalk.red.bold("[ERROR] ") + chalk.red(new Date().toLocaleString()) + " | " + chalk.reset(message.join(" ")));
   }
 }

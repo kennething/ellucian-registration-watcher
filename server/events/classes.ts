@@ -60,6 +60,7 @@ function updateHistoryRow(arrayString: string, insert: number, crn: string, term
     if (timeType === "7d") return entries7d;
     return entries28d;
   })();
+  Log.debug(crn, entryType, timeType, array.filter((a) => a === -1).length);
 
   if (array.length !== entries) {
     const newArray = new Array(entries - 1).fill(-1);
@@ -71,6 +72,7 @@ function updateHistoryRow(arrayString: string, insert: number, crn: string, term
 
   array.shift();
   array.push(insert);
+  Log.debug(crn, entryType, timeType, array.filter((a) => a === -1).length);
 
   db.prepare(`UPDATE course_history SET ${entryType}_${timeType} = ?, "${timeType}_timestamp" = ? WHERE crn = ? AND term_id = ?`).run(JSON.stringify(array), currentTime, crn, term);
 }
