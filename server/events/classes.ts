@@ -37,7 +37,6 @@ type CourseHistory = {
   wait_28d: string;
 };
 
-const currentTime = timeNow();
 const entries24h = ENV.CLASS_HISTORY_24H_ENTRIES;
 const entries7d = ENV.CLASS_HISTORY_7D_ENTRIES;
 const entries28d = ENV.CLASS_HISTORY_28D_ENTRIES;
@@ -46,39 +45,40 @@ const interval24h = 86400 / ENV.CLASS_HISTORY_24H_ENTRIES;
 const interval7d = (86400 * 7) / ENV.CLASS_HISTORY_7D_ENTRIES;
 const interval28d = (86400 * 28) / ENV.CLASS_HISTORY_28D_ENTRIES;
 
-function updateHistoryRow(arrayString: string, insert: number, crn: string, term: string, entryType: "seat" | "wait", timeType: "24h" | "7d" | "28d") {
-  let array = JSON.parse(arrayString) as number[];
-  if (!array) return;
-
-  const entries = (() => {
-    if (entryType === "seat") {
-      if (timeType === "24h") return entries24h;
-      if (timeType === "7d") return entries7d;
-      return entries28d;
-    }
-    if (timeType === "24h") return entries24h;
-    if (timeType === "7d") return entries7d;
-    return entries28d;
-  })();
-  Log.debug(crn, entryType, timeType, array.filter((a) => a === -1).length);
-
-  if (array.length !== entries) {
-    const newArray = new Array(entries - 1).fill(-1);
-    const fill = array.slice(-1 * entries);
-    newArray.length = entries - fill.length;
-    newArray.push(...fill);
-    array = newArray;
-  }
-
-  array.shift();
-  array.push(insert);
-  Log.debug(crn, entryType, timeType, array.filter((a) => a === -1).length);
-
-  db.prepare(`UPDATE course_history SET ${entryType}_${timeType} = ?, "${timeType}_timestamp" = ? WHERE crn = ? AND term_id = ?`).run(JSON.stringify(array), currentTime, crn, term);
-}
-
 export function watchClassesLoop(): void {
   waitForInterval(ENV.CLASS_FETCH_INTERVAL, ENV.CLASS_FETCH_OFFSET, async () => {
+    const currentTime = timeNow();
+    function updateHistoryRow(arrayString: string, insert: number, crn: string, term: string, entryType: "seat" | "wait", timeType: "24h" | "7d" | "28d") {
+      let array = JSON.parse(arrayString) as number[];
+      if (!array) return;
+
+      const entries = (() => {
+        if (entryType === "seat") {
+          if (timeType === "24h") return entries24h;
+          if (timeType === "7d") return entries7d;
+          return entries28d;
+        }
+        if (timeType === "24h") return entries24h;
+        if (timeType === "7d") return entries7d;
+        return entries28d;
+      })();
+      Log.debug(crn, entryType, timeType, array.filter((a) => a === -1).length);
+
+      if (array.length !== entries) {
+        const newArray = new Array(entries - 1).fill(-1);
+        const fill = array.slice(-1 * entries);
+        newArray.length = entries - fill.length;
+        newArray.push(...fill);
+        array = newArray;
+      }
+
+      array.shift();
+      array.push(insert);
+      Log.debug(crn, entryType, timeType, array.filter((a) => a === -1).length);
+
+      db.prepare(`UPDATE course_history SET ${entryType}_${timeType} = ?, "${timeType}_timestamp" = ? WHERE crn = ? AND term_id = ?`).run(JSON.stringify(array), currentTime, crn, term);
+    }
+
     const mostRecentTerms = ClientManager.getMostRecentTerms();
 
     if (!mostRecentTerms) return;
