@@ -63,12 +63,14 @@ export function getMeetingTimeString(meetingTime: TruncatedClassData["meeting"][
   return `${startStr} - ${endHour > 12 ? endHour - 12 : endHour}:${meetingTime[1].slice(2)} ${endTime < 1200 ? "AM" : "PM"}`;
 }
 
-export function getMeetingDaysString(meetingDays: TruncatedClassData["meeting"]["days"]) {
+export function getMeetingDaysString(meetingDays?: TruncatedClassData["meeting"]["days"]) {
   const days = ["Su", "M", "T", "W", "Th", "F", "Sa"];
-  return meetingDays
-    .map((day, i) => (day ? days[i] : ""))
-    .filter(Boolean)
-    .join("");
+  return (
+    meetingDays
+      ?.map((day, i) => (day ? days[i] : ""))
+      .filter(Boolean)
+      .join("") ?? ""
+  );
 }
 
 export function truncateClassData(data: ClassData[]): Map<string, TruncatedClassData> {

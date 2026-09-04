@@ -1,6 +1,6 @@
+import { getMeetingDaysString, getMeetingTimeString, getTermString } from "../../../server/utils/functions.ts";
 import { ErrorCodes, getErrorResponse, getSignupResponse } from "../util/responses.ts";
 import { searchClasses, tryCatch } from "../../../server/utils/fetch.ts";
-import { getTermString } from "../../../server/utils/functions.ts";
 import { ClassData } from "../../../server/utils/types.ts";
 import { db } from "../../../server/utils/sqlite.ts";
 import { createCanvas, registerFont } from "canvas";
@@ -25,8 +25,6 @@ type MiniClassData = {
   subject: string;
   courseNumber: string;
   sequenceNumber: string;
-  startTime: ClassData["meetingsFaculty"][0]["meetingTime"]["beginTime"];
-  endTime: ClassData["meetingsFaculty"][0]["meetingTime"]["endTime"];
   meetingsFaculty: ClassData["meetingsFaculty"];
   faculty: ClassData["faculty"];
   rmpRating: number | null;
@@ -157,8 +155,6 @@ export default {
         subject: c.subject,
         courseNumber: c.courseNumber,
         sequenceNumber: c.sequenceNumber,
-        startTime: c.meetingsFaculty[0]?.meetingTime.beginTime,
-        endTime: c.meetingsFaculty[0]?.meetingTime.endTime,
         meetingsFaculty: c.meetingsFaculty,
         faculty: c.faculty,
         rmpRating: rmpData?.overall_rating ?? null
@@ -251,17 +247,8 @@ export default {
             yOffset += 20;
           }
 
-          const startHour = Number(course.startTime?.slice(0, 2));
-          const startMinutes = Number(course.startTime?.slice(2, 4));
-          const endHour = Number(course.endTime?.slice(0, 2));
-          const endMinutes = Number(course.endTime?.slice(2, 4));
-          const sameAmpm = startHour < 12 === endHour < 12;
-
-          let startStr = `${startHour > 12 ? startHour - 12 : startHour}:${startMinutes.toString().padStart(2, "0")}`;
-          if (!sameAmpm) startStr += startHour < 12 ? " AM" : " PM";
-
-          const meetingTimeString = `${startStr} - ${endHour > 12 ? endHour - 12 : endHour}:${endMinutes.toString().padStart(2, "0")} ${endHour < 12 ? "AM" : "PM"}`;
-          ctx.fillText(`${meetingTimeString}`, xOffset, yOffset, DAY_WIDTH - 24);
+          const meeting = course.meetingsFaculty[0]?.meetingTime;
+          ctx.fillText(getMeetingTimeString([meeting.beginTime, meeting.endTime]), xOffset, yOffset, DAY_WIDTH - 24);
           yOffset += 20;
 
           ctx.fillText(`${course.meetingsFaculty[0]?.meetingTime.building} ${course.meetingsFaculty[0]?.meetingTime.room}`, xOffset, yOffset, DAY_WIDTH - 24);
@@ -271,7 +258,18 @@ export default {
 
     const buffer = options.getBoolean("share") ? canvas.toBuffer("image/png") : canvas.toBuffer("image/jpeg");
     await interaction.editReply({
-      content: `${getTermString(schedule.term_id)} - ${classes.reduce((acc, course) => acc + course.meetingsFaculty[0]?.meetingTime.creditHourSession || 0, 0)} credits`,
+      content: `### ${getTermString(schedule.term_id)} - ${classes.reduce((acc, course) => acc + course.meetingsFaculty[0]?.meetingTime.creditHourSession || 0, 0)} credits
+
+${parsedClasses
+  .map((course) => {
+    const meeting = course.meetingsFaculty[0]?.meetingTime;
+    const unfilteredMeetingDays = [meeting?.sunday, meeting?.monday, meeting?.tuesday, meeting?.wednesday, meeting?.thursday, meeting?.friday, meeting?.saturday];
+    const meetingDays = unfilteredMeetingDays.every((day) => day === undefined) ? undefined : unfilteredMeetingDays;
+    const meetingTime = [meeting.beginTime, meeting?.endTime];
+
+    return `-# - **${course.subject} ${course.courseNumber} - ${course.sequenceNumber}** | ${getMeetingDaysString(meetingDays)} ${getMeetingTimeString(meetingTime)} | ${course.meetingsFaculty[0]?.meetingTime.building} ${course.meetingsFaculty[0]?.meetingTime.room}`;
+  })
+  .join("\n")}`,
       files: [new AttachmentBuilder(buffer, { name: `${schedule.name}.${options.getBoolean("share") ? "png" : "jpg"}` })],
       components: ENV.FRONTEND_URL
         ? [
