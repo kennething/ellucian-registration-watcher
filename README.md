@@ -183,12 +183,12 @@ re-registering.
 
 ## Frontend
 
-| Variable                | Description                                                                                             | Default | Required |
-| ----------------------- | ------------------------------------------------------------------------------------------------------- | ------- | -------- |
-| `FRONTEND_URL`          | URL with protocol, don't append `/`                                                                     |         | yes\*    |
-| `DISCORD_CLIENT_ID`     | Client ID of your Discord bot, used for Discord OAuth2                                                  |         | yes\*    |
-| `DISCORD_CLIENT_SECRET` | Client secret of your Discord bot, used for Discord OAuth2                                              |         | yes\*    |
-| `JWT_SECRET`            | Secret for generating JWT tokens, used for authentication - technically can be any string but like cmon |         | yes\*    |
+| Variable                | Description                                                                                             | Default | Required            |
+| ----------------------- | ------------------------------------------------------------------------------------------------------- | ------- | ------------------- |
+| `FRONTEND_URL`          | URL with protocol, don't append `/`                                                                     |         | yes\*               |
+| `DISCORD_CLIENT_ID`     | Client ID of your Discord bot, used for Discord OAuth2                                                  |         | yes\*               |
+| `DISCORD_CLIENT_SECRET` | Client secret of your Discord bot, used for Discord OAuth2                                              |         | yes\*               |
+| `JWT_SECRET`            | Secret for generating JWT tokens, used for authentication - technically can be any string but like cmon |         | highly encouraged\* |
 
 > \[!NOTE\]
 >

@@ -58,6 +58,21 @@ const ENV = z
     DISCORD_CLIENT_SECRET: z.string().optional(),
     JWT_SECRET: z.string().optional()
   })
+  .superRefine((env, ctx) => {
+    const someMissing = <T>(fields: T[]) => fields.some((field) => field === undefined);
+
+    if (env.DISCORD_TOKEN && !env.APPLICATION_ID)
+      ctx.addIssue({
+        code: "custom",
+        message: "APPLICATION_ID must be provided if DISCORD_TOKEN is set"
+      });
+
+    if (env.FRONTEND_URL && someMissing([env.DISCORD_CLIENT_ID, env.DISCORD_CLIENT_SECRET]))
+      ctx.addIssue({
+        code: "custom",
+        message: "DISCORD_CLIENT_ID and DISCORD_CLIENT_SECRET must be provided if FRONTEND_URL is set"
+      });
+  })
   .parse(process.env);
 
 export default ENV;
