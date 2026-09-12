@@ -1,10 +1,15 @@
 import { ActivityType, Client, GatewayIntentBits } from "discord.js";
 import { Log } from "../../server/utils/log.ts";
 import { loadEvents } from "./util/loaders.ts";
+import { registerFont } from "canvas";
 import { URL } from "node:url";
 import ENV from "../../env.ts";
+import path from "path";
 
 export async function startBot() {
+  registerFont(path.resolve("./bot/fonts/PlaypenSans-Regular.ttf"), { family: "Playpen Sans", weight: "400" });
+  registerFont(path.resolve("./bot/fonts/PlaypenSans-Bold.ttf"), { family: "Playpen Sans", weight: "700" });
+
   // Initialize the client
   const client = new Client({ intents: [GatewayIntentBits.DirectMessages] });
 

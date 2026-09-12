@@ -1,23 +1,24 @@
-import { getMeetingDaysString, getMeetingTimeString, getTermString } from "../../../server/utils/functions.ts";
 import { ErrorCodes, getErrorResponse, getSignupResponse } from "../util/responses.ts";
+import { getMeetingTimeString } from "../../../server/utils/functions.ts";
 import { searchClasses, tryCatch } from "../../../server/utils/fetch.ts";
 import { ClassData } from "../../../server/utils/types.ts";
 import { db } from "../../../server/utils/sqlite.ts";
-import { createCanvas, registerFont } from "canvas";
 import { themes } from "../util/scheduleThemes.ts";
 import { Log } from "../../../server/utils/log.ts";
 import { getCourseColor } from "../util/index.ts";
 import type { Command } from "./index.ts";
+import { createCanvas } from "canvas";
 import ENV from "../../../env.ts";
-import path from "path";
 import {
+  ActionRowBuilder,
   ApplicationCommandOptionType,
   ApplicationIntegrationType,
   AttachmentBuilder,
+  ButtonBuilder,
   ButtonStyle,
   CommandInteractionOptionResolver,
-  ComponentType,
   InteractionContextType,
+  InteractionEditReplyOptions,
   MessageFlags
 } from "discord.js";
 
@@ -29,9 +30,6 @@ type MiniClassData = {
   faculty: ClassData["faculty"];
   rmpRating: number | null;
 };
-
-registerFont(path.resolve("./bot/fonts/PlaypenSans-Regular.ttf"), { family: "Playpen Sans", weight: "400" });
-registerFont(path.resolve("./bot/fonts/PlaypenSans-Bold.ttf"), { family: "Playpen Sans", weight: "700" });
 
 const TIME_WIDTH = 100 as const;
 const DAY_WIDTH = 250 as const;
@@ -66,6 +64,173 @@ function getTimeLabel(minutes: number) {
   if (hours > 12) hours -= 12;
 
   return `${hours}:${mins.toString().padStart(2, "0")}${mins === 0 ? ` ${amPm}` : ""}`;
+}
+
+export async function generateScheduleImage<T extends string | null>(
+  scheduleUuid: T,
+  themeName: keyof typeof themes,
+  isShared: boolean,
+  userUuid?: T extends string ? undefined : string
+): Promise<[selectedScheduleUuid: string | null, payload: InteractionEditReplyOptions | AttachmentBuilder]> {
+  let schedule: { uuid: string; owner_uuid: string; term_id: string; name: string; crns: string[] } | undefined;
+
+  if (scheduleUuid === null) {
+    const [fetchedSchedule, error2] = tryCatch<{ uuid: string; term_id: string; name: string; crns: string }>(
+      () => db.prepare("SELECT uuid, term_id, name, crns FROM schedules WHERE owner_uuid = ? LIMIT 1").get(userUuid) as any
+    );
+    Log.debug(fetchedSchedule);
+    if (error2) return [null, getErrorResponse(ErrorCodes.SCHEDULE_DB_FETCH_FAIL)];
+    if (!fetchedSchedule) return [null, getErrorResponse(ErrorCodes.NO_SCHEDULE, "You don't have any schedules yet. Create one first!")];
+    schedule = { ...fetchedSchedule, owner_uuid: userUuid!, crns: JSON.parse(fetchedSchedule.crns) as string[] };
+  } else {
+    const [fetchedSchedule, error2] = tryCatch<{ term_id: string; owner_uuid: string; name: string; crns: string }>(
+      () => db.prepare("SELECT term_id, owner_uuid, name, crns FROM schedules WHERE uuid = ?").get(scheduleUuid) as any
+    );
+    if (error2) return [null, getErrorResponse(ErrorCodes.SCHEDULE_DB_FETCH_FAIL)];
+    if (!fetchedSchedule) return [null, getErrorResponse(ErrorCodes.NO_SCHEDULE, "This schedule doesnt exist bro")];
+    schedule = { ...fetchedSchedule, uuid: scheduleUuid, crns: JSON.parse(fetchedSchedule.crns) as string[] };
+  }
+
+  if (schedule.crns.length === 0) return [null, getErrorResponse(ErrorCodes.EMPTY_SCHEDULE, "This schedule is empty. Add some classes first!")];
+
+  const classData = await searchClasses(schedule.term_id, { crn: schedule.crns }, 0, ENV.USER_WATCHER_LIMIT);
+  const classes = classData[0] as ClassData[];
+
+  const parsedClasses: MiniClassData[] = [];
+  classes.forEach((c) => {
+    const professor = c.faculty.find((f) => f.primaryIndicator);
+    const [rmpData, error] = professor
+      ? tryCatch<{ rmp_id: number; overall_rating: number; num_ratings: number; percent_take_again: number; level_of_difficulty: number }>(
+          () => db.prepare("SELECT rmp_id, overall_rating, num_ratings, percent_take_again, level_of_difficulty FROM professors WHERE school_name = ? LIMIT 1").get(professor.displayName) as any
+        )
+      : [];
+    if (error) return Log.error(error);
+
+    parsedClasses.push({
+      subject: c.subject,
+      courseNumber: c.courseNumber,
+      sequenceNumber: c.sequenceNumber,
+      meetingsFaculty: c.meetingsFaculty,
+      faculty: c.faculty,
+      rmpRating: rmpData?.overall_rating ?? null
+    });
+  });
+
+  const canvas = createCanvas(WIDTH, HEIGHT);
+  const theme = themes[themeName];
+  (() => {
+    const ctx = canvas.getContext("2d");
+
+    ctx.fillStyle = theme.bg;
+    ctx.fillRect(0, 0, WIDTH, HEIGHT);
+
+    ctx.fillStyle = theme.header;
+    ctx.fillRect(0, 0, WIDTH, HEADER_HEIGHT);
+
+    ctx.fillStyle = theme.headerText;
+    ctx.font = 'bold 24px "Playpen Sans"';
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    DAYS.forEach((day, i) => {
+      const x = TIME_WIDTH + i * DAY_WIDTH + DAY_WIDTH / 2;
+      ctx.fillText(day.charAt(0).toUpperCase() + day.slice(1), x, HEADER_HEIGHT / 2);
+    });
+
+    ctx.strokeStyle = theme.lines;
+    ctx.lineWidth = 1;
+    for (let i = 0; i <= GRID_HEIGHT / SLOT_HEIGHT; i++) {
+      const y = HEADER_HEIGHT + i * SLOT_HEIGHT;
+      ctx.beginPath();
+      ctx.moveTo(0, y);
+      ctx.lineTo(WIDTH, y);
+      ctx.stroke();
+    }
+
+    for (let i = 0; i <= DAYS.length; i++) {
+      const x = TIME_WIDTH + i * DAY_WIDTH;
+      ctx.beginPath();
+      ctx.moveTo(x, HEADER_HEIGHT);
+      ctx.lineTo(x, HEIGHT);
+      ctx.stroke();
+    }
+
+    ctx.fillStyle = theme.timeText;
+    ctx.font = '16px "Playpen Sans"';
+    ctx.textAlign = "left";
+
+    for (let i = 0; i < GRID_HEIGHT / SLOT_HEIGHT; i++) {
+      const minutes = SCHEDULE_START + i * 15;
+      const y = HEADER_HEIGHT + i * SLOT_HEIGHT + 14;
+
+      if (minutes % 60 === 0) ctx.font = 'bold 16px "Playpen Sans"';
+      else ctx.font = '16px "Playpen Sans"';
+
+      ctx.fillText(getTimeLabel(minutes), 10, y);
+    }
+
+    for (const course of parsedClasses) {
+      const color = getCourseColor(course);
+
+      const start = timeToMinutes(course.meetingsFaculty[0]?.meetingTime.beginTime);
+      const end = timeToMinutes(course.meetingsFaculty[0]?.meetingTime.endTime);
+
+      const y = timeToY(start);
+      const height = timeToY(end) - y;
+
+      DAYS.forEach((day, i) => {
+        if (!course.meetingsFaculty[0]?.meetingTime[day]) return;
+
+        const x = TIME_WIDTH + i * DAY_WIDTH;
+
+        ctx.fillStyle = color;
+        ctx.fillRect(x + 4, y + 2, DAY_WIDTH - 8, height - 4);
+
+        const xOffset = x + 12;
+        let yOffset = y + 4;
+
+        ctx.fillStyle = "#000000";
+        ctx.font = 'bold 18px "Playpen Sans"';
+        ctx.textAlign = "left";
+        ctx.textBaseline = "top";
+        ctx.fillText(`${course.subject} ${course.courseNumber} - ${course.sequenceNumber}`, xOffset, yOffset, DAY_WIDTH - 24);
+        yOffset += 26;
+
+        ctx.font = '14px "Playpen Sans"';
+        const professor = course.faculty[0];
+        if (professor) {
+          ctx.fillText(`${professor.displayName.split(",").reverse().join(" ")}${course.rmpRating ? ` (${course.rmpRating.toFixed(1)}/5)` : ""}`, xOffset, yOffset, DAY_WIDTH - 24);
+          yOffset += 20;
+        }
+
+        const meeting = course.meetingsFaculty[0]?.meetingTime;
+        ctx.fillText(getMeetingTimeString([meeting.beginTime, meeting.endTime]), xOffset, yOffset, DAY_WIDTH - 24);
+        yOffset += 20;
+
+        ctx.fillText(`${course.meetingsFaculty[0]?.meetingTime.building} ${course.meetingsFaculty[0]?.meetingTime.room}`, xOffset, yOffset, DAY_WIDTH - 24);
+      });
+    }
+  })();
+
+  const buffer = isShared ? canvas.toBuffer("image/png") : canvas.toBuffer("image/jpeg");
+  return [schedule.uuid, new AttachmentBuilder(buffer, { name: `${schedule.name}.${isShared ? "png" : "jpg"}` })];
+}
+
+export async function generateScheduleActionRow(scheduleUuid: string, themeName: keyof typeof themes, isShared: boolean) {
+  const builder = new ActionRowBuilder<ButtonBuilder>();
+
+  if (isShared)
+    builder.addComponents(
+      new ButtonBuilder()
+        .setCustomId(`schedule:refresh:${scheduleUuid}:${themeName}:${Number(isShared)}`)
+        .setLabel("Refresh")
+        .setStyle(ButtonStyle.Primary)
+    );
+
+  builder.addComponents(new ButtonBuilder().setCustomId(`schedule:list:${scheduleUuid}`).setLabel("More Info").setStyle(ButtonStyle.Secondary));
+
+  if (ENV.FRONTEND_URL) builder.addComponents(new ButtonBuilder().setLabel("View on Web").setStyle(ButtonStyle.Link).setURL(`${ENV.FRONTEND_URL}/schedule/${scheduleUuid}`));
+
+  return builder;
 }
 
 export default {
@@ -117,175 +282,15 @@ export default {
     if (!user) return void interaction.editReply(getSignupResponse());
     if (error) return void interaction.editReply(getErrorResponse(ErrorCodes.USER_DB_FETCH_FAIL));
 
-    let schedule: { uuid: string; term_id: string; name: string; crns: string[] } | undefined;
-
     const scheduleUuid = options.getString("name");
-    if (!scheduleUuid) {
-      const [fetchedSchedule, error2] = tryCatch<{ uuid: string; term_id: string; name: string; crns: string }>(
-        () => db.prepare("SELECT uuid, term_id, name, crns FROM schedules WHERE owner_uuid = ? LIMIT 1").get(user.uuid) as any
-      );
-      if (error2) return void interaction.editReply(getErrorResponse(ErrorCodes.SCHEDULE_DB_FETCH_FAIL));
-      if (!fetchedSchedule) return void interaction.editReply(getErrorResponse(ErrorCodes.NO_SCHEDULE, "You don't have any schedules yet. Create one first!"));
-      schedule = { ...fetchedSchedule, crns: JSON.parse(fetchedSchedule.crns) as string[] };
-    } else {
-      const [fetchedSchedule, error2] = tryCatch<{ term_id: string; name: string; crns: string }>(
-        () => db.prepare("SELECT term_id, name, crns FROM schedules WHERE owner_uuid = ? AND uuid = ?").get(user.uuid, scheduleUuid) as any
-      );
-      if (error2) return void interaction.editReply(getErrorResponse(ErrorCodes.SCHEDULE_DB_FETCH_FAIL));
-      if (!fetchedSchedule) return void interaction.editReply(getErrorResponse(ErrorCodes.NO_SCHEDULE, "This schedule doesnt exist bro"));
-      schedule = { ...fetchedSchedule, uuid: scheduleUuid, crns: JSON.parse(fetchedSchedule.crns) as string[] };
-    }
+    const theme = (options.getString("theme") as keyof typeof themes) ?? "dark";
+    const isShared = options.getBoolean("share") ?? false;
+    const [chosenScheduleUuid, attachment] = await generateScheduleImage(scheduleUuid, theme, isShared, user.uuid);
+    if (!(attachment instanceof AttachmentBuilder)) return void interaction.editReply(attachment as InteractionEditReplyOptions);
 
-    if (schedule.crns.length === 0) return void interaction.editReply(getErrorResponse(ErrorCodes.EMPTY_SCHEDULE, "This schedule is empty. Add some classes first!"));
-
-    const classData = await searchClasses(schedule.term_id, { crn: schedule.crns }, 0, ENV.USER_WATCHER_LIMIT);
-    const classes = classData[0] as ClassData[];
-
-    const parsedClasses: MiniClassData[] = [];
-    classes.forEach((c) => {
-      const professor = c.faculty.find((f) => f.primaryIndicator);
-      const [rmpData, error] = professor
-        ? tryCatch<{ rmp_id: number; overall_rating: number; num_ratings: number; percent_take_again: number; level_of_difficulty: number }>(
-            () => db.prepare("SELECT rmp_id, overall_rating, num_ratings, percent_take_again, level_of_difficulty FROM professors WHERE school_name = ? LIMIT 1").get(professor.displayName) as any
-          )
-        : [];
-      if (error) return Log.error(error);
-
-      parsedClasses.push({
-        subject: c.subject,
-        courseNumber: c.courseNumber,
-        sequenceNumber: c.sequenceNumber,
-        meetingsFaculty: c.meetingsFaculty,
-        faculty: c.faculty,
-        rmpRating: rmpData?.overall_rating ?? null
-      });
-    });
-
-    const canvas = createCanvas(WIDTH, HEIGHT);
-    const theme = themes[options.getString("theme") as keyof typeof themes] ?? themes.dark;
-    (() => {
-      const ctx = canvas.getContext("2d");
-
-      ctx.fillStyle = theme.bg;
-      ctx.fillRect(0, 0, WIDTH, HEIGHT);
-
-      ctx.fillStyle = theme.header;
-      ctx.fillRect(0, 0, WIDTH, HEADER_HEIGHT);
-
-      ctx.fillStyle = theme.headerText;
-      ctx.font = 'bold 24px "Playpen Sans"';
-      ctx.textAlign = "center";
-      ctx.textBaseline = "middle";
-      DAYS.forEach((day, i) => {
-        const x = TIME_WIDTH + i * DAY_WIDTH + DAY_WIDTH / 2;
-        ctx.fillText(day.charAt(0).toUpperCase() + day.slice(1), x, HEADER_HEIGHT / 2);
-      });
-
-      ctx.strokeStyle = theme.lines;
-      ctx.lineWidth = 1;
-      for (let i = 0; i <= GRID_HEIGHT / SLOT_HEIGHT; i++) {
-        const y = HEADER_HEIGHT + i * SLOT_HEIGHT;
-        ctx.beginPath();
-        ctx.moveTo(0, y);
-        ctx.lineTo(WIDTH, y);
-        ctx.stroke();
-      }
-
-      for (let i = 0; i <= DAYS.length; i++) {
-        const x = TIME_WIDTH + i * DAY_WIDTH;
-        ctx.beginPath();
-        ctx.moveTo(x, HEADER_HEIGHT);
-        ctx.lineTo(x, HEIGHT);
-        ctx.stroke();
-      }
-
-      ctx.fillStyle = theme.timeText;
-      ctx.font = '16px "Playpen Sans"';
-      ctx.textAlign = "left";
-
-      for (let i = 0; i < GRID_HEIGHT / SLOT_HEIGHT; i++) {
-        const minutes = SCHEDULE_START + i * 15;
-        const y = HEADER_HEIGHT + i * SLOT_HEIGHT + 14;
-
-        if (minutes % 60 === 0) ctx.font = 'bold 16px "Playpen Sans"';
-        else ctx.font = '16px "Playpen Sans"';
-
-        ctx.fillText(getTimeLabel(minutes), 10, y);
-      }
-
-      for (const course of parsedClasses) {
-        const color = getCourseColor(course);
-
-        const start = timeToMinutes(course.meetingsFaculty[0]?.meetingTime.beginTime);
-        const end = timeToMinutes(course.meetingsFaculty[0]?.meetingTime.endTime);
-
-        const y = timeToY(start);
-        const height = timeToY(end) - y;
-
-        DAYS.forEach((day, i) => {
-          if (!course.meetingsFaculty[0]?.meetingTime[day]) return;
-
-          const x = TIME_WIDTH + i * DAY_WIDTH;
-
-          ctx.fillStyle = color;
-          ctx.fillRect(x + 4, y + 2, DAY_WIDTH - 8, height - 4);
-
-          const xOffset = x + 12;
-          let yOffset = y + 4;
-
-          ctx.fillStyle = "#000000";
-          ctx.font = 'bold 18px "Playpen Sans"';
-          ctx.textAlign = "left";
-          ctx.textBaseline = "top";
-          ctx.fillText(`${course.subject} ${course.courseNumber} - ${course.sequenceNumber}`, xOffset, yOffset, DAY_WIDTH - 24);
-          yOffset += 26;
-
-          ctx.font = '14px "Playpen Sans"';
-          const professor = course.faculty[0];
-          if (professor) {
-            ctx.fillText(`${professor.displayName.split(",").reverse().join(" ")}${course.rmpRating ? ` (${course.rmpRating.toFixed(1)}/5)` : ""}`, xOffset, yOffset, DAY_WIDTH - 24);
-            yOffset += 20;
-          }
-
-          const meeting = course.meetingsFaculty[0]?.meetingTime;
-          ctx.fillText(getMeetingTimeString([meeting.beginTime, meeting.endTime]), xOffset, yOffset, DAY_WIDTH - 24);
-          yOffset += 20;
-
-          ctx.fillText(`${course.meetingsFaculty[0]?.meetingTime.building} ${course.meetingsFaculty[0]?.meetingTime.room}`, xOffset, yOffset, DAY_WIDTH - 24);
-        });
-      }
-    })();
-
-    const buffer = options.getBoolean("share") ? canvas.toBuffer("image/png") : canvas.toBuffer("image/jpeg");
     await interaction.editReply({
-      content: `### ${getTermString(schedule.term_id)} - ${classes.reduce((acc, course) => acc + course.meetingsFaculty[0]?.meetingTime.creditHourSession || 0, 0)} credits
-
-${parsedClasses
-  .map((course) => {
-    const meeting = course.meetingsFaculty[0]?.meetingTime;
-    const unfilteredMeetingDays = [meeting?.sunday, meeting?.monday, meeting?.tuesday, meeting?.wednesday, meeting?.thursday, meeting?.friday, meeting?.saturday];
-    const meetingDays = unfilteredMeetingDays.every((day) => day === undefined) ? undefined : unfilteredMeetingDays;
-    const meetingTime = [meeting.beginTime, meeting?.endTime];
-
-    return `-# - **${course.subject} ${course.courseNumber} - ${course.sequenceNumber}** | ${getMeetingDaysString(meetingDays)} ${getMeetingTimeString(meetingTime)} | ${course.meetingsFaculty[0]?.meetingTime.building} ${course.meetingsFaculty[0]?.meetingTime.room}`;
-  })
-  .join("\n")}`,
-      files: [new AttachmentBuilder(buffer, { name: `${schedule.name}.${options.getBoolean("share") ? "png" : "jpg"}` })],
-      components: ENV.FRONTEND_URL
-        ? [
-            {
-              type: ComponentType.ActionRow,
-              components: [
-                {
-                  type: ComponentType.Button,
-                  style: ButtonStyle.Link,
-                  label: "View on Web",
-                  url: `${ENV.FRONTEND_URL}/schedule/${schedule.uuid}`
-                }
-              ]
-            }
-          ]
-        : undefined
+      files: [attachment],
+      components: [await generateScheduleActionRow(chosenScheduleUuid!, theme, isShared)]
     });
   }
 } satisfies Command;

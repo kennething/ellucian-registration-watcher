@@ -1,9 +1,13 @@
-import { ActionRow, ComponentType, Events, InteractionReplyOptions, MessageFlags, StringSelectMenuComponent } from "discord.js";
+import { ActionRow, AttachmentBuilder, ComponentType, Events, InteractionReplyOptions, MessageFlags, StringSelectMenuComponent } from "discord.js";
+import { getMeetingDaysString, getMeetingTimeString, getTermString } from "../../../server/utils/functions.ts";
+import { generateScheduleActionRow, generateScheduleImage } from "../commands/schedule.ts";
+import { searchClasses, tryCatch } from "../../../server/utils/fetch.ts";
 import { generateResponse, getClassData } from "../commands/search.ts";
 import { ErrorCodes, getErrorResponse } from "../util/responses.ts";
-import { getTermString } from "../../../server/utils/functions.ts";
+import { ClassData } from "../../../server/utils/types.ts";
 import { db } from "../../../server/utils/sqlite.ts";
 import { Log } from "../../../server/utils/log.ts";
+import { themes } from "../util/scheduleThemes.ts";
 import { loadCommands } from "../util/loaders.ts";
 import { paginationState } from "../common.ts";
 import type { Event } from "./index.ts";
@@ -30,9 +34,11 @@ export default {
     else if (interaction.isButton()) {
       await interaction.deferUpdate();
 
-      const [command, type, paginationId] = interaction.customId.split(":") as ["search", "first" | "prev" | "next" | "last", string];
+      const [command, ...buttonInfo] = interaction.customId.split(":") as ["search" | "schedule", ...string[]];
 
       if (command === "search") {
+        const [type, paginationId] = buttonInfo as ["first" | "prev" | "next" | "last", paginationId: string];
+
         const state = paginationState.get(paginationId);
         if (!state)
           return void interaction.followUp({
@@ -53,6 +59,48 @@ export default {
 
         await interaction.editReply(await generateResponse(state.params.term, state.page, total, parsedClasses, paginationId));
       } // search
+      else if (command === "schedule") {
+        const [type, ...moreButtonInfo] = buttonInfo as ["refresh" | "list", ...string[]];
+
+        if (type === "refresh") {
+          const [scheduleUuid, theme, isShared] = moreButtonInfo as [string, keyof typeof themes, string];
+          const isSharedParsed = Boolean(Number(isShared));
+
+          const [chosenScheduleUuid, attachment] = await generateScheduleImage(scheduleUuid, theme, isSharedParsed);
+          if (!(attachment instanceof AttachmentBuilder)) return void interaction.followUp(attachment as InteractionReplyOptions);
+          interaction.editReply({
+            files: [attachment],
+            components: [await generateScheduleActionRow(chosenScheduleUuid!, theme, isSharedParsed)]
+          });
+        } // schedule/refresh
+        else if (type === "list") {
+          const [scheduleUuid] = moreButtonInfo as [string];
+
+          Log.debug(scheduleUuid);
+          const [schedule, error] = tryCatch(() => db.prepare("SELECT term_id, crns FROM schedules WHERE uuid = ?").get(scheduleUuid) as { term_id: string; crns: string });
+          Log.debug(schedule);
+          if (error) return void interaction.followUp(getErrorResponse(ErrorCodes.SCHEDULE_DB_FETCH_FAIL, "this schedule doesnt exist dawg") as InteractionReplyOptions);
+
+          const classData = await searchClasses(schedule.term_id, { crn: JSON.parse(schedule.crns) as string[] }, 0, ENV.USER_WATCHER_LIMIT);
+          const classes = classData[0] as ClassData[];
+
+          interaction.followUp({
+            flags: MessageFlags.Ephemeral,
+            content: `## ${getTermString(schedule.term_id)} - ${classes.reduce((acc, course) => acc + course.meetingsFaculty[0]?.meetingTime.creditHourSession || 0, 0)} credits
+
+${classes
+  .map((course) => {
+    const meeting = course.meetingsFaculty[0]?.meetingTime;
+    const unfilteredMeetingDays = [meeting?.sunday, meeting?.monday, meeting?.tuesday, meeting?.wednesday, meeting?.thursday, meeting?.friday, meeting?.saturday];
+    const meetingDays = unfilteredMeetingDays.every((day) => day === undefined) ? undefined : unfilteredMeetingDays;
+    const meetingTime = [meeting.beginTime, meeting?.endTime];
+
+    return `-# - **${course.subject} ${course.courseNumber} - ${course.sequenceNumber}** | ${getMeetingDaysString(meetingDays)} ${getMeetingTimeString(meetingTime)} | ${course.meetingsFaculty[0]?.meetingTime.building} ${course.meetingsFaculty[0]?.meetingTime.room}`;
+  })
+  .join("\n")}`
+          });
+        } // schedule/list
+      } // schedule
     } // isButton
     else if (interaction.isStringSelectMenu()) {
       await interaction.deferUpdate();
