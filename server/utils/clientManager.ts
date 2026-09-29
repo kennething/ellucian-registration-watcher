@@ -2,6 +2,7 @@ import axios, { AxiosInstance, AxiosResponse } from "axios";
 import { wrapper } from "axios-cookiejar-support";
 import { CookieJar } from "tough-cookie";
 import ENV from "../../env";
+import { Log } from "./log";
 
 class InternalClient {
   requestClient: AxiosInstance;
@@ -25,6 +26,7 @@ class InternalClient {
   }
 
   async refreshCookie() {
+    Log.debug("InternalClient refresh cookie");
     const jar = new CookieJar();
     this.requestClient = wrapper(axios.create({ jar }));
     this.enqueue(this.setup.bind(this));
@@ -34,6 +36,7 @@ class InternalClient {
    * @returns whether all requests were successful
    */
   private async setup(): Promise<boolean> {
+    Log.debug("InternalClient setup");
     const terms = (await this.requestClient.get<{ code: string; description: string }[]>(`${ENV.BANNER_API_URL}/StudentRegistrationSsb/ssb/classSearch/getTerms?searchTerm=&offset=1&max=2`)).data;
     ClientManager.setRecentTerms(terms.map((term) => term.code) as [string, string]);
 
@@ -94,7 +97,9 @@ class Client extends InternalClient {
 
 export class ClientManager {
   private static clients = {
+    /** used for requests made by internal events */
     internal: new InternalClient(),
+    /** used for user search requests, etc */
     external: [] as Client[]
   };
 
@@ -106,8 +111,9 @@ export class ClientManager {
     return ClientManager.clients.internal.enqueue(request);
   }
 
-  static requestExternalClient<T extends AxiosResponse>(request: (client: AxiosInstance) => Promise<T>): [Promise<T>, symbol] {
-    const freeClient = ClientManager.clients.external.find((client) => client.queueLength === 0);
+  /** @returns a promise to await containing the request, and the client ID of the client used */
+  static requestExternalClient<T extends AxiosResponse>(request: (client: AxiosInstance) => Promise<T>): [Promise<T>, clientId: symbol] {
+    const freeClient = ClientManager.clients.external.find((client) => client.queueLength <= ENV.NEW_REQUEST_CLIENT_THRESHOLD);
     if (freeClient) return [freeClient.enqueue(request), freeClient.id];
 
     if (ClientManager.clients.external.length < ENV.MAX_REQUEST_CLIENTS) {
