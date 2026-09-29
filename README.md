@@ -104,22 +104,22 @@ re-registering.
 
 ## General
 
-| Variable                       | Description                                                                                                                                                           | Default               | Required |
-| ------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------- | -------- |
-| `BACKEND_URL`                  | URL with protocol, don't append `/`                                                                                                                                   |                       | yes      |
-| `PORT`                         | Port to run the server on                                                                                                                                             | `6969`                |          |
-| `LOG_LEVEL`                    | `debug`, `info`, `warn`, or `error`                                                                                                                                   | `warn`                |          |
-| `USER_WATCHER_LIMIT`           | Maximum number of watchers a user can create                                                                                                                          | 67                    |          |
-| `USER_SCHEDULE_LIMIT`          | Maximum number of schedules a user can create                                                                                                                         | 10                    |          |
-| `TIMEZONE`                     | Timezone to use for all date/time operations. See list of valid timezones [here](https://en.wikipedia.org/wiki/List_of_tz_database_time_zones)                        | `America/New_York`    |          |
-| `BANNER_API_URL`               | URL with protocol to your university's course catalog, don't append `/` (ex. `https://ssb.cc.binghamton.edu:8484`, `https://banssb.yourcollege.edu`)                  |                       | yes      |
-| `RMP_SCHOOL_ID`                | ID of your school on [Rate My Professors](https://www.ratemyprofessors.com) - find this by searching for your school and looking at the URL                           |                       |          |
-| `MATH_SCHEDULE_URL`            | You probably don't have this but the URL to the math course schedule for your school, don't append `/`                                                                |                       |          |
-| `MAX_REQUEST_CLIENTS`          | Maximum number of concurrent request clients to use for fetching data from the Banner API. Clients cannot be used concurrently so requests are queued if all are busy | `10`                  |          |
-| `NEW_REQUEST_CLIENT_THRESHOLD` | Number of requests in the lowest request client's queue before a new client is created                                                                                | `0`                   |          |
-| `CLIENT_LIFETIME`              | Inactivity time, in seconds, of a request client before it's deleted                                                                                                  | `1200` (20 minutes)   |          |
-| `DATABASE_PATH`                | Path to the SQLite database file                                                                                                                                      | `./server/db.sqlite3` |          |
-| `BACKUP_DATABASE_PATH`         | Path to a folder where the database will be backed up before watchers are purged                                                                                      | `./server/`           |          |
+| Variable                       | Description                                                                                                                                                            | Default               | Required |
+| ------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------- | -------- |
+| `BACKEND_URL`                  | URL with protocol, don't append `/`.                                                                                                                                   |                       | yes      |
+| `PORT`                         | Port to run the server on.                                                                                                                                             | `6969`                |          |
+| `LOG_LEVEL`                    | `debug`, `info`, `warn`, or `error`.                                                                                                                                   | `warn`                |          |
+| `USER_WATCHER_LIMIT`           | Maximum number of watchers a user can create.                                                                                                                          | 67                    |          |
+| `USER_SCHEDULE_LIMIT`          | Maximum number of schedules a user can create.                                                                                                                         | 10                    |          |
+| `TIMEZONE`                     | Timezone to use for all date/time operations. See list of valid timezones [here](https://en.wikipedia.org/wiki/List_of_tz_database_time_zones).                        | `America/New_York`    |          |
+| `BANNER_API_URL`               | URL with protocol to your university's course catalog, don't append `/`. (ex. `https://ssb.cc.binghamton.edu:8484`, `https://banssb.yourcollege.edu`)                  |                       | yes      |
+| `RMP_SCHOOL_ID`                | ID of your school on [Rate My Professors](https://www.ratemyprofessors.com) - find this by searching for your school and looking at the URL.                           |                       |          |
+| `MATH_SCHEDULE_URL`            | You probably don't have this but the URL to the math course schedule for your school, don't append `/`.                                                                |                       |          |
+| `MAX_REQUEST_CLIENTS`          | Maximum number of concurrent request clients to use for fetching data from the Banner API. Clients cannot be used concurrently so requests are queued if all are busy. | `10`                  |          |
+| `NEW_REQUEST_CLIENT_THRESHOLD` | Number of requests in the lowest request client's queue before a new client is created.                                                                                | `0`                   |          |
+| `CLIENT_LIFETIME`              | Inactivity time, in seconds, of a request client before it's deleted.                                                                                                  | `1200` (20 minutes)   |          |
+| `DATABASE_PATH`                | Path to the SQLite database file.                                                                                                                                      | `./server/db.sqlite3` |          |
+| `BACKUP_DATABASE_PATH`         | Path to a folder where the database will be backed up before watchers are purged.                                                                                      | `./server/`           |          |
 
 ## Automation
 
@@ -131,25 +131,25 @@ re-registering.
 
 ### Class Scraping
 
-| Variable                | Description                                                                                             | Default            | Required |
-| ----------------------- | ------------------------------------------------------------------------------------------------------- | ------------------ | -------- |
-| `CLASS_FETCH_INTERVAL`  | Interval, in seconds, to fetch new class data. Set to `0` to disable class fetching.                    | `600` (10 minutes) |          |
-| `CLASS_FETCH_OFFSET`    | Offset, in seconds, to wait before fetching new class data                                              | `50`               |          |
-| `NOTIFICATION_COOLDOWN` | Cooldown, in seconds, to wait before sending another notification for the same watcher to the same user | `43200` (12 hours) |          |
+| Variable                | Description                                                                                              | Default            | Required |
+| ----------------------- | -------------------------------------------------------------------------------------------------------- | ------------------ | -------- |
+| `CLASS_FETCH_INTERVAL`  | Interval, in seconds, to fetch new class data. Set to `0` to disable class fetching.                     | `600` (10 minutes) |          |
+| `CLASS_FETCH_OFFSET`    | Offset, in seconds, to wait before fetching new class data.                                              | `50`               |          |
+| `NOTIFICATION_COOLDOWN` | Cooldown, in seconds, to wait before sending another notification for the same watcher to the same user. | `43200` (12 hours) |          |
 
 ### Search Scraping
 
 | Variable                | Description                                                                            | Default           | Required |
 | ----------------------- | -------------------------------------------------------------------------------------- | ----------------- | -------- |
 | `SEARCH_FETCH_INTERVAL` | Interval, in seconds, to fetch new search data. Set to `0` to disable search fetching. | `14400` (4 hours) |          |
-| `SEARCH_FETCH_OFFSET`   | Offset, in seconds, to wait before fetching new search data                            | `360` (6 minutes) |          |
+| `SEARCH_FETCH_OFFSET`   | Offset, in seconds, to wait before fetching new search data.                           | `360` (6 minutes) |          |
 
 ### Purging
 
 | Variable                  | Description                                                                                                                                   | Default           | Required |
 | ------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- | ----------------- | -------- |
 | `OUTDATED_PURGE_INTERVAL` | Interval, in seconds, to search for outdated watchers and tables. Set to `0` to disable watcher purging.                                      | `86400` (1 day)   |          |
-| `OUTDATED_PURGE_OFFSET`   | Offset, in seconds, to wait before searching for outdated watchers and tables                                                                 | `0`               |          |
+| `OUTDATED_PURGE_OFFSET`   | Offset, in seconds, to wait before searching for outdated watchers and tables.                                                                | `0`               |          |
 | `WATCHER_PURGE_NOTICE`    | Number of seconds to wait before purging outdated watchers after the term has ended. This should be an interval of `OUTDATED_PURGE_INTERVAL`. | `604800` (7 days) |          |
 
 ### RateMyProfessors Scraping
@@ -157,25 +157,25 @@ re-registering.
 | Variable             | Description                                                                                                | Default           | Required |
 | -------------------- | ---------------------------------------------------------------------------------------------------------- | ----------------- | -------- |
 | `RMP_FETCH_INTERVAL` | Interval, in seconds, to fetch new RateMyProfessors data. Set to `0` to disable RateMyProfessors fetching. | `604800` (7 days) |          |
-| `RMP_FETCH_OFFSET`   | Offset, in seconds, to wait before fetching new Rate My Professors data                                    | `300` (5 minutes) |          |
+| `RMP_FETCH_OFFSET`   | Offset, in seconds, to wait before fetching new Rate My Professors data.                                   | `300` (5 minutes) |          |
 
 ### Other
 
 | Variable              | Description                                                                                                        | Default           | Required |
 | --------------------- | ------------------------------------------------------------------------------------------------------------------ | ----------------- | -------- |
 | `MATH_FETCH_INTERVAL` | Interval, in seconds, to fetch new math course schedule data. Set to `0` to disable math course schedule fetching. | `86400` (1 day)   |          |
-| `MATH_FETCH_OFFSET`   | Offset, in seconds, to wait before fetching new math course schedule data                                          | `32400` (9 hours) |          |
+| `MATH_FETCH_OFFSET`   | Offset, in seconds, to wait before fetching new math course schedule data.                                         | `32400` (9 hours) |          |
 
 ## Discord Bot
 
-| Variable             | Description                                                  | Default    | Required |
-| -------------------- | ------------------------------------------------------------ | ---------- | -------- |
-| `DISCORD_TOKEN`      | Token of your Discord bot                                    |            | yes\*    |
-| `APPLICATION_ID`     | Application ID of your Discord bot                           |            | yes\*    |
-| `PRIMARY_COLOR`      | Hex color code for the primary container color               | `0x065942` |          |
-| `ERROR_COLOR`        | Hex color code for the error container color                 | `0xff0000` |          |
-| `SEARCH_PAGE_SIZE`   | Number of search results to show per page of `/search`       | `4`        |          |
-| `PAGINATION_TIMEOUT` | Number of seconds to wait before expiring a pagination state | `900`      |          |
+| Variable             | Description                                                                               | Default            | Required |
+| -------------------- | ----------------------------------------------------------------------------------------- | ------------------ | -------- |
+| `DISCORD_TOKEN`      | Token of your Discord bot.                                                                |                    | yes\*    |
+| `APPLICATION_ID`     | Application ID of your Discord bot.                                                       |                    | yes\*    |
+| `PRIMARY_COLOR`      | Hex color code for the primary container color.                                           | `0x065942`         |          |
+| `ERROR_COLOR`        | Hex color code for the error container color.                                             | `0xff0000`         |          |
+| `SEARCH_PAGE_SIZE`   | Number of search results to show per page of `/search`. Max of `25` due to Discord limit. | `4`                |          |
+| `PAGINATION_TIMEOUT` | Number of seconds to wait before expiring a pagination state.                             | `900` (15 minutes) |          |
 
 > \[!NOTE\]
 >
@@ -184,12 +184,12 @@ re-registering.
 
 ## Frontend
 
-| Variable                | Description                                                                                             | Default | Required            |
-| ----------------------- | ------------------------------------------------------------------------------------------------------- | ------- | ------------------- |
-| `FRONTEND_URL`          | URL with protocol, don't append `/`                                                                     |         | yes\*               |
-| `DISCORD_CLIENT_ID`     | Client ID of your Discord bot, used for Discord OAuth2                                                  |         | yes\*               |
-| `DISCORD_CLIENT_SECRET` | Client secret of your Discord bot, used for Discord OAuth2                                              |         | yes\*               |
-| `JWT_SECRET`            | Secret for generating JWT tokens, used for authentication - technically can be any string but like cmon |         | highly encouraged\* |
+| Variable                | Description                                                                                              | Default | Required            |
+| ----------------------- | -------------------------------------------------------------------------------------------------------- | ------- | ------------------- |
+| `FRONTEND_URL`          | URL with protocol, don't append `/`.                                                                     |         | yes\*               |
+| `DISCORD_CLIENT_ID`     | Client ID of your Discord bot, used for Discord OAuth2.                                                  |         | yes\*               |
+| `DISCORD_CLIENT_SECRET` | Client secret of your Discord bot, used for Discord OAuth2.                                              |         | yes\*               |
+| `JWT_SECRET`            | Secret for generating JWT tokens, used for authentication - technically can be any string but like cmon. |         | highly encouraged\* |
 
 > \[!NOTE\]
 >
