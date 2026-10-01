@@ -74,7 +74,7 @@ const ENV = z
      */
     CLIENT_LIFETIME: z.coerce.number().int().positive().default(1200),
     /**
-     * Path to the SQLite database file.
+     * Path to the SQLite database file. If the database file doesn't exist, a new one will be created.
      * @default "./server/db.sqlite3"
      */
     DATABASE_PATH: z.string().default("./server/db.sqlite3"),

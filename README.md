@@ -55,21 +55,18 @@ minimize the number of requests sent to the Banner API.
 
 ## Run the server
 
-1. Install [Node.js](https://nodejs.org)
+1. Install [Node.js](https://nodejs.org).
 
-2. Place a `db.sqlite3` SQLite3 database file in the `/server` directory.
-   See [here](./README.md#database) for more info on the database schema.
-
-3. Create a `.env` file in the root directory. See
+2. Create a `.env` file in the root directory. See
    [here](./README.md#environment-variables) for config options.
 
-4. Install dependencies:
+3. Install dependencies:
 
    ```sh
    npm install
    ```
 
-5. Start the bot and/or server:
+4. Start the bot and/or server:
 
    ```sh
    npm run serve
@@ -118,7 +115,7 @@ re-registering.
 | `MAX_REQUEST_CLIENTS`          | Maximum number of concurrent request clients to use for fetching data from the Banner API. Clients cannot be used concurrently so requests are queued if all are busy. | `10`                  |          |
 | `NEW_REQUEST_CLIENT_THRESHOLD` | Number of requests in the lowest request client's queue before a new client is created.                                                                                | `0`                   |          |
 | `CLIENT_LIFETIME`              | Inactivity time, in seconds, of a request client before it's deleted.                                                                                                  | `1200` (20 minutes)   |          |
-| `DATABASE_PATH`                | Path to the SQLite database file.                                                                                                                                      | `./server/db.sqlite3` |          |
+| `DATABASE_PATH`                | Path to the SQLite database file. If the database file doesn't exist, a new one will be created.                                                                       | `./server/db.sqlite3` |          |
 | `BACKUP_DATABASE_PATH`         | Path to a folder where the database will be backed up before watchers are purged.                                                                                      | `./server/`           |          |
 
 ## Automation
@@ -195,70 +192,3 @@ re-registering.
 >
 > These are only required if you want to run a frontend. but like at that point
 > you might as well edit the entire backend to fit your frontend needs.
-
-# Database
-
-You can adapt your database to fit your needs better, but here is the schema for
-the database used by Bad Scheduler:
-
-### `users` table
-
-| Name         | Data type |
-| ------------ | --------- |
-| `uuid`       | `TEXT`    |
-| `discord_id` | `TEXT`    |
-| `created_at` | `INTEGER` |
-| `web_theme`  | `INTEGER` |
-
-### `watchers` table
-
-| Name                | Data type | Notes                     |
-| ------------------- | --------- | ------------------------- |
-| `uuid`              | `TEXT`    |                           |
-| `owner_uuid`        | `TEXT`    |                           |
-| `last_notified`     | `INTEGER` | unix timestamp in seconds |
-| `created_at`        | `INTEGER` | unix timestamp in seconds |
-| `term_id`           | `TEXT`    |                           |
-| `crn`               | `TEXT`    |                           |
-| `notify_when`       | `INTEGER` |                           |
-| `notify_when_value` | `INTEGER` |                           |
-
-### `schedules` table
-
-| Name         | Data type | Notes                         |
-| ------------ | --------- | ----------------------------- |
-| `uuid`       | `TEXT`    |                               |
-| `owner_uuid` | `TEXT`    |                               |
-| `created_at` | `INTEGER` | unix timestamp in seconds     |
-| `name`       | `TEXT`    |                               |
-| `term_id`    | `TEXT`    |                               |
-| `crns`       | `TEXT`    | JSON-serialized array of CRNs |
-
-### `professors` table
-
-| Name                  | Data type | Notes                                                  |
-| --------------------- | --------- | ------------------------------------------------------ |
-| `school_id`           | `INTEGER` | not consistent across multiple fetches for some reason |
-| `school_name`         | `TEXT`    |                                                        |
-| `rmp_id`              | `INTEGER` |                                                        |
-| `rmp_name`            | `TEXT`    |                                                        |
-| `overall_rating`      | `REAL`    |                                                        |
-| `num_ratings`         | `INTEGER` |                                                        |
-| `percent_take_again`  | `REAL`    |                                                        |
-| `level_of_difficulty` | `REAL`    |                                                        |
-
-### `course_history` table
-
-| Name            | Data type | Notes                            |
-| --------------- | --------- | -------------------------------- |
-| `crn`           | `TEXT`    |                                  |
-| `term_id`       | `TEXT`    |                                  |
-| `24h_timestamp` | `INTEGER` | unix timestamp in seconds        |
-| `7d_timestamp`  | `INTEGER` | unix timestamp in seconds        |
-| `28d_timestamp` | `INTEGER` | unix timestamp in seconds        |
-| `seat_24h`      | `TEXT`    | JSON-serialized array of numbers |
-| `seat_7d`       | `TEXT`    | JSON-serialized array of numbers |
-| `seat_28d`      | `TEXT`    | JSON-serialized array of numbers |
-| `wait_24h`      | `TEXT`    | JSON-serialized array of numbers |
-| `wait_7d`       | `TEXT`    | JSON-serialized array of numbers |
-| `wait_28d`      | `TEXT`    | JSON-serialized array of numbers |
