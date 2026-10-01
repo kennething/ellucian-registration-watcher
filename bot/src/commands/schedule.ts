@@ -93,7 +93,7 @@ export async function generateScheduleImage<T extends string | null>(
 
   if (schedule.crns.length === 0) return [null, getErrorResponse(ErrorCodes.EMPTY_SCHEDULE, "This schedule is empty. Add some classes first!")];
 
-  const classData = await searchClasses(schedule.term_id, { crn: schedule.crns }, 0, ENV.USER_WATCHER_LIMIT);
+  const classData = await searchClasses(schedule.term_id, { crn: schedule.crns }, false, 0, ENV.USER_WATCHER_LIMIT);
   const classes = classData[0] as ClassData[];
 
   const parsedClasses: MiniClassData[] = [];

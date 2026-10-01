@@ -81,7 +81,7 @@ export default {
           Log.debug(schedule);
           if (error) return void interaction.followUp(getErrorResponse(ErrorCodes.SCHEDULE_DB_FETCH_FAIL, "this schedule doesnt exist dawg") as InteractionReplyOptions);
 
-          const classData = await searchClasses(schedule.term_id, { crn: JSON.parse(schedule.crns) as string[] }, 0, ENV.USER_WATCHER_LIMIT);
+          const classData = await searchClasses(schedule.term_id, { crn: JSON.parse(schedule.crns) as string[] }, false, 0, ENV.USER_WATCHER_LIMIT);
           const classes = classData[0] as ClassData[];
 
           interaction.followUp({
@@ -133,11 +133,11 @@ ${classes
           };
           const newComponents = selectOptions.length === 0 ? [components[1]] : [newActionRow, components[1]];
 
-          await interaction.editReply({ components: newComponents });
           await interaction.followUp({
             content: `Watcher for (${getTermString(term)}) ${subject} ${courseNumber} - ${sequenceNumber} has been disabled.`,
             ephemeral: true
           });
+          await interaction.editReply({ components: newComponents });
         } catch (error) {
           Log.error(error);
           await interaction.followUp({

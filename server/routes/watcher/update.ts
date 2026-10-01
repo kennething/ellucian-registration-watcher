@@ -23,7 +23,7 @@ router.patch("/", authController, async (req, res) => {
   if (existingWatcherError) return res.sendStatus(500);
   if (!existingWatcher) return res.status(404).json({ error: "Watcher not found" });
 
-  const course = (await searchClasses(existingWatcher.term_id, { crn: [existingWatcher.crn] }, 0, 1))[0][0];
+  const course = (await searchClasses(existingWatcher.term_id, { crn: [existingWatcher.crn] }, false, 0, 1))[0][0];
   if (!course) return res.status(400).json({ error: "Course not found" });
   if (course.waitCapacity === 0 && watcher.notifyWhen >= 2) return res.status(400).json({ error: "Cannot create watcher for a class with no waitlist" });
   if (watcher.notifyWhen < 2 && watcher.notifyWhenValue > course.maximumEnrollment) return res.status(400).json({ error: "Notify when value cannot exceed maximum enrollment" });
