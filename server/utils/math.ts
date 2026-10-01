@@ -4,6 +4,7 @@ import ENV from "../../env";
 
 type Element = ReturnType<typeof htmlparser2.DomUtils.getElementsByTagName>[number];
 
+/** @param term Term id trimmed to 5 characters (`"202690"` -> `"20269"`) */
 export async function getMathSchedule(term: string) {
   const form = new FormData();
   form.set("schedule", term);

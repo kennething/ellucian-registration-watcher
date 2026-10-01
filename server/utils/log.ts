@@ -40,6 +40,9 @@ export class Log {
   }
   /** print to stderr with `console.error()` */
   static error(...message: unknown[]) {
-    if (Log.logLevel <= 3) console.error(chalk.red.bold("[ERROR] ") + chalk.red(new Date().toLocaleString()) + " | " + chalk.reset(Log.formatMessage(message)));
+    if (Log.logLevel <= 3) {
+      console.error(chalk.red.bold("[ERROR] ") + chalk.red(new Date().toLocaleString()) + " | " + chalk.reset(Log.formatMessage(message)));
+      console.trace();
+    }
   }
 }
