@@ -1,4 +1,4 @@
-import { fetchClasses, tryCatch } from "../../utils/fetch";
+import { searchClasses, tryCatch } from "../../utils/fetch";
 import { truncateClassData } from "../../utils/functions";
 import { botClient } from "../../../bot/src/common";
 import { db } from "../../utils/sqlite";
@@ -16,8 +16,8 @@ router.get("/:uuid", async (req, res) => {
   if (error) return res.sendStatus(500);
   if (!schedule) return res.status(404).json({ error: "Schedule not found" });
 
-  const classes = await fetchClasses(schedule.term_id, new Set(JSON.parse(schedule.crns)));
-  const truncatedClasses = Array.from(truncateClassData(classes).values());
+  const classes = await searchClasses(schedule.term_id, { crn: JSON.parse(schedule.crns) });
+  const truncatedClasses = Array.from(truncateClassData(classes[0]).values());
 
   const [ownerDiscordId, _error2] = tryCatch<{ discord_id: string }>(() => db.prepare("SELECT discord_id FROM users WHERE uuid = ?").get(schedule.owner_uuid) as any);
   const owner = ownerDiscordId ? await botClient.client?.users.fetch(ownerDiscordId.discord_id) : undefined;

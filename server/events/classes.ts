@@ -1,7 +1,7 @@
 import { ClassData, Mutable, NotificationType } from "../utils/types";
 import { getTermString, waitForInterval } from "../utils/functions";
 import { BaseMessageOptions, ComponentType } from "discord.js";
-import { fetchClasses, tryCatch } from "../utils/fetch";
+import { searchClasses, tryCatch } from "../utils/fetch";
 import { ClientManager } from "../utils/clientManager";
 import { botClient } from "../../bot/src/common";
 import { timeNow } from "../utils/time";
@@ -96,7 +96,7 @@ export function watchClassesLoop(): void {
     const terms = Array.from(new Set(watchers.map((watcher) => watcher.term_id)));
     const classes = await Promise.all(
       terms.map(async (term) => {
-        const data = await fetchClasses(term, new Set(watchers.filter((watcher) => watcher.term_id === term).map((watcher) => watcher.crn)));
+        const data = (await searchClasses(term, { crn: watchers.filter((watcher) => watcher.term_id === term).map((watcher) => watcher.crn) }, true))[0];
 
         const getStatement = db.prepare("SELECT * FROM course_history WHERE crn = ? AND term_id = ?");
         const insertStatement = db.prepare(

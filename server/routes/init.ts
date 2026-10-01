@@ -1,5 +1,5 @@
 import { toCamelCase, truncateClassData } from "../utils/functions";
-import { fetchClasses, tryCatch } from "../utils/fetch";
+import { searchClasses, tryCatch } from "../utils/fetch";
 import { ClientManager } from "../utils/clientManager";
 import { authController } from "../controllers/auth";
 import { NotificationType } from "../utils/types";
@@ -30,8 +30,8 @@ router.get("/", authController, async (req, res) => {
   const terms = Array.from(new Set(watchers.map((watcher) => watcher.term_id)));
   const classes = await Promise.all(
     terms.map(async (term) => {
-      const data = await fetchClasses(term, new Set(watchers.filter((watcher) => watcher.term_id === term).map((watcher) => watcher.crn)));
-      return truncateClassData(data);
+      const data = await searchClasses(term, { crn: watchers.filter((watcher) => watcher.term_id === term).map((watcher) => watcher.crn) });
+      return truncateClassData(data[0]);
     })
   );
 

@@ -128,6 +128,7 @@ export async function searchClassDb(term: string, params: Partial<ClassSearchPar
 export async function searchClasses(
   term: string,
   params: Partial<ClassSearchParams>,
+  useInternalClient = false,
   offset = 0,
   limit = 500,
   isRetry = false,
@@ -158,16 +159,17 @@ export async function searchClasses(
 
   url = encodeURI(url.slice(0, -1)).replaceAll(",", "%2C");
 
-  const [request, id] = ClientManager.requestExternalClient(async (client) => {
+  const axiosRequest: Parameters<typeof ClientManager.requestInternalClient>[0] = async (client) => {
     await client.post(`${ENV.BANNER_API_URL}/StudentRegistrationSsb/ssb/classSearch/resetDataForm`);
     return client.get<{ data: ClassData[] | null; totalCount: number }>(url);
-  });
+  };
 
-  const data = (await request).data;
+  const [request, id] = useInternalClient ? [ClientManager.requestInternalClient(axiosRequest)] : ClientManager.requestExternalClient(axiosRequest);
+  const data = (await request).data as { data: ClassData[] | null; totalCount: number };
 
-  if (data.data === null && !isRetry) {
-    await ClientManager.refreshExternalClient(id);
-    return await searchClasses(term, params, offset, limit, true, classes);
+  if (data.data === null && !isRetry && !useInternalClient) {
+    await ClientManager.refreshExternalClient(id!);
+    return await searchClasses(term, params, useInternalClient, offset, limit, true, classes);
   } else if (data.data === null) return [classes, data.totalCount];
 
   const dataData = data.data.map((c) => {
@@ -199,16 +201,8 @@ export async function searchClasses(
   });
 
   classes.push(...dataData);
-  if (limit === 500 && data.totalCount > offset + limit) return await searchClasses(term, params, offset + limit, limit, isRetry, classes);
+  if (limit === 500 && data.totalCount > offset + limit) return await searchClasses(term, params, useInternalClient, offset + limit, limit, isRetry, classes);
   return [classes, data.totalCount];
-}
-
-/** Fetches the specified classes and automatically refreshes the cookie if needed */
-export async function fetchClasses(term: string, crns: Set<string>): Promise<ClassData[]> {
-  const uniqueCrns = Array.from(crns);
-  const classes = await searchClasses(term, { crn: uniqueCrns });
-
-  return classes[0];
 }
 
 export async function fetchClassDescription(term: string, crn: string): Promise<string> {

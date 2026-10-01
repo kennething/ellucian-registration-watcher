@@ -13,7 +13,7 @@ export class Log {
       case "error":
         return 3;
       default:
-        return 1;
+        throw new Error(`Invalid LOG_LEVEL: ${ENV.LOG_LEVEL}`);
     }
   })();
 
@@ -26,18 +26,19 @@ export class Log {
       .join(" ");
   }
 
+  /** print to stdout with `console.debug()` */
   static debug(...message: unknown[]) {
     if (Log.logLevel <= 0) console.debug(chalk.green.bold("[DEBUG] ") + chalk.green(new Date().toLocaleString()) + " | " + chalk.reset(Log.formatMessage(message)));
   }
-
+  /** print to stdout with `console.info()` */
   static info(...message: unknown[]) {
     if (Log.logLevel <= 1) console.info(chalk.blue.bold("[INFO] ") + chalk.blue(new Date().toLocaleString()) + " | " + chalk.reset(Log.formatMessage(message)));
   }
-
+  /** print to stderr with `console.warn()` */
   static warn(...message: unknown[]) {
     if (Log.logLevel <= 2) console.warn(chalk.yellow.bold("[WARN] ") + chalk.yellow(new Date().toLocaleString()) + " | " + chalk.reset(Log.formatMessage(message)));
   }
-
+  /** print to stderr with `console.error()` */
   static error(...message: unknown[]) {
     if (Log.logLevel <= 3) console.error(chalk.red.bold("[ERROR] ") + chalk.red(new Date().toLocaleString()) + " | " + chalk.reset(Log.formatMessage(message)));
   }
