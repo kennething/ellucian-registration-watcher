@@ -7,5 +7,5 @@ export function timeNow(getDateTime = false): DateTime | number {
   const dateTime = DateTime.now().setZone(ENV.TIMEZONE);
 
   if (getDateTime) return dateTime;
-  return dateTime.toUnixInteger();
+  return dateTime.toUnixInteger() + dateTime.offset * 60;
 }

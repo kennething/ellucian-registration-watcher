@@ -132,11 +132,12 @@ export async function refreshConstantData() {
   const attributes = (
     await requestClient.get<{ code: string; description: string }[]>(`${ENV.BANNER_API_URL}/StudentRegistrationSsb/ssb/classSearch/get_attribute?searchTerm=&term=${terms[0].code}&offset=1&max=100`)
   ).data;
-  const specialAttributes = (
+  let specialAttributes = (
     await requestClient.get<{ code: string; description: string }[]>(
       `${ENV.BANNER_API_URL}/StudentRegistrationSsb/ssb/classSearch/get_specialAttribute?searchTerm=&term=${terms[0].code}&offset=1&max=50`
     )
   ).data;
+  specialAttributes = specialAttributes.map((attribute) => ({ code: attribute.code, description: attribute.description.split("-").join(" - ") }));
 
   const primaryTermCode = terms.find((term) => term.code.slice(4) === "20" || term.code.slice(4) === "90")!;
   const primaryTerm = new Term(primaryTermCode.code);
