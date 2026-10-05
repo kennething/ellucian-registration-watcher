@@ -1,4 +1,3 @@
-import { ClientManager } from "../../utils/clientManager";
 import { authController } from "../../controllers/auth";
 import { tryCatch } from "../../utils/fetch";
 import { timeNow } from "../../utils/time";
@@ -11,12 +10,10 @@ import * as z from "zod";
 const router = Router();
 
 router.post("/", authController, async (req, res) => {
-  const validTerms = ClientManager.getMostRecentTerms();
-  if (!validTerms) return res.sendStatus(500);
-
   const { data: schedule, error: parseError } = z
     .object({
-      term: z.string()
+      term: z.string(),
+      name: z.string().min(1).max(100).optional()
     })
     .safeParse(req.body);
   if (parseError) return res.status(400).json({ error: "Invalid body" });
@@ -33,7 +30,7 @@ router.post("/", authController, async (req, res) => {
     const [, insertError] = tryCatch(() =>
       db
         .prepare(`INSERT INTO schedules (uuid, owner_uuid, created_at, term_id, name, crns) VALUES (?, ?, ?, ?, ?, ?)`)
-        .run(scheduleUuid, req.user.uuid, timeNow(), schedule.term, `Schedule ${num_schedules + 1}`, "[]")
+        .run(scheduleUuid, req.user.uuid, timeNow(), schedule.term, schedule.name ?? `Schedule ${num_schedules + 1}`, "[]")
     );
     if (insertError) return res.sendStatus(500);
 
@@ -41,7 +38,7 @@ router.post("/", authController, async (req, res) => {
       uuid: scheduleUuid,
       ownerUuid: req.user.uuid,
       termId: schedule.term,
-      name: `Schedule ${num_schedules + 1}`,
+      name: schedule.name ?? `Schedule ${num_schedules + 1}`,
       crns: []
     });
   })();

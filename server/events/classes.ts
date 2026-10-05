@@ -62,7 +62,6 @@ export function watchClassesLoop(): void {
         if (timeType === "7d") return entries7d;
         return entries28d;
       })();
-      Log.debug(crn, entryType, timeType, array.filter((a) => a === -1).length);
 
       if (array.length !== entries) {
         const newArray = new Array(entries - 1).fill(-1);
@@ -74,23 +73,16 @@ export function watchClassesLoop(): void {
 
       array.shift();
       array.push(insert);
-      Log.debug(crn, entryType, timeType, array.filter((a) => a === -1).length);
 
       db.prepare(`UPDATE course_history SET ${entryType}_${timeType} = ?, "${timeType}_timestamp" = ? WHERE crn = ? AND term_id = ?`).run(JSON.stringify(array), currentTime, crn, term);
     }
 
-    const mostRecentTerms = ClientManager.getMostRecentTerms();
-
-    if (!mostRecentTerms) return;
+    const mostRecentTerm = ClientManager.terms.find((term) => term.isPrimary && !term.isEarly);
+    if (!mostRecentTerm) return;
 
     const [watchers, error] = tryCatch<
       { owner_uuid: string; last_notified: number | null; is_active: number; term_id: string; crn: string; notify_when: NotificationType; notify_when_value: number }[]
-    >(
-      () =>
-        db
-          .prepare(`SELECT owner_uuid, last_notified, is_active, term_id, crn, notify_when, notify_when_value FROM watchers WHERE term_id IN (${mostRecentTerms?.map(() => "?").join(", ")})`)
-          .all(...mostRecentTerms) as any
-    );
+    >(() => db.prepare(`SELECT owner_uuid, last_notified, is_active, term_id, crn, notify_when, notify_when_value FROM watchers WHERE term_id = ?`).all(mostRecentTerm) as any);
     if (error) return;
 
     const terms = Array.from(new Set(watchers.map((watcher) => watcher.term_id)));
@@ -243,6 +235,7 @@ export function watchClassesLoop(): void {
           ]
         });
 
+      // TODO: stagger with hash
       user?.send({
         embeds: [
           {

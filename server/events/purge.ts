@@ -9,31 +9,19 @@ import ENV from "../../env";
 import path from "path";
 
 export function purgeOutdatedLoop(): void {
-  const termStrings = {
-    "10": "Winter",
-    "20": "Spring",
-    "60": "Summer",
-    "90": "Fall"
-  } as const;
-
-  const termsToDelete = new Map<string, number>(); // Map<termId, timestampToDelete>
   waitForInterval(ENV.OUTDATED_PURGE_INTERVAL, ENV.OUTDATED_PURGE_OFFSET, async () => {
-    const mostRecentTerms = ClientManager.getMostRecentTerms();
-    if (!mostRecentTerms) return;
-    const mostRecentTermStrings: `${(typeof termStrings)[keyof typeof termStrings]} ${number}`[] = mostRecentTerms.map(
-      (term) => `${termStrings[term.slice(-2) as keyof typeof termStrings]} ${term.slice(0, -2)}`
-    ) as any;
+    const mostRecentTermStrings = ClientManager.terms.map((term) => term.getTermString());
 
-    const isDeletingTerms = termsToDelete.size && Array.from(termsToDelete).some(([, deleteTimestamp]) => timeNow() >= deleteTimestamp);
-    if (isDeletingTerms) {
+    const termsToDelete = db.prepare("SELECT term_id FROM watchers GROUP BY term_id HAVING delete_timestamp < ?").all(timeNow()) as { term_id: string }[];
+
+    if (termsToDelete.length) {
       const backupPath = path.join(ENV.BACKUP_DATABASE_PATH, `backup_${timeNow()}.sqlite3`);
       await db.backup(backupPath);
       Log.info(`${new Date().toLocaleString()}: Backed up database before purging to ${backupPath}`);
 
-      for (const [termId] of termsToDelete) {
+      for (const { term_id: termId } of termsToDelete) {
         // * outdated watchers
         const { count } = db.prepare("DELETE FROM watchers WHERE term_id = ? RETURNING COUNT(*) as count").get(termId) as { count: number };
-        termsToDelete.delete(termId);
         Log.info(`${new Date().toLocaleString()}: Purged ${count} outdated watchers for term ${termId}`);
 
         // * outdated search db
@@ -48,15 +36,13 @@ export function purgeOutdatedLoop(): void {
         }
       }
 
-      termsToDelete.clear();
       return;
     }
 
     const [allTerms, error] = tryCatch<{ term_id: string }[]>(db.prepare("SELECT DISTINCT term_id FROM watchers").all() as any);
     if (error) return;
 
-    const outdatedTerms = allTerms.filter((term) => !mostRecentTerms.includes(term.term_id));
-    outdatedTerms.forEach((term) => termsToDelete.set(term.term_id, timeNow() + ENV.WATCHER_PURGE_NOTICE));
+    const outdatedTerms = allTerms.filter((term) => !ClientManager.terms.some((t) => t.termId === term.term_id));
     if (!outdatedTerms.length) return;
 
     const [usersToNotify, error2] = tryCatch<{ owner_uuid: string }[]>(
@@ -73,7 +59,7 @@ export function purgeOutdatedLoop(): void {
         embeds: [
           {
             title: "A watcher is being removed",
-            description: `One or more of your watchers is for an outdated term and will be automatically deleted in 7 days.\nWatchers for the ${mostRecentTermStrings.join(" and ")} term${mostRecentTermStrings.length > 1 ? "s" : ""} will not be affected.`,
+            description: `One or more of your watchers is for an outdated term and will be automatically deleted <t:${timeNow() + ENV.WATCHER_PURGE_NOTICE}:R>.\nWatchers for the ${mostRecentTermStrings.join(" and ")} term${mostRecentTermStrings.length > 1 ? "s" : ""} will not be affected.`,
             color: ENV.ERROR_COLOR,
             footer: { text: "No action is required from you." },
             timestamp: new Date().toISOString()

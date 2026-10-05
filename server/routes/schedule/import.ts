@@ -27,7 +27,7 @@ router.post("/", authController, async (req, res) => {
   const totalWatchers = db.prepare(`SELECT COUNT(*) as num_watchers FROM watchers WHERE owner_uuid = ? LIMIT ?`).get(req.user.uuid, ENV.USER_WATCHER_LIMIT) as { num_watchers: number };
   if (totalWatchers.num_watchers + missingCrns.length > ENV.USER_WATCHER_LIMIT) return res.status(400).json({ error: "Watcher limit exceeded" });
 
-  const [scheduleTerm, error] = tryCatch<{ term_id: string }>(() => db.prepare("SELECT term_id FROM schedules WHERE uuid = ?").get(schedule.uuid) as any);
+  const [scheduleTerm, error] = tryCatch<{ term_id: string }>(() => db.prepare("SELECT term_id FROM schedules WHERE uuid = ? AND owner_uuid = ?").get(schedule.uuid, req.user.uuid) as any);
   if (error) return res.status(400).json({ error: "Schedule not found" });
 
   const classes = truncateClassData((await searchClasses(scheduleTerm.term_id, { crn: uniqueCrns }))[0]);

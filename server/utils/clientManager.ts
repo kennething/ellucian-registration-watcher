@@ -1,16 +1,19 @@
 import axios, { AxiosInstance, AxiosResponse } from "axios";
 import { wrapper } from "axios-cookiejar-support";
 import { CookieJar } from "tough-cookie";
+import { Term, TermId } from "./term";
 import ENV from "../../env";
 import { Log } from "./log";
 
 class InternalClient {
   requestClient: AxiosInstance;
   protected currentTask: Promise<void | any>;
+  protected term: Term;
   queueLength = 0;
 
-  constructor() {
+  constructor(term: Term) {
     this.currentTask = Promise.resolve();
+    this.term = term;
 
     const jar = new CookieJar();
     this.requestClient = wrapper(axios.create({ jar }));
@@ -37,25 +40,9 @@ class InternalClient {
    */
   private async setup(): Promise<boolean> {
     Log.debug("InternalClient setup");
-    const terms = (await this.requestClient.get<{ code: string; description: string }[]>(`${ENV.BANNER_API_URL}/StudentRegistrationSsb/ssb/classSearch/getTerms?searchTerm=&offset=1&max=2`)).data;
-    ClientManager.setRecentTerms(terms.map((term) => term.code) as [string, string]);
-
-    const subjects = (
-      await this.requestClient.get<{ code: string; description: string }[]>(
-        `${ENV.BANNER_API_URL}/StudentRegistrationSsb/ssb/classSearch/get_subject?searchTerm=&term=${terms[0].code}&offset=1&max=500`
-      )
-    ).data;
-    ClientManager.subjects = subjects.map((subject) => ({ code: subject.code, name: subject.description }));
-
-    const attributes = (
-      await this.requestClient.get<{ code: string; description: string }[]>(
-        `${ENV.BANNER_API_URL}/StudentRegistrationSsb/ssb/classSearch/get_attribute?searchTerm=&term=${terms[0].code}&offset=1&max=50`
-      )
-    ).data;
-    ClientManager.attributes = attributes.map((attribute) => ({ code: attribute.code, name: attribute.description }));
 
     const formData = new FormData();
-    formData.append("term", terms[0].code);
+    formData.append("term", this.term.termId);
     formData.append("studyPath", "");
     formData.append("studyPathText", "");
     formData.append("startDatepicker", "");
@@ -71,8 +58,8 @@ class Client extends InternalClient {
   private deleteId: symbol | null = null;
   private deleteTimer: NodeJS.Timeout | null = null;
 
-  constructor() {
-    super();
+  constructor(term: Term) {
+    super(term);
     this.id = Symbol();
   }
 
@@ -97,52 +84,55 @@ class Client extends InternalClient {
 
 export class ClientManager {
   private static clients = {
-    /** used for requests made by internal events */
-    internal: new InternalClient(),
+    /** used for requests made by internal events
+     *
+     * never actually null in practice
+     */
+    internal: null as InternalClient | null,
     /** used for user search requests, etc */
-    external: [] as Client[]
+    external: {} as Record<TermId, Client[]>
   };
 
-  private static mostRecentTerms: [latest: string, secondLatest: string] | null = null;
-  static subjects: { code: string; name: string }[] | null = null;
-  static attributes: { code: string; name: string }[] | null = null;
+  static terms: Term[] = [];
+  static subjects: { code: string; name: string }[] = [];
+  static attributes: { code: string; name: string }[] = [];
+
+  static setClients(internalTermId: TermId, externalTermIds: TermId[]): void {
+    ClientManager.clients.internal = new InternalClient(new Term(internalTermId));
+    for (const termId of externalTermIds) ClientManager.clients.external[termId] = [];
+  }
 
   static requestInternalClient<T extends AxiosResponse>(request: (client: AxiosInstance) => Promise<T>): Promise<T> {
-    return ClientManager.clients.internal.enqueue(request);
+    return ClientManager.clients.internal!.enqueue(request);
   }
 
   /** @returns a promise to await containing the request, and the client ID of the client used */
-  static requestExternalClient<T extends AxiosResponse>(request: (client: AxiosInstance) => Promise<T>): [Promise<T>, clientId: symbol] {
-    const freeClient = ClientManager.clients.external.find((client) => client.queueLength <= ENV.NEW_REQUEST_CLIENT_THRESHOLD);
+  static requestExternalClient<T extends AxiosResponse>(termId: string, request: (client: AxiosInstance) => Promise<T>): [Promise<T>, clientId: symbol] {
+    const termIdCast = termId as TermId;
+
+    const freeClient = ClientManager.clients.external[termIdCast]!.find((client) => client.queueLength <= ENV.NEW_REQUEST_CLIENT_THRESHOLD);
     if (freeClient) return [freeClient.enqueue(request), freeClient.id];
 
-    if (ClientManager.clients.external.length < ENV.MAX_REQUEST_CLIENTS) {
-      const newClient = new Client();
-      ClientManager.clients.external.push(newClient);
+    if (ClientManager.clients.external[termIdCast]!.length < ENV.MAX_REQUEST_CLIENTS) {
+      const newClient = new Client(new Term(termIdCast));
+      ClientManager.clients.external[termIdCast]!.push(newClient);
       return [newClient.enqueue(request), newClient.id];
     }
 
-    const shortestQueueClient = ClientManager.clients.external.reduce((prev, curr) => (prev.queueLength < curr.queueLength ? prev : curr));
+    const shortestQueueClient = ClientManager.clients.external[termIdCast]!.reduce((prev, curr) => (prev.queueLength < curr.queueLength ? prev : curr));
     return [shortestQueueClient.enqueue(request), shortestQueueClient.id];
   }
   static async refreshExternalClient(id: symbol): Promise<void> {
-    const client = ClientManager.clients.external.find((client) => client.id === id);
+    const client = Object.values(ClientManager.clients.external)
+      .flat()
+      .find((client) => client.id === id);
     if (client) client.refreshCookie();
   }
   static flushExternalClient(id: symbol): void {
-    ClientManager.clients.external = ClientManager.clients.external.filter((client) => client.id !== id);
-  }
+    const row = Object.entries(ClientManager.clients.external).find((row) => row[1].some((client) => client.id === id));
+    if (!row) return;
 
-  static getMostRecentTerms(): [offSemester: string, realSemester: string] | [latest: string] | null {
-    if (!ClientManager.mostRecentTerms) return null;
-
-    const latestTerm = ClientManager.mostRecentTerms[0];
-    // winter, summer term
-    if (["10", "60"].includes(latestTerm.slice(-2))) return ClientManager.mostRecentTerms;
-    else return [ClientManager.mostRecentTerms[0]];
-  }
-
-  static setRecentTerms(terms: [latest: string, secondLatest: string]) {
-    ClientManager.mostRecentTerms = terms;
+    const termId = row[0] as TermId;
+    ClientManager.clients.external[termId] = ClientManager.clients.external[termId].filter((client) => client.id !== id);
   }
 }

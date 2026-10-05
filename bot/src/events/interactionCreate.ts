@@ -66,9 +66,10 @@ export default {
           const [scheduleUuid, theme, isShared] = moreButtonInfo as [string, keyof typeof themes, string];
           const isSharedParsed = Boolean(Number(isShared));
 
-          const [chosenScheduleUuid, attachment] = await generateScheduleImage(scheduleUuid, theme, isSharedParsed);
+          const [chosenScheduleUuid, text, attachment] = await generateScheduleImage(scheduleUuid, theme, isSharedParsed);
           if (!(attachment instanceof AttachmentBuilder)) return void interaction.followUp(attachment as InteractionReplyOptions);
           interaction.editReply({
+            content: text!,
             files: [attachment],
             components: [await generateScheduleActionRow(chosenScheduleUuid!, theme, isSharedParsed)]
           });

@@ -1,5 +1,5 @@
+import { getMeetingTimeString, getTermString } from "../../../server/utils/functions.ts";
 import { ErrorCodes, getErrorResponse, getSignupResponse } from "../util/responses.ts";
-import { getMeetingTimeString } from "../../../server/utils/functions.ts";
 import { searchClasses, tryCatch } from "../../../server/utils/fetch.ts";
 import { ClassData } from "../../../server/utils/types.ts";
 import { db } from "../../../server/utils/sqlite.ts";
@@ -10,22 +10,23 @@ import type { Command } from "./index.ts";
 import { createCanvas } from "canvas";
 import ENV from "../../../env.ts";
 import {
-  ActionRowBuilder,
-  ApplicationCommandOptionType,
-  ApplicationIntegrationType,
-  AttachmentBuilder,
-  ButtonBuilder,
-  ButtonStyle,
   CommandInteractionOptionResolver,
-  InteractionContextType,
+  ApplicationCommandOptionType,
   InteractionEditReplyOptions,
-  MessageFlags
+  ApplicationIntegrationType,
+  InteractionContextType,
+  AttachmentBuilder,
+  ActionRowBuilder,
+  ButtonBuilder,
+  MessageFlags,
+  ButtonStyle
 } from "discord.js";
 
 type MiniClassData = {
   subject: string;
   courseNumber: string;
   sequenceNumber: string;
+  credits: number;
   meetingsFaculty: ClassData["meetingsFaculty"];
   faculty: ClassData["faculty"];
   rmpRating: number | null;
@@ -71,7 +72,7 @@ export async function generateScheduleImage<T extends string | null>(
   themeName: keyof typeof themes,
   isShared: boolean,
   userUuid?: T extends string ? undefined : string
-): Promise<[selectedScheduleUuid: string | null, payload: InteractionEditReplyOptions | AttachmentBuilder]> {
+): Promise<[selectedScheduleUuid: string | null, term: string | null, payload: InteractionEditReplyOptions | AttachmentBuilder]> {
   let schedule: { uuid: string; owner_uuid: string; term_id: string; name: string; crns: string[] } | undefined;
 
   if (scheduleUuid === null) {
@@ -79,19 +80,19 @@ export async function generateScheduleImage<T extends string | null>(
       () => db.prepare("SELECT uuid, term_id, name, crns FROM schedules WHERE owner_uuid = ? LIMIT 1").get(userUuid) as any
     );
     Log.debug(fetchedSchedule);
-    if (error2) return [null, getErrorResponse(ErrorCodes.SCHEDULE_DB_FETCH_FAIL)];
-    if (!fetchedSchedule) return [null, getErrorResponse(ErrorCodes.NO_SCHEDULE, "You don't have any schedules yet. Create one first!")];
+    if (error2) return [null, null, getErrorResponse(ErrorCodes.SCHEDULE_DB_FETCH_FAIL)];
+    if (!fetchedSchedule) return [null, null, getErrorResponse(ErrorCodes.NO_SCHEDULE, "You don't have any schedules yet. Create one first!")];
     schedule = { ...fetchedSchedule, owner_uuid: userUuid!, crns: JSON.parse(fetchedSchedule.crns) as string[] };
   } else {
     const [fetchedSchedule, error2] = tryCatch<{ term_id: string; owner_uuid: string; name: string; crns: string }>(
       () => db.prepare("SELECT term_id, owner_uuid, name, crns FROM schedules WHERE uuid = ?").get(scheduleUuid) as any
     );
-    if (error2) return [null, getErrorResponse(ErrorCodes.SCHEDULE_DB_FETCH_FAIL)];
-    if (!fetchedSchedule) return [null, getErrorResponse(ErrorCodes.NO_SCHEDULE, "This schedule doesnt exist bro")];
+    if (error2) return [null, null, getErrorResponse(ErrorCodes.SCHEDULE_DB_FETCH_FAIL)];
+    if (!fetchedSchedule) return [null, null, getErrorResponse(ErrorCodes.NO_SCHEDULE, "This schedule doesnt exist bro")];
     schedule = { ...fetchedSchedule, uuid: scheduleUuid, crns: JSON.parse(fetchedSchedule.crns) as string[] };
   }
 
-  if (schedule.crns.length === 0) return [null, getErrorResponse(ErrorCodes.EMPTY_SCHEDULE, "This schedule is empty. Add some classes first!")];
+  if (schedule.crns.length === 0) return [null, null, getErrorResponse(ErrorCodes.EMPTY_SCHEDULE, "This schedule is empty. Add some classes first!")];
 
   const classData = await searchClasses(schedule.term_id, { crn: schedule.crns }, false, 0, ENV.USER_WATCHER_LIMIT);
   const classes = classData[0] as ClassData[];
@@ -112,6 +113,7 @@ export async function generateScheduleImage<T extends string | null>(
       sequenceNumber: c.sequenceNumber,
       meetingsFaculty: c.meetingsFaculty,
       faculty: c.faculty,
+      credits: c.meetingsFaculty[0]?.meetingTime.creditHourSession ?? 0,
       rmpRating: rmpData?.overall_rating ?? null
     });
   });
@@ -212,7 +214,11 @@ export async function generateScheduleImage<T extends string | null>(
   })();
 
   const buffer = isShared ? canvas.toBuffer("image/png") : canvas.toBuffer("image/jpeg");
-  return [schedule.uuid, new AttachmentBuilder(buffer, { name: `${schedule.name}.${isShared ? "png" : "jpg"}` })];
+  return [
+    schedule.uuid,
+    `## ${getTermString(schedule.term_id)} - ${parsedClasses.reduce((acc, curr) => acc + curr.credits, 0)} credits`,
+    new AttachmentBuilder(buffer, { name: `${schedule.name}.${isShared ? "png" : "jpg"}` })
+  ];
 }
 
 export async function generateScheduleActionRow(scheduleUuid: string, themeName: keyof typeof themes, isShared: boolean) {
@@ -264,12 +270,12 @@ export default {
     const [user, error] = tryCatch<{ uuid: string }>(() => db.prepare("SELECT uuid FROM users WHERE discord_id = ?").get(interaction.user.id) as any);
     if (!user || error) return void interaction.respond([]);
 
-    const [schedules, error2] = tryCatch<{ uuid: string; name: string }[]>(() => db.prepare("SELECT uuid, name FROM schedules WHERE owner_uuid = ?").all(user.uuid) as any);
+    const [schedules, error2] = tryCatch<{ uuid: string; name: string; term_id: string }[]>(() => db.prepare("SELECT uuid, name, term_id FROM schedules WHERE owner_uuid = ?").all(user.uuid) as any);
     if (error2) return void interaction.respond([]);
 
     const focusedOption = interaction.options.getFocused(true);
     const filteredSchedules = schedules.filter((schedule) => schedule.name.toLowerCase().includes(focusedOption.value.toLowerCase()));
-    const choices = filteredSchedules.map((schedule) => ({ name: schedule.name, value: schedule.uuid }));
+    const choices = filteredSchedules.map((schedule) => ({ name: `${schedule.name} (${getTermString(schedule.term_id)})`, value: schedule.uuid }));
     interaction.respond(choices.slice(0, 25));
   },
   async execute(interaction) {
@@ -285,10 +291,11 @@ export default {
     const scheduleUuid = options.getString("name");
     const theme = (options.getString("theme") as keyof typeof themes) ?? "dark";
     const isShared = options.getBoolean("share") ?? false;
-    const [chosenScheduleUuid, attachment] = await generateScheduleImage(scheduleUuid, theme, isShared, user.uuid);
+    const [chosenScheduleUuid, text, attachment] = await generateScheduleImage(scheduleUuid, theme, isShared, user.uuid);
     if (!(attachment instanceof AttachmentBuilder)) return void interaction.editReply(attachment as InteractionEditReplyOptions);
 
     await interaction.editReply({
+      content: text!,
       files: [attachment],
       components: [await generateScheduleActionRow(chosenScheduleUuid!, theme, isShared)]
     });

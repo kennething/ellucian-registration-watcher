@@ -1,6 +1,12 @@
+import { wrapper } from "axios-cookiejar-support";
+import { ClientManager } from "./clientManager";
+import { CookieJar } from "tough-cookie";
+import { Term, TermId } from "./term";
 import Database from "better-sqlite3";
+import { ClassData } from "./types";
 import ENV from "../../env";
 import { Log } from "./log";
+import axios from "axios";
 import path from "path";
 import fs from "fs";
 
@@ -22,7 +28,8 @@ CREATE TABLE IF NOT EXISTS terms (
                       NOT NULL,
   is_primary INTEGER NOT NULL,
   is_early   INTEGER NOT NULL
-                      DEFAULT (0) 
+                      DEFAULT (0),
+  delete_timestamp INTEGER
 );
 
 CREATE TABLE IF NOT EXISTS subjects (
@@ -102,4 +109,77 @@ CREATE TABLE IF NOT EXISTS watchers (
   notify_when_value INTEGER NOT NULL
 );
 `);
+
+/** gets terms, subjects, and attributes from banner
+ *
+ * stores new values in db and updates `ClientManager` data members */
+export async function refreshConstantData() {
+  const requestClient = wrapper(axios.create({ jar: new CookieJar() }));
+
+  const terms = (await requestClient.get<{ code: string; description: string }[]>(`${ENV.BANNER_API_URL}/StudentRegistrationSsb/ssb/classSearch/getTerms?searchTerm=&offset=1&max=2`)).data;
+  Term.latestTermId = terms[0].code as TermId;
+  const subjects = (
+    await requestClient.get<{ code: string; description: string }[]>(`${ENV.BANNER_API_URL}/StudentRegistrationSsb/ssb/classSearch/get_subject?searchTerm=&term=${terms[0].code}&offset=1&max=500`)
+  ).data;
+  const attributes = (
+    await requestClient.get<{ code: string; description: string }[]>(`${ENV.BANNER_API_URL}/StudentRegistrationSsb/ssb/classSearch/get_attribute?searchTerm=&term=${terms[0].code}&offset=1&max=100`)
+  ).data;
+
+  const primaryTermCode = terms.find((term) => term.code.slice(4) === "20" || term.code.slice(4) === "90")!;
+  const primaryTerm = new Term(primaryTermCode.code);
+
+  const offTermCode = terms.indexOf(primaryTermCode) === 0 ? null : terms.find((term) => term.code !== primaryTermCode?.code)!;
+
+  const formData = new FormData();
+  formData.append("term", primaryTerm.nextTermId());
+  formData.append("studyPath", "");
+  formData.append("studyPathText", "");
+  formData.append("startDatepicker", "");
+  formData.append("endDatepicker", "");
+  await requestClient.post(`${ENV.BANNER_API_URL}/StudentRegistrationSsb/ssb/term/search?mode=search`, formData);
+  const earlyOffTermCode = (await requestClient.get(`${ENV.BANNER_API_URL}/StudentRegistrationSsb/ssb/searchResults/searchResults?pageOffset=0&pageMaxSize=1&txt_term=${primaryTerm.nextTermId()}`))
+    .data as { data: ClassData[] | null; totalCount: number };
+  const hasEarlyOffTerm = earlyOffTermCode.data && earlyOffTermCode.totalCount > 0;
+
+  const earlyPrimaryTermCode = hasEarlyOffTerm
+    ? ((await requestClient.get(`${ENV.BANNER_API_URL}/StudentRegistrationSsb/ssb/searchResults/searchResults?pageOffset=0&pageMaxSize=1&txt_term=${primaryTerm.nextPrimaryTermId()}`)).data as {
+        data: ClassData[] | null;
+        totalCount: number;
+      })
+    : null;
+  const hasEarlyPrimaryTerm = earlyPrimaryTermCode?.data && earlyPrimaryTermCode.totalCount > 0;
+
+  const allTerms = [
+    primaryTerm,
+    offTermCode ? new Term(offTermCode.code) : null,
+    hasEarlyOffTerm ? new Term(primaryTerm.nextTermId()) : null,
+    hasEarlyPrimaryTerm ? new Term(primaryTerm.nextPrimaryTermId()) : null
+  ].filter((term): term is Term => term !== null);
+
+  db.transaction(() => {
+    const remainingTerms = db.prepare("DELETE FROM terms WHERE delete_timestamp IS NULL RETURNING term_id").all() as { term_id: TermId }[];
+    db.prepare("DELETE FROM subjects").run();
+    db.prepare("DELETE FROM attributes").run();
+
+    const termsToInsert = allTerms.filter((term) => !remainingTerms.some((remainingTerm) => remainingTerm.term_id === term.termId));
+    const insertTermStatement = db.prepare("INSERT INTO terms (term_id, is_primary, is_early) VALUES (?, ?, ?)");
+    for (const term of termsToInsert) insertTermStatement.run(term.termId, Number(term.isPrimary), Number(term.isEarly));
+
+    const insertSubjectStatement = db.prepare("INSERT INTO subjects (code, name) VALUES (?, ?)");
+    for (const subject of subjects) insertSubjectStatement.run(subject.code, subject.description);
+
+    const insertAttributeStatement = db.prepare("INSERT INTO attributes (code, name) VALUES (?, ?)");
+    for (const attribute of attributes) insertAttributeStatement.run(attribute.code, attribute.description);
+  })();
+
+  ClientManager.setClients(
+    primaryTerm.termId,
+    allTerms.map((term) => term.termId)
+  );
+  ClientManager.terms = allTerms;
+  ClientManager.subjects = subjects.map((subject) => ({ code: subject.code, name: subject.description }));
+  ClientManager.attributes = attributes.map((attribute) => ({ code: attribute.code, name: attribute.description }));
+}
+await refreshConstantData();
+
 Log.debug("initiated db connection");

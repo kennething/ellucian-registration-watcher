@@ -71,7 +71,7 @@ router.get("/", authController, async (req, res) => {
       },
       attributes: c.sectionAttributes.map((a) => a.code),
 
-      professorLeaked: professor?.leaked,
+      professorLeaked: professor?.professorLeaked,
       professorId: professor?.bannerId ?? "",
       professorName: professor?.displayName ?? "",
       rmpId: rmpData?.rmp_id ?? null,

@@ -1,5 +1,4 @@
 import { searchClasses, tryCatch } from "../../utils/fetch";
-import { ClientManager } from "../../utils/clientManager";
 import { authController } from "../../controllers/auth";
 import { timeNow } from "../../utils/time";
 import { db } from "../../utils/sqlite";
@@ -11,9 +10,6 @@ import * as z from "zod";
 const router = Router();
 
 router.post("/", authController, async (req, res) => {
-  const validTerms = ClientManager.getMostRecentTerms();
-  if (!validTerms) return res.sendStatus(500);
-
   const { data: watcher, error: parseError } = z
     .object({
       term: z.string(),

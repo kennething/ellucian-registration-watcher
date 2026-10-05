@@ -4,6 +4,7 @@ import { ErrorCodes, getErrorResponse, getSignupResponse } from "../util/respons
 import { TruncatedClassData, ClassData } from "../../../server/utils/types.ts";
 import type { ClassSearchParams } from "../../../server/utils/types.ts";
 import { ClientManager } from "../../../server/utils/clientManager.ts";
+import { Term } from "../../../server/utils/term.ts";
 import { db } from "../../../server/utils/sqlite.ts";
 import { Log } from "../../../server/utils/log.ts";
 import { getCourseColor } from "../util/index.ts";
@@ -12,23 +13,22 @@ import type { Command } from "./index.ts";
 import { v7 as uuidv7 } from "uuid";
 import ENV from "../../../env.ts";
 import {
-  ApplicationCommandOptionType,
-  ApplicationIntegrationType,
-  ButtonBuilder,
-  ButtonStyle,
   CommandInteractionOptionResolver,
-  ContainerBuilder,
-  InteractionContextType,
+  ApplicationCommandOptionType,
   InteractionEditReplyOptions,
-  MessageFlags
+  ApplicationIntegrationType,
+  InteractionContextType,
+  ContainerBuilder,
+  ButtonBuilder,
+  MessageFlags,
+  ButtonStyle
 } from "discord.js";
 
 function getSearchParams(options: CommandInteractionOptionResolver): ClassSearchParams {
-  const recentTerms = ClientManager.getMostRecentTerms();
   const userTerm = options.getString("term");
-  if (!userTerm && !recentTerms) throw new Error("No term provided and no recent terms found");
+  if (!userTerm && !ClientManager.terms) throw new Error("No term provided and no recent terms found");
 
-  const term = userTerm ?? (recentTerms?.length === 1 ? recentTerms[0] : recentTerms![1]);
+  const termId = userTerm ?? (ClientManager.terms.find((t: Term) => t.isPrimary) as Term).termId;
 
   const meetingDays = [
     options.getBoolean("sunday") ?? false,
@@ -58,7 +58,7 @@ function getSearchParams(options: CommandInteractionOptionResolver): ClassSearch
 
   const crnField = options.getString("crn");
   const searchParams: ClassSearchParams = {
-    term,
+    term: termId,
     attribute: options.getString("attribute") ?? undefined,
     subject: options.getString("subject") ?? undefined,
     courseNumber: options.getString("course_number") ?? undefined,
@@ -426,7 +426,8 @@ export default {
   async autocomplete(interaction) {
     const focusedValue = interaction.options.getFocused(true);
 
-    if (focusedValue.name === "term") return interaction.respond(ClientManager.getMostRecentTerms()?.map((term) => ({ name: getTermString(term), value: term })) ?? []);
+    if (focusedValue.name === "term")
+      return interaction.respond(ClientManager.terms?.map((term: Term) => ({ name: `${term.getTermString()}${term.isEarly ? " (Early)" : ""}`, value: term.termId })) ?? []);
     else if (focusedValue.name === "attribute")
       return interaction.respond(
         ClientManager.attributes

@@ -42,9 +42,10 @@ export async function startServer() {
 
   app.listen(ENV.PORT, "0.0.0.0", () => Log.info(`Server running on port ${ENV.PORT}`));
 
-  if (ENV.CLASS_FETCH_INTERVAL > 0) events.watchClassesLoop();
-  if (ENV.OUTDATED_PURGE_INTERVAL > 0) events.purgeOutdatedLoop();
-  if (ENV.RMP_FETCH_INTERVAL > 0 && ENV.RMP_SCHOOL_ID) events.fetchProfessorsLoop();
   if (ENV.MATH_FETCH_INTERVAL > 0 && ENV.MATH_SCHEDULE_URL) events.fetchMathScheduleLoop();
-  if (ENV.SEARCH_FETCH_INTERVAL > 0) events.fetchSearchData();
+  if (ENV.RMP_FETCH_INTERVAL > 0 && ENV.RMP_SCHOOL_ID) events.fetchProfessorsLoop();
+  if (ENV.OUTDATED_PURGE_INTERVAL > 0) events.purgeOutdatedLoop();
+  if (ENV.SEARCH_FETCH_INTERVAL > 0) events.fetchSearchDataLoop();
+  if (ENV.CLASS_FETCH_INTERVAL > 0) events.watchClassesLoop();
+  if (ENV.NEW_TERMS_INTERVAL > 0) events.watchNewTermsLoop();
 }

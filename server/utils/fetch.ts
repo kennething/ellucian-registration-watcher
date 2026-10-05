@@ -124,7 +124,10 @@ export async function searchClassDb(term: string, params: Partial<ClassSearchPar
   return [classes, data[0].total || 0];
 }
 
-/** @param params !! does not handle `professorRating` */
+/**
+ * @param params !! does not handle `professorRating`
+ * @param limit if set to 500, will recursively fetch classes
+ */
 export async function searchClasses(
   term: string,
   params: Partial<ClassSearchParams>,
@@ -164,7 +167,7 @@ export async function searchClasses(
     return client.get<{ data: ClassData[] | null; totalCount: number }>(url);
   };
 
-  const [request, id] = useInternalClient ? [ClientManager.requestInternalClient(axiosRequest)] : ClientManager.requestExternalClient(axiosRequest);
+  const [request, id] = useInternalClient ? [ClientManager.requestInternalClient(axiosRequest)] : ClientManager.requestExternalClient(term, axiosRequest);
   const data = (await request).data as { data: ClassData[] | null; totalCount: number };
 
   if (data.data === null && !isRetry && !useInternalClient) {
@@ -183,7 +186,7 @@ export async function searchClasses(
         ...c,
         faculty: [
           {
-            professorLeaked: true,
+            professorLeaked: true as true | undefined,
             term: c.term,
             bannerId: "",
             category: null,

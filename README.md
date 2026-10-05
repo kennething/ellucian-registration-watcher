@@ -141,6 +141,13 @@ re-registering.
 | `SEARCH_FETCH_INTERVAL` | Interval, in seconds, to fetch new search data. Set to `0` to disable search fetching. | `14400` (4 hours) |          |
 | `SEARCH_FETCH_OFFSET`   | Offset, in seconds, to wait before fetching new search data.                           | `360` (6 minutes) |          |
 
+## New Term Detection
+
+| Variable             | Description                                                                             | Default            | Required |
+| -------------------- | --------------------------------------------------------------------------------------- | ------------------ | -------- |
+| `NEW_TERMS_INTERVAL` | Interval, in seconds, to fetch new term data. Set to `0` to disable new term detection. | `604800` (7 days)  |          |
+| `NEW_TERMS_OFFSET`   | Offset, in seconds, to wait before fetching new term data.                              | `64800` (18 hours) |          |
+
 ### Purging
 
 | Variable                  | Description                                                                                                                                   | Default           | Required |

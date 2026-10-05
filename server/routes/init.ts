@@ -57,7 +57,7 @@ router.get("/", authController, async (req, res) => {
         theme: userSettings.web_theme
       }
     },
-    validTerms: ClientManager.getMostRecentTerms(),
+    validTerms: ClientManager.terms.map((term) => ({ termId: term.termId, isEarly: term.isEarly })),
     attributes: ClientManager.attributes,
     subjects: ClientManager.subjects,
     watchers: toCamelCase(watchersWithData),

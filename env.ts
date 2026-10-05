@@ -74,7 +74,9 @@ const ENV = z
      */
     CLIENT_LIFETIME: z.coerce.number().int().positive().default(1200),
     /**
-     * Path to the SQLite database file. If the database file doesn't exist, a new one will be created.
+     * Path to the SQLite database file.
+     *
+     * If the database file doesn't exist, a new one will be created.
      * @default "./server/db.sqlite3"
      */
     DATABASE_PATH: z.string().default("./server/db.sqlite3"),
@@ -129,6 +131,18 @@ const ENV = z
      * @default 360 // 6 minutes
      */
     SEARCH_FETCH_OFFSET: z.coerce.number().int().nonnegative().default(360),
+
+    // * New Term Detection
+    /**
+     * Interval, in seconds, to check for new terms. Set to `0` to disable new term detection.
+     * @default 604800 // 7 days
+     */
+    NEW_TERMS_INTERVAL: z.coerce.number().int().nonnegative().default(604800),
+    /**
+     * Offset, in seconds, to wait before checking for new terms.
+     * @default 64800 (18 hours)
+     */
+    NEW_TERMS_OFFSET: z.coerce.number().int().nonnegative().default(64800),
 
     // * Purging
     /**

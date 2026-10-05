@@ -5,17 +5,20 @@ import { db } from "../utils/sqlite";
 import { Log } from "../utils/log";
 import ENV from "../../env";
 
-export function fetchSearchData(): void {
+export function fetchSearchDataLoop(): void {
   waitForInterval(ENV.SEARCH_FETCH_INTERVAL, ENV.SEARCH_FETCH_OFFSET, async () => {
-    for (const term of ClientManager.getMostRecentTerms() ?? []) {
-      const [allClasses] = await searchClasses(term, {});
+    for (const term of ClientManager.terms ?? []) {
+      Log.info(`Fetching classes for ${term.getTermString()}`);
+
+      const [allClasses] = await searchClasses(term.termId, {});
 
       db.transaction(() => {
-        db.prepare(`DROP TABLE IF EXISTS "${term}_search_db"`).run();
-        db.prepare(`DROP TABLE IF EXISTS "${term}_search_db_attributes"`).run();
+        db.prepare(`DROP TABLE IF EXISTS "${term.termId}_search_db"`).run();
+        db.prepare(`DROP TABLE IF EXISTS "${term.termId}_search_db_attributes"`).run();
 
+        // TODO: search by location
         db.prepare(
-          `CREATE TABLE "${term}_search_db" (
+          `CREATE TABLE "${term.termId}_search_db" (
     crn            TEXT    UNIQUE NOT NULL PRIMARY KEY,
     subject        TEXT,
     course_number  TEXT,
@@ -35,18 +38,18 @@ export function fetchSearchData(): void {
 )`
         ).run();
         db.prepare(
-          `CREATE TABLE "${term}_search_db_attributes" (
+          `CREATE TABLE "${term.termId}_search_db_attributes" (
           crn TEXT NOT NULL, 
           attribute TEXT NOT NULL,
           PRIMARY KEY (crn, attribute)
         )`
         ).run();
-        db.prepare(`CREATE INDEX idx_${term}_search_db_attributes_attribute ON "${term}_search_db_attributes"(attribute)`).run();
+        db.prepare(`CREATE INDEX idx_${term.termId}_search_db_attributes_attribute ON "${term.termId}_search_db_attributes"(attribute)`).run();
 
         const insertStatement = db.prepare(
-          `INSERT INTO "${term}_search_db" (crn, subject, course_number, section, course_title, credit_hours, professor_name, sunday, monday, tuesday, wednesday, thursday, friday, saturday, start_time, end_time) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+          `INSERT INTO "${term.termId}_search_db" (crn, subject, course_number, section, course_title, credit_hours, professor_name, sunday, monday, tuesday, wednesday, thursday, friday, saturday, start_time, end_time) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
         );
-        const insertAttributeStatement = db.prepare(`INSERT INTO "${term}_search_db_attributes" (crn, attribute) VALUES (?, ?)`);
+        const insertAttributeStatement = db.prepare(`INSERT INTO "${term.termId}_search_db_attributes" (crn, attribute) VALUES (?, ?)`);
 
         for (const course of allClasses) {
           const meetingTime = course.meetingsFaculty[0]?.meetingTime;
@@ -75,7 +78,7 @@ export function fetchSearchData(): void {
         }
       })();
 
-      Log.info(`Fetched ${allClasses.length} classes for ${term}`);
+      Log.info(`Fetched ${allClasses.length} classes for ${term.getTermString()}`);
     }
   });
 }

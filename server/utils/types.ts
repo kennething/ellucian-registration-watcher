@@ -88,7 +88,7 @@ export type ClassData = {
     termCode: string;
   }[];
   faculty: {
-    leaked?: true; // custom
+    professorLeaked?: true; // custom
     bannerId: string; // professor id
     category: any; // TODO:
     class: string;
