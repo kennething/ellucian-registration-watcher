@@ -39,7 +39,8 @@ export const ClassSearchSchema = z
     // too much work // // openSections: z.boolean(),
     // too much work // // waitlistOpen: z.boolean(),
     professorRating: z.tuple([z.number().min(0).max(5), z.number().min(0).max(5)]), // [low: number, high: number]; 0-5
-    strictRatingSearch: z.boolean()
+    strictRatingSearch: z.boolean(),
+    location: z.string() // building code
   })
   .partial()
   .required({ term: true });

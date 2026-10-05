@@ -95,7 +95,8 @@ export class ClientManager {
 
   static terms: Term[] = [];
   static subjects: { code: string; name: string }[] = [];
-  static attributes: { code: string; name: string }[] = [];
+  static attributes: { code: string; name: string; isSpecial: boolean }[] = [];
+  static locations: { short: string; long: string }[] = [];
 
   static setClients(internalTermId: TermId, externalTermIds: TermId[]): void {
     ClientManager.clients.internal = new InternalClient(new Term(internalTermId));

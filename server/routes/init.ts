@@ -58,8 +58,9 @@ router.get("/", authController, async (req, res) => {
       }
     },
     validTerms: ClientManager.terms.map((term) => ({ termId: term.termId, isEarly: term.isEarly })),
-    attributes: ClientManager.attributes,
+    attributes: ClientManager.attributes.map((attribute) => ({ code: attribute.code, name: attribute.name })),
     subjects: ClientManager.subjects,
+    locations: ClientManager.locations,
     watchers: toCamelCase(watchersWithData),
     schedules: toCamelCase(schedules.map((schedule) => ({ ...schedule, crns: JSON.parse(schedule.crns) })))
   });

@@ -6,9 +6,14 @@ import { Log } from "./log";
 
 /** Waits for a specified interval and then calls the callback function
  * @param interval The interval in seconds at which to call the callback function. The first call will be aligned to the nearest interval.
- * @param offset offset in seconds
+ *
+ * Set to `0` to not run. Set to `-1` to run once, immediately.
+ * @param offset offset in seconds.
  */
 export function waitForInterval(interval: number, offset: number, callback: () => Promise<void>): void {
+  if (interval === -1) return void callback();
+  if (interval === 0) return;
+
   const timeUntilInterval = interval - (timeNow() % interval);
 
   setTimeout(

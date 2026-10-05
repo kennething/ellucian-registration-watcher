@@ -324,6 +324,12 @@ export default {
         autocomplete: true
       },
       {
+        name: "location",
+        description: "Filter by building",
+        type: ApplicationCommandOptionType.String,
+        autocomplete: true
+      },
+      {
         name: "course_number",
         description: "Filter by course number",
         max_length: 4,
@@ -442,6 +448,16 @@ export default {
           .map((subject) => ({ name: subject.name, value: subject.code }))
           .slice(0, 25) ?? []
       );
+    else if (focusedValue.name === "location") {
+      return interaction.respond(
+        ClientManager.locations
+          ?.filter((location) =>
+            focusedValue.value ? location.long.toLowerCase().includes(focusedValue.value.toLowerCase()) || location.short.toLowerCase().includes(focusedValue.value.toLowerCase()) : true
+          )
+          .map((location) => ({ name: `${location.short} - ${location.long}`, value: location.short }))
+          .slice(0, 25) ?? []
+      );
+    }
 
     return interaction.respond([]);
   },

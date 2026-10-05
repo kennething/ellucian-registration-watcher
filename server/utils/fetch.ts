@@ -1,4 +1,5 @@
 import { ClientManager } from "./clientManager";
+import { decodeHTML } from "entities/decode";
 import { ClassSearchParams } from "./types";
 import * as htmlparser2 from "htmlparser2";
 import { ClassData } from "./types";
@@ -45,6 +46,7 @@ export async function searchClassDb(term: string, params: Partial<ClassSearchPar
   const queries: [query: string, value: any[]][] = [];
   const tableName = `${term}_search_db`;
 
+  if (params.location) queries.push([`location = ?`, [params.location]]);
   if (params.attribute?.length)
     queries.push([`EXISTS (SELECT 1 FROM "${tableName}_attributes" WHERE "${tableName}_attributes".attribute = ? AND "${tableName}".crn = "${tableName}_attributes".crn)`, [params.attribute]]);
   if (params.courseNumber) queries.push([`course_number = ?`, [params.courseNumber]]);
@@ -176,22 +178,24 @@ export async function searchClasses(
   } else if (data.data === null) return [classes, data.totalCount];
 
   const dataData = data.data.map((c) => {
-    if (c.subject !== "MATH" || c.faculty.length !== 0) return c;
+    const base = { ...c, courseTitle: decodeHTML(c.courseTitle) };
+
+    if (c.subject !== "MATH" || c.faculty.length !== 0) return base;
 
     try {
-      const professor = (db.prepare(`SELECT professor FROM "${term}_math_schedule" WHERE crn = ?`).get(c.courseReferenceNumber) as { professor: string } | undefined)?.professor;
-      if (!professor) return c;
+      const professor = (db.prepare(`SELECT professor FROM "${term}_math_schedule" WHERE crn = ?`).get(base.courseReferenceNumber) as { professor: string } | undefined)?.professor;
+      if (!professor) return base;
 
       return {
-        ...c,
+        ...base,
         faculty: [
           {
             professorLeaked: true as true | undefined,
-            term: c.term,
+            term: base.term,
             bannerId: "",
             category: null,
             class: "",
-            courseReferenceNumber: c.courseReferenceNumber,
+            courseReferenceNumber: base.courseReferenceNumber,
             displayName: professor,
             emailAddress: "",
             primaryIndicator: true
@@ -199,7 +203,7 @@ export async function searchClasses(
         ]
       };
     } catch (error) {
-      return c;
+      return base;
     }
   });
 
