@@ -164,12 +164,12 @@ export async function searchClasses(
 
   url = encodeURI(url.slice(0, -1)).replaceAll(",", "%2C");
 
-  const axiosRequest: Parameters<typeof ClientManager.requestInternalClient>[0] = async (client) => {
+  const axiosRequest: Parameters<typeof ClientManager.requestInternalClient>[1] = async (client) => {
     await client.post(`${ENV.BANNER_API_URL}/StudentRegistrationSsb/ssb/classSearch/resetDataForm`);
     return client.get<{ data: ClassData[] | null; totalCount: number }>(url);
   };
 
-  const [request, id] = useInternalClient ? [ClientManager.requestInternalClient(axiosRequest)] : ClientManager.requestExternalClient(term, axiosRequest);
+  const [request, id] = useInternalClient ? [ClientManager.requestInternalClient(term, axiosRequest)] : ClientManager.requestExternalClient(term, axiosRequest);
   const data = (await request).data as { data: ClassData[] | null; totalCount: number };
 
   if (data.data === null && !isRetry && !useInternalClient) {
@@ -220,7 +220,8 @@ export async function fetchClassDescription(term: string, crn: string): Promise<
   formData.append("courseReferenceNumber", crn);
 
   try {
-    const html = (await ClientManager.requestInternalClient((client) => client.post(`${ENV.BANNER_API_URL}/StudentRegistrationSsb/ssb/searchResults/getCourseDescription`, formData))).data as string;
+    const html = (await ClientManager.requestInternalClient(term, (client) => client.post(`${ENV.BANNER_API_URL}/StudentRegistrationSsb/ssb/searchResults/getCourseDescription`, formData)))
+      .data as string;
     const dom = htmlparser2.parseDocument(html);
 
     const children = htmlparser2.DomUtils.getChildren(dom) as Element[];
