@@ -13,7 +13,7 @@ export function fetchSearchDataLoop(): void {
     for (const term of ClientManager.terms ?? []) {
       Log.info(`Fetching classes for ${term.getTermString()}`);
 
-      const [allClasses] = await searchClasses(term.termId, {}, true);
+      const [allClasses] = await searchClasses(term.termId, {}, ClientManager.terms.length === 1 ? true : false); // ? use external for multiple terms cuz cookies and shit
 
       db.transaction(() => {
         db.prepare(`DROP TABLE IF EXISTS "${term.termId}_search_db"`).run();
