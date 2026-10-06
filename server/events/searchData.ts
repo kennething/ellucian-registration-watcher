@@ -18,7 +18,6 @@ export function fetchSearchDataLoop(): void {
       db.transaction(() => {
         db.prepare(`DROP TABLE IF EXISTS "${term.termId}_search_db"`).run();
         db.prepare(`DROP TABLE IF EXISTS "${term.termId}_search_db_attributes"`).run();
-        db.prepare(`DROP TABLE IF EXISTS locations`).run();
 
         db.prepare(
           `CREATE TABLE "${term.termId}_search_db" (
@@ -49,12 +48,6 @@ export function fetchSearchDataLoop(): void {
         )`
         ).run();
         db.prepare(`CREATE INDEX idx_${term.termId}_search_db_attributes_attribute ON "${term.termId}_search_db_attributes"(attribute)`).run();
-        db.prepare(
-          `CREATE TABLE locations (
-          short TEXT NOT NULL,
-          long TEXT NOT NULL
-        )`
-        ).run();
 
         const insertStatement = db.prepare(
           `INSERT INTO "${term.termId}_search_db" (crn, subject, course_number, section, course_title, credit_hours, professor_name, location, sunday, monday, tuesday, wednesday, thursday, friday, saturday, start_time, end_time) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
@@ -92,10 +85,13 @@ export function fetchSearchDataLoop(): void {
 
           for (const attribute of course.sectionAttributes) insertAttributeStatement.run(course.courseReferenceNumber, attribute.code);
         }
+      })();
 
-        if (!updatedLocations) {
+      if (!updatedLocations)
+        db.transaction(() => {
           updatedLocations = true;
 
+          db.prepare("DELETE FROM locations").run();
           const insertLocationStatement = db.prepare(`INSERT INTO locations (short, long) VALUES (?, ?)`);
 
           const locations = [
@@ -109,10 +105,9 @@ export function fetchSearchDataLoop(): void {
               return [short, decodeHTML(long)];
             });
 
-          Log.debug(locations);
           for (const location of locations) insertLocationStatement.run(...location);
-        }
-      })();
+          Log.info(`Inserted ${locations.length} locations from ${term.getTermString()}`);
+        })();
 
       Log.info(`Fetched ${allClasses.length} classes for ${term.getTermString()}`);
     }
