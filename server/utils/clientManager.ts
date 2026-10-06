@@ -25,7 +25,7 @@ class InternalClient {
     const taskCompletion = this.currentTask.then(() => task(this.requestClient));
     this.currentTask = taskCompletion.catch(() => {}).finally(() => this.queueLength--);
 
-    return taskCompletion;
+    return this.currentTask;
   }
 
   async refreshCookie() {
@@ -78,7 +78,7 @@ class Client extends InternalClient {
     });
     this.currentTask = taskCompletion.catch(() => {}).finally(() => this.queueLength--);
 
-    return taskCompletion;
+    return this.currentTask;
   }
 }
 
