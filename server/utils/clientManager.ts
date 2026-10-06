@@ -39,7 +39,7 @@ class InternalClient {
    * @returns whether all requests were successful
    */
   private async setup(): Promise<boolean> {
-    Log.debug("InternalClient setup");
+    Log.debug("client setup");
 
     const formData = new FormData();
     formData.append("term", this.term.termId);
@@ -104,6 +104,7 @@ export class ClientManager {
   }
 
   static requestInternalClient<T extends AxiosResponse>(request: (client: AxiosInstance) => Promise<T>): Promise<T> {
+    Log.debug("internal client request");
     return ClientManager.clients.internal!.enqueue(request);
   }
 
@@ -112,14 +113,17 @@ export class ClientManager {
     const termIdCast = termId as TermId;
 
     const freeClient = ClientManager.clients.external[termIdCast]!.find((client) => client.queueLength <= ENV.NEW_REQUEST_CLIENT_THRESHOLD);
+    Log.debug(termIdCast, "free client:", !!freeClient);
     if (freeClient) return [freeClient.enqueue(request), freeClient.id];
 
     if (ClientManager.clients.external[termIdCast]!.length < ENV.MAX_REQUEST_CLIENTS) {
+      Log.debug(termIdCast, "creating new client");
       const newClient = new Client(new Term(termIdCast));
       ClientManager.clients.external[termIdCast]!.push(newClient);
       return [newClient.enqueue(request), newClient.id];
     }
 
+    Log.debug(termIdCast, "waiting for client");
     const shortestQueueClient = ClientManager.clients.external[termIdCast]!.reduce((prev, curr) => (prev.queueLength < curr.queueLength ? prev : curr));
     return [shortestQueueClient.enqueue(request), shortestQueueClient.id];
   }

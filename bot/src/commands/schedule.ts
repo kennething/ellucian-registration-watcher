@@ -205,10 +205,13 @@ export async function generateScheduleImage<T extends string | null>(
         }
 
         const meeting = course.meetingsFaculty[0]?.meetingTime;
-        ctx.fillText(getMeetingTimeString([meeting.beginTime, meeting.endTime]), xOffset, yOffset, DAY_WIDTH - 24);
-        yOffset += 20;
+        if (meeting) {
+          ctx.fillText(getMeetingTimeString([meeting.beginTime, meeting.endTime]), xOffset, yOffset, DAY_WIDTH - 24);
+          yOffset += 20;
+        }
 
-        ctx.fillText(`${course.meetingsFaculty[0]?.meetingTime.building} ${course.meetingsFaculty[0]?.meetingTime.room}`, xOffset, yOffset, DAY_WIDTH - 24);
+        if (course.meetingsFaculty[0]?.meetingTime.building && course.meetingsFaculty[0]?.meetingTime.room)
+          ctx.fillText(`${course.meetingsFaculty[0]?.meetingTime.building} ${course.meetingsFaculty[0]?.meetingTime.room}`, xOffset, yOffset, DAY_WIDTH - 24);
       });
     }
   })();
@@ -255,7 +258,7 @@ export default {
       },
       {
         name: "share",
-        description: "If provided, the schedule will not be displayed as an ephemeral message.",
+        description: "Show other people your schedule!",
         type: ApplicationCommandOptionType.Boolean
       },
       {
