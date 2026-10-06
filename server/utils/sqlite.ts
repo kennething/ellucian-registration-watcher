@@ -5,6 +5,7 @@ import { CookieJar } from "tough-cookie";
 import { Term, TermId } from "./term";
 import Database from "better-sqlite3";
 import { ClassData } from "./types";
+import { tryCatch } from "./fetch";
 import ENV from "../../env";
 import { Log } from "./log";
 import axios from "axios";
@@ -20,7 +21,11 @@ if (!fs.existsSync(dbPath)) {
 
 export const db = new Database(dbPath, { fileMustExist: true });
 db.pragma("journal_mode = WAL");
-process.on("exit", () => db.close());
+process.on("exit", () => {
+  if (db.open) db.close();
+  Log.debug("closed db connection");
+});
+process.on("SIGINT", () => process.exit());
 
 db.exec(/* sql */ `
 CREATE TABLE IF NOT EXISTS terms (
@@ -168,13 +173,15 @@ export async function refreshConstantData() {
   );
 
   db.transaction(() => {
-    const remainingTerms = db.prepare("DELETE FROM terms WHERE delete_timestamp IS NULL RETURNING term_id").all() as { term_id: TermId }[];
+    db.prepare("DELETE FROM terms WHERE delete_timestamp IS NULL AND term_id NOT IN (SELECT DISTINCT term_id FROM watchers)").run();
+
     db.prepare("DELETE FROM subjects").run();
     db.prepare("DELETE FROM attributes").run();
 
-    const termsToInsert = allTerms.filter((term) => !remainingTerms.some((remainingTerm) => remainingTerm.term_id === term.termId));
-    const insertTermStatement = db.prepare("INSERT INTO terms (term_id, is_primary, is_early) VALUES (?, ?, ?)");
-    for (const term of termsToInsert) insertTermStatement.run(term.termId, Number(term.isPrimary), Number(term.isEarly));
+    const insertTermStatement = db.prepare(
+      "INSERT INTO terms (term_id, is_primary, is_early) VALUES (?, ?, ?) ON CONFLICT(term_id) DO UPDATE SET is_primary = excluded.is_primary, is_early = excluded.is_early"
+    );
+    for (const term of allTerms) insertTermStatement.run(term.termId, Number(term.isPrimary), Number(term.isEarly));
 
     const insertSubjectStatement = db.prepare("INSERT INTO subjects (code, name) VALUES (?, ?)");
     for (const subject of subjects) insertSubjectStatement.run(subject.code, subject.description);

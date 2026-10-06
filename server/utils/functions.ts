@@ -204,7 +204,8 @@ function murmurHash3(key: string, seed = 0): number {
  * @returns The final bucketed integer.
  */
 export function hashToRange(input: string, range: number, blockSize: number): number {
-  if (range <= 0 || !Number.isInteger(range)) {
+  if (range === -1) range = 600;
+  else if (range <= 0 || !Number.isInteger(range)) {
     throw new RangeError("`range` must be a positive integer.");
   }
   if (blockSize <= 0 || !Number.isInteger(blockSize)) {

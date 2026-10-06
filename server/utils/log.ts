@@ -20,7 +20,7 @@ export class Log {
   private static formatMessage(message: unknown[]): string {
     return message
       .map((part) => {
-        if (typeof part === "object") return JSON.stringify(part, null, 2);
+        if (typeof part === "object") return String(part);
         return part;
       })
       .join(" ");
