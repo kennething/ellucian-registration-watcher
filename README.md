@@ -55,7 +55,7 @@ minimize the number of requests sent to the Banner API.
 
 ## Run the server
 
-1. Install [Node.js](https://nodejs.org).
+1. Install [Bun](https://bun.sh).
 
 2. Create a `.env` file in the root directory. See
    [here](./README.md#environment-variables) for config options.
@@ -63,13 +63,13 @@ minimize the number of requests sent to the Banner API.
 3. Install dependencies:
 
    ```sh
-   npm install
+   bun install
    ```
 
 4. Start the bot and/or server:
 
    ```sh
-   npm run serve
+   bun run serve
    ```
 
 # Bot Commands
@@ -82,7 +82,7 @@ commands.
 1. Register the commands:
 
    ```sh
-   npm run deploy
+   bun run deploy
    ```
 
 You only need to register commands if you change the command's data. Changing
@@ -94,7 +94,7 @@ re-registering.
 2. Unregister the commands:
 
    ```sh
-   npm run undeploy
+   bun run undeploy
    ```
 
 # Environment Variables

@@ -4,9 +4,9 @@
     "node": "^24.14.0"
   },
   "scripts": {
-    "deploy": "tsx bot/src/util/deploy.ts",
-    "undeploy": "tsx bot/src/util/undeploy.ts",
-    "serve": "tsx index.ts"
+    "deploy": "bun bot/src/util/deploy.ts",
+    "undeploy": "bun bot/src/util/undeploy.ts",
+    "serve": "bun index.ts"
   },
   "dependencies": {
     "@discordjs/core": "^2.6.0",
@@ -27,8 +27,6 @@
     "luxon": "^3.7.2",
     "ratemyprofessors-client": "^3.0.0",
     "tough-cookie": "^6.0.2",
-    "tsx": "^4.23.15",
-    "typescript": "^7.0.2",
     "uuid": "^14.0.2",
     "zod": "^4.6.5"
   },
