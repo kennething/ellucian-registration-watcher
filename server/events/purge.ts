@@ -12,7 +12,7 @@ export function purgeOutdatedLoop(): void {
   waitForInterval(ENV.OUTDATED_PURGE_INTERVAL, ENV.OUTDATED_PURGE_OFFSET, async () => {
     const mostRecentTermStrings = ClientManager.terms.map((term) => term.getTermString());
 
-    const termsToDelete = db.prepare("SELECT term_id FROM watchers GROUP BY term_id HAVING delete_timestamp < ?").all(timeNow()) as { term_id: string }[];
+    const termsToDelete = db.prepare("SELECT term_id FROM terms WHERE delete_timestamp < ?").all(timeNow()) as { term_id: string }[];
 
     if (termsToDelete.length) {
       const backupPath = path.join(ENV.BACKUP_DATABASE_PATH, `backup_${timeNow()}.sqlite3`);
