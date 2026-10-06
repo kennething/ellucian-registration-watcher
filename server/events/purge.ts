@@ -47,11 +47,9 @@ export function purgeOutdatedLoop(): void {
 
     const [allTerms, error] = tryCatch<{ term_id: string }[]>(() => db.prepare("SELECT DISTINCT term_id FROM watchers").all() as any);
     if (error) return Log.error(error);
-    console.log("a ", allTerms);
 
     const outdatedTerms = allTerms.filter((term) => !ClientManager.terms.some((t) => t.termId === term.term_id));
     if (!outdatedTerms.length) return;
-    console.log("b ", outdatedTerms);
     db.prepare("UPDATE terms SET delete_timestamp = ? WHERE term_id IN (" + outdatedTerms.map(() => "?").join(",") + ")").run(
       timeNow() + ENV.WATCHER_PURGE_NOTICE,
       ...outdatedTerms.map((term) => term.term_id)
