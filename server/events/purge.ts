@@ -23,8 +23,12 @@ export function purgeOutdatedLoop(): void {
       db.transaction(() => {
         for (const { term_id: termId } of termsToDelete) {
           // * outdated watchers
-          const { changes } = db.prepare("DELETE FROM watchers WHERE term_id = ?").run(termId);
-          Log.debug(`Purged ${changes} outdated watchers for term ${termId}`);
+          const { changes: watchersDeleted } = db.prepare("DELETE FROM watchers WHERE term_id = ?").run(termId);
+          Log.debug(`Purged ${watchersDeleted} outdated watchers for term ${termId}`);
+
+          // * outdated schedules
+          const { changes: schedulesDeleted } = db.prepare("DELETE FROM schedules WHERE term_id = ?").run(termId);
+          Log.debug(`Purged ${schedulesDeleted} outdated schedules for term ${termId}`);
 
           // * outdated search db
           db.prepare(`DROP TABLE IF EXISTS "${termId}_search_db"`).run();
