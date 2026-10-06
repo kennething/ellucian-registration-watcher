@@ -98,17 +98,17 @@ export function watchClassesLoop(): void {
           const row = getStatement.get(course.courseReferenceNumber, course.term) as CourseHistory | undefined;
 
           if (!row) {
-            const seat24h = new Array(entries24h - 1).fill(-1);
+            const seat24h = new Array(entries24h - 1).fill(course.seatsAvailable);
             seat24h.push(course.seatsAvailable);
-            const seat7d = new Array(entries7d - 1).fill(-1);
+            const seat7d = new Array(entries7d - 1).fill(course.seatsAvailable);
             seat7d.push(course.seatsAvailable);
-            const seat28d = new Array(entries28d - 1).fill(-1);
+            const seat28d = new Array(entries28d - 1).fill(course.seatsAvailable);
             seat28d.push(course.seatsAvailable);
-            const wait24h = course.waitCapacity !== 0 ? new Array(entries24h - 1).fill(-1) : null;
+            const wait24h = course.waitCapacity !== 0 ? new Array(entries24h - 1).fill(course.waitCount) : null;
             if (wait24h) wait24h.push(course.waitCount);
-            const wait7d = course.waitCapacity !== 0 ? new Array(entries7d - 1).fill(-1) : null;
+            const wait7d = course.waitCapacity !== 0 ? new Array(entries7d - 1).fill(course.waitCount) : null;
             if (wait7d) wait7d.push(course.waitCount);
-            const wait28d = course.waitCapacity !== 0 ? new Array(entries28d - 1).fill(-1) : null;
+            const wait28d = course.waitCapacity !== 0 ? new Array(entries28d - 1).fill(course.waitCount) : null;
             if (wait28d) wait28d.push(course.waitCount);
 
             insertStatement.run(
