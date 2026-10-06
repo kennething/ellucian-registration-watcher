@@ -69,7 +69,7 @@ export default {
           const course = (await getClassData(term, { term, crn: [crn] }, 0))[0][0];
           if (!course)
             return void interaction.followUp({
-              ...(getErrorResponse(ErrorCodes.SEARCH_NO_CLASSES, "couldnt fetch the class womp womp") as InteractionReplyOptions),
+              ...(getErrorResponse(ErrorCodes.SEARCH_NO_CLASSES) as InteractionReplyOptions),
               flags: [MessageFlags.Ephemeral, MessageFlags.IsComponentsV2]
             });
 
