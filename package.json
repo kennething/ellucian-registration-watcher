@@ -4,6 +4,7 @@
     "node": "^24.14.0"
   },
   "scripts": {
+    "postinstall": "rm -f node_modules/canvas/build/Release/libstdc++.so.6",
     "deploy": "bun bot/src/util/deploy.ts",
     "undeploy": "bun bot/src/util/undeploy.ts",
     "serve": "bun index.ts"

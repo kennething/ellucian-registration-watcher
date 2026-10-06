@@ -69,7 +69,7 @@ minimize the number of requests sent to the Banner API.
 4. Start the bot and/or server:
 
    ```sh
-   bun run serve
+   bun serve
    ```
 
 # Bot Commands
@@ -82,7 +82,7 @@ commands.
 1. Register the commands:
 
    ```sh
-   bun run deploy
+   bun deploy
    ```
 
 You only need to register commands if you change the command's data. Changing
@@ -94,7 +94,7 @@ re-registering.
 2. Unregister the commands:
 
    ```sh
-   bun run undeploy
+   bun undeploy
    ```
 
 # Environment Variables
