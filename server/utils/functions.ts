@@ -156,3 +156,69 @@ export function truncateClassData(data: ClassData[]): Map<string, TruncatedClass
 
   return classMap;
 }
+
+// * random chatgpt go
+/**
+ * Hashes a string using 32-bit MurmurHash3.
+ * Returns an unsigned 32-bit integer.
+ */
+function murmurHash3(key: string, seed = 0): number {
+  let h1 = seed >>> 0;
+  const c1 = 0xcc9e2d51;
+  const c2 = 0x1b873593;
+
+  const len = key.length;
+  let i = 0;
+
+  while (i < len) {
+    // Read 16-bit code units (sufficient for general strings/ASCII)
+    let k1 = key.charCodeAt(i++);
+
+    k1 = Math.imul(k1, c1);
+    k1 = (k1 << 15) | (k1 >>> 17);
+    k1 = Math.imul(k1, c2);
+
+    h1 ^= k1;
+    h1 = (h1 << 13) | (h1 >>> 19);
+    h1 = (Math.imul(h1, 5) + 0xe6546b64) >>> 0;
+  }
+
+  // Final avalanche step to ensure bit diffusion
+  h1 ^= len;
+  h1 ^= h1 >>> 16;
+  h1 = Math.imul(h1, 0x85ebca6b);
+  h1 ^= h1 >>> 13;
+  h1 = Math.imul(h1, 0xc2b2ae35);
+  h1 ^= h1 >>> 16;
+
+  return h1 >>> 0; // Return unsigned 32-bit integer
+}
+
+/**
+ * Hashes an input string into an integer within [0, range - 1],
+ * then groups the result into upper-bound bucket blocks.
+ *
+ * @param input The string to hash.
+ * @param range The upper bound limit (exclusive), mapping to 0 to range - 1.
+ * @param blockSize The size of the bucket/block. Values in [0, blockSize - 1] map to (blockSize - 1).
+ * @returns The final bucketed integer.
+ */
+export function hashToRange(input: string, range: number, blockSize: number): number {
+  if (range <= 0 || !Number.isInteger(range)) {
+    throw new RangeError("`range` must be a positive integer.");
+  }
+  if (blockSize <= 0 || !Number.isInteger(blockSize)) {
+    throw new RangeError("`blockSize` must be a positive integer.");
+  }
+
+  // 1. Compute deterministic hash and map across [0, range - 1]
+  const rawHash = murmurHash3(input);
+  const rawIndex = rawHash % range;
+
+  // 2. Map to the end of the block: Math.floor(rawIndex / blockSize) * blockSize + (blockSize - 1)
+  const blockStart = Math.floor(rawIndex / blockSize) * blockSize;
+  const blockUpperTarget = blockStart + (blockSize - 1);
+
+  // 3. Clamp to range - 1 to handle edge blocks when range is not divisible by blockSize
+  return Math.min(blockUpperTarget, range - 1);
+}

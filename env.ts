@@ -123,6 +123,15 @@ const ENV = z
      * @default 43200 // 12 hours
      */
     NOTIFICATION_COOLDOWN: Integer.positive().default(43200),
+    /**
+     * When hashing a notification to determine send time, the number of seconds to divide the hash by to get a bucketed value.
+     *
+     * This is used to prevent all notifications from being sent at the same time.
+     *
+     * Should be a divisor of `CLASS_FETCH_INTERVAL`.
+     * @default 5
+     */
+    NOTIFICATION_BUCKET_SIZE: Integer.positive().default(5),
 
     // * Search Scraping
     /**

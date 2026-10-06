@@ -1,5 +1,5 @@
+import { getTermString, hashToRange, waitForInterval } from "../utils/functions";
 import { ClassData, Mutable, NotificationType } from "../utils/types";
-import { getTermString, waitForInterval } from "../utils/functions";
 import { BaseMessageOptions, ComponentType } from "discord.js";
 import { searchClasses, tryCatch } from "../utils/fetch";
 import { ClientManager } from "../utils/clientManager";
@@ -197,9 +197,10 @@ export function watchClassesLoop(): void {
 
     for (const [uuid, availableClasses] of notificationsToSend) {
       const [{ discord_id: discordId }, error] = tryCatch<{ discord_id: string }>(() => db.prepare("SELECT discord_id FROM users WHERE uuid = ?").get(uuid) as any);
-      if (error) return;
+      if (error) return Log.debug(error);
 
       const user = await botClient.client?.users.fetch(discordId);
+      if (!user) return;
       const allSameTerm = availableClasses.every((c) => c.term === availableClasses[0].term);
 
       const components: Mutable<BaseMessageOptions["components"]> = [
@@ -231,26 +232,31 @@ export function watchClassesLoop(): void {
           ]
         });
 
-      // TODO: stagger with hash
-      user?.send({
-        embeds: [
-          {
-            title: `Watcher${availableClasses.length > 1 ? "s" : ""} Triggered`,
-            description:
-              availableClasses
-                .map(
-                  (c) =>
-                    `- ${allSameTerm ? "" : `(${getTermString(c.term)}) `}**${c.subject} ${c.courseNumber} - ${c.sequenceNumber}** has ${c.notifyWhen! < 2 ? c.seatsAvailable : c.waitCount} ${c.notifyWhen! < 2 ? `seat${c.seatsAvailable === 1 ? "" : "s"} available` : `waitlist spot${c.waitCount === 1 ? "" : "s"} taken`}`
-                )
-                .join("\n") +
-              `\nTh${availableClasses.length > 1 ? "ese" : "is"} watcher${availableClasses.length > 1 ? "s" : ""} will be able to notify you again <t:${timeNow() + ENV.NOTIFICATION_COOLDOWN}:R>`,
-            color: ENV.PRIMARY_COLOR,
-            timestamp: new Date().toISOString()
-          }
-        ],
-        components
-        // flags: availableClasses.every((c) => c.notification_priority === 0) ? MessageFlags.SuppressNotifications : undefined
-      });
+      const currentTime = timeNow();
+      setTimeout(
+        () => {
+          user?.send({
+            embeds: [
+              {
+                title: `Watcher${availableClasses.length > 1 ? "s" : ""} Triggered`,
+                description:
+                  availableClasses
+                    .map(
+                      (c) =>
+                        `- ${allSameTerm ? "" : `(${getTermString(c.term)}) `}**${c.subject} ${c.courseNumber} - ${c.sequenceNumber}** has ${c.notifyWhen! < 2 ? c.seatsAvailable : c.waitCount} ${c.notifyWhen! < 2 ? `seat${c.seatsAvailable === 1 ? "" : "s"} available` : `waitlist spot${c.waitCount === 1 ? "" : "s"} taken`}`
+                    )
+                    .join("\n") +
+                  `\nTh${availableClasses.length > 1 ? "ese" : "is"} watcher${availableClasses.length > 1 ? "s" : ""} will be able to notify you again <t:${currentTime + ENV.NOTIFICATION_COOLDOWN}:R>`,
+                color: ENV.PRIMARY_COLOR,
+                timestamp: new Date().toISOString()
+              }
+            ],
+            components
+            // flags: availableClasses.every((c) => c.notification_priority === 0) ? MessageFlags.SuppressNotifications : undefined
+          });
+        },
+        hashToRange(user.id, ENV.CLASS_FETCH_INTERVAL, ENV.NOTIFICATION_BUCKET_SIZE) * 1000
+      );
     }
   });
 }

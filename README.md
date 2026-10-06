@@ -128,11 +128,12 @@ re-registering.
 
 ### Class Scraping
 
-| Variable                | Description                                                                                              | Default            | Required |
-| ----------------------- | -------------------------------------------------------------------------------------------------------- | ------------------ | -------- |
-| `CLASS_FETCH_INTERVAL`  | Interval, in seconds, to fetch new class data. Set to `0` to disable class fetching.                     | `600` (10 minutes) |          |
-| `CLASS_FETCH_OFFSET`    | Offset, in seconds, to wait before fetching new class data.                                              | `50`               |          |
-| `NOTIFICATION_COOLDOWN` | Cooldown, in seconds, to wait before sending another notification for the same watcher to the same user. | `43200` (12 hours) |          |
+| Variable                   | Description                                                                                                                                                                                                                                         | Default            | Required |
+| -------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------ | -------- |
+| `CLASS_FETCH_INTERVAL`     | Interval, in seconds, to fetch new class data. Set to `0` to disable class fetching.                                                                                                                                                                | `600` (10 minutes) |          |
+| `CLASS_FETCH_OFFSET`       | Offset, in seconds, to wait before fetching new class data.                                                                                                                                                                                         | `50`               |          |
+| `NOTIFICATION_COOLDOWN`    | Cooldown, in seconds, to wait before sending another notification for the same watcher to the same user.                                                                                                                                            | `43200` (12 hours) |          |
+| `NOTIFICATION_BUCKET_SIZE` | When hashing a notification to determine send time, the number of seconds to divide the hash by to get a bucketed value. This is used to prevent all notifications from being sent at the same time. Should be a divisor of `CLASS_FETCH_INTERVAL`. | `5`                |          |
 
 ### Search Scraping
 
