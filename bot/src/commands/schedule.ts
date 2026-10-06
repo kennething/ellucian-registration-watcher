@@ -245,13 +245,13 @@ export async function generateScheduleActionRow(scheduleUuid: string, themeName:
 export default {
   data: {
     name: "schedule",
-    description: "View your schedules",
+    description: "View and share your schedules",
     contexts: [InteractionContextType.PrivateChannel, InteractionContextType.BotDM, InteractionContextType.Guild],
     integration_types: [ApplicationIntegrationType.UserInstall],
     options: [
       {
         name: "name",
-        description: "The schedule to view. If not provided, the first schedule will be used.",
+        description: "The schedule to view. If not provided, your first schedule will be used.",
         max_length: 100,
         type: ApplicationCommandOptionType.String,
         autocomplete: true

@@ -143,32 +143,29 @@ export async function refreshConstantData() {
   const primaryTerm = new Term(primaryTermCode.code);
 
   const offTermCode = terms.indexOf(primaryTermCode) === 0 ? null : terms.find((term) => term.code !== primaryTermCode?.code)!;
+  const offTerm = offTermCode ? new Term(offTermCode.code) : null;
 
   const formData = new FormData();
-  formData.append("term", primaryTerm.nextTermId());
-  formData.append("studyPath", "");
-  formData.append("studyPathText", "");
-  formData.append("startDatepicker", "");
-  formData.append("endDatepicker", "");
+  formData.append("term", offTerm ? offTerm.nextCycleTermId() : primaryTerm.nextTermId());
   await requestClient.post(`${ENV.BANNER_API_URL}/StudentRegistrationSsb/ssb/term/search?mode=search`, formData);
-  const earlyOffTermCode = (await requestClient.get(`${ENV.BANNER_API_URL}/StudentRegistrationSsb/ssb/searchResults/searchResults?pageOffset=0&pageMaxSize=1&txt_term=${primaryTerm.nextTermId()}`))
-    .data as { data: ClassData[] | null; totalCount: number };
+  const earlyOffTermCode = (
+    await requestClient.get(
+      `${ENV.BANNER_API_URL}/StudentRegistrationSsb/ssb/searchResults/searchResults?pageOffset=0&pageMaxSize=1&txt_term=${offTerm ? offTerm.nextCycleTermId() : primaryTerm.nextTermId()}`
+    )
+  ).data as { data: ClassData[] | null; totalCount: number };
   const hasEarlyOffTerm = earlyOffTermCode.data && earlyOffTermCode.totalCount > 0;
 
-  const earlyPrimaryTermCode = hasEarlyOffTerm
-    ? ((await requestClient.get(`${ENV.BANNER_API_URL}/StudentRegistrationSsb/ssb/searchResults/searchResults?pageOffset=0&pageMaxSize=1&txt_term=${primaryTerm.nextPrimaryTermId()}`)).data as {
-        data: ClassData[] | null;
-        totalCount: number;
-      })
-    : null;
+  const formData2 = new FormData();
+  formData2.append("term", primaryTerm.nextPrimaryTermId());
+  await requestClient.post(`${ENV.BANNER_API_URL}/StudentRegistrationSsb/ssb/term/search?mode=search`, formData2);
+  const earlyPrimaryTermCode = (
+    await requestClient.get(`${ENV.BANNER_API_URL}/StudentRegistrationSsb/ssb/searchResults/searchResults?pageOffset=0&pageMaxSize=1&txt_term=${primaryTerm.nextPrimaryTermId()}`)
+  ).data as { data: ClassData[] | null; totalCount: number };
   const hasEarlyPrimaryTerm = earlyPrimaryTermCode?.data && earlyPrimaryTermCode.totalCount > 0;
 
-  const allTerms = [
-    primaryTerm,
-    offTermCode ? new Term(offTermCode.code) : null,
-    hasEarlyOffTerm ? new Term(primaryTerm.nextTermId()) : null,
-    hasEarlyPrimaryTerm ? new Term(primaryTerm.nextPrimaryTermId()) : null
-  ].filter((term): term is Term => term !== null);
+  const allTerms = [primaryTerm, offTerm, hasEarlyOffTerm ? new Term(primaryTerm.nextTermId()) : null, hasEarlyPrimaryTerm ? new Term(primaryTerm.nextPrimaryTermId()) : null].filter(
+    (term): term is Term => term !== null
+  );
 
   db.transaction(() => {
     const remainingTerms = db.prepare("DELETE FROM terms WHERE delete_timestamp IS NULL RETURNING term_id").all() as { term_id: TermId }[];

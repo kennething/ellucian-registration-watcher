@@ -139,5 +139,6 @@ export class ClientManager {
 
     const termId = row[0] as TermId;
     ClientManager.clients.external[termId] = ClientManager.clients.external[termId].filter((client) => client.id !== id);
+    Log.debug(`${termId} flushed external client`);
   }
 }

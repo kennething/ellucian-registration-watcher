@@ -69,9 +69,14 @@ export function fetchSearchDataLoop(): void {
               course.subject,
               course.courseNumber,
               course.sequenceNumber,
-              course.courseTitle,
+              decodeHTML(course.courseTitle),
               meetingTime.creditHourSession,
-              course.faculty[0]?.displayName,
+              course.faculty[0]?.displayName
+                .replaceAll(/,|\.|\-|\([A-Za-z]{1,3}\/[A-Za-z]{1,3}\)/g, " ")
+                .split(" ")
+                .filter((w) => w.length > 1)
+                .sort()
+                .join(" "),
               meetingTime.building,
               Number(meetingTime.sunday === true),
               Number(meetingTime.monday === true),
