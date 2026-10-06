@@ -88,7 +88,7 @@ export class ClientManager {
      *
      * never actually null in practice
      */
-    internal: {} as Record<TermId, InternalClient>,
+    internal: null as InternalClient | null,
     /** used for user search requests, etc */
     external: {} as Record<TermId, Client[]>
   };
@@ -98,15 +98,13 @@ export class ClientManager {
   static attributes: { code: string; name: string; isSpecial: boolean }[] = [];
   static locations: { short: string; long: string }[] = [];
 
-  static setClients(termIds: TermId[]): void {
-    for (const termId of termIds) {
-      ClientManager.clients.internal[termId] = new InternalClient(new Term(termId));
-      ClientManager.clients.external[termId] = [];
-    }
+  static setClients(internalTermId: TermId, externalTermIds: TermId[]): void {
+    ClientManager.clients.internal = new InternalClient(new Term(internalTermId));
+    for (const termId of externalTermIds) ClientManager.clients.external[termId] = [];
   }
 
-  static requestInternalClient<T extends AxiosResponse>(termId: string, request: (client: AxiosInstance) => Promise<T>): Promise<T> {
-    return ClientManager.clients.internal[termId as TermId].enqueue(request);
+  static requestInternalClient<T extends AxiosResponse>(request: (client: AxiosInstance) => Promise<T>): Promise<T> {
+    return ClientManager.clients.internal!.enqueue(request);
   }
 
   /** @returns a promise to await containing the request, and the client ID of the client used */

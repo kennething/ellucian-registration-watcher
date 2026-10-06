@@ -85,95 +85,92 @@ export function watchClassesLoop(): void {
     >(() => db.prepare(`SELECT owner_uuid, last_notified, is_active, term_id, crn, notify_when, notify_when_value FROM watchers WHERE term_id = ?`).all(mostRecentTerm.termId) as any);
     if (error) return Log.error(error);
 
-    const terms = Array.from(new Set(watchers.map((watcher) => watcher.term_id)));
-    const classes = await Promise.all(
-      terms.map(async (term) => {
-        const data = (await searchClasses(term, { crn: watchers.filter((watcher) => watcher.term_id === term).map((watcher) => watcher.crn) }, true))[0];
+    const classes = await (async () => {
+      const data = (await searchClasses(mostRecentTerm.termId, { crn: watchers.filter((watcher) => watcher.term_id === mostRecentTerm.termId).map((watcher) => watcher.crn) }, true))[0];
 
-        const getStatement = db.prepare("SELECT * FROM course_history WHERE crn = ? AND term_id = ?");
-        const insertStatement = db.prepare(
-          'INSERT INTO course_history (crn, term_id, "24h_timestamp", "7d_timestamp", "28d_timestamp", seat_24h, seat_7d, seat_28d, wait_24h, wait_7d, wait_28d) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
-        );
+      const getStatement = db.prepare("SELECT * FROM course_history WHERE crn = ? AND term_id = ?");
+      const insertStatement = db.prepare(
+        'INSERT INTO course_history (crn, term_id, "24h_timestamp", "7d_timestamp", "28d_timestamp", seat_24h, seat_7d, seat_28d, wait_24h, wait_7d, wait_28d) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
+      );
 
-        db.transaction(() => {
-          for (const course of data) {
-            const row = getStatement.get(course.courseReferenceNumber, course.term) as CourseHistory | undefined;
+      db.transaction(() => {
+        for (const course of data) {
+          const row = getStatement.get(course.courseReferenceNumber, course.term) as CourseHistory | undefined;
 
-            if (!row) {
-              const seat24h = new Array(entries24h - 1).fill(-1);
-              seat24h.push(course.seatsAvailable);
-              const seat7d = new Array(entries7d - 1).fill(-1);
-              seat7d.push(course.seatsAvailable);
-              const seat28d = new Array(entries28d - 1).fill(-1);
-              seat28d.push(course.seatsAvailable);
-              const wait24h = course.waitCapacity !== 0 ? new Array(entries24h - 1).fill(-1) : null;
-              if (wait24h) wait24h.push(course.waitCount);
-              const wait7d = course.waitCapacity !== 0 ? new Array(entries7d - 1).fill(-1) : null;
-              if (wait7d) wait7d.push(course.waitCount);
-              const wait28d = course.waitCapacity !== 0 ? new Array(entries28d - 1).fill(-1) : null;
-              if (wait28d) wait28d.push(course.waitCount);
+          if (!row) {
+            const seat24h = new Array(entries24h - 1).fill(-1);
+            seat24h.push(course.seatsAvailable);
+            const seat7d = new Array(entries7d - 1).fill(-1);
+            seat7d.push(course.seatsAvailable);
+            const seat28d = new Array(entries28d - 1).fill(-1);
+            seat28d.push(course.seatsAvailable);
+            const wait24h = course.waitCapacity !== 0 ? new Array(entries24h - 1).fill(-1) : null;
+            if (wait24h) wait24h.push(course.waitCount);
+            const wait7d = course.waitCapacity !== 0 ? new Array(entries7d - 1).fill(-1) : null;
+            if (wait7d) wait7d.push(course.waitCount);
+            const wait28d = course.waitCapacity !== 0 ? new Array(entries28d - 1).fill(-1) : null;
+            if (wait28d) wait28d.push(course.waitCount);
 
-              insertStatement.run(
-                course.courseReferenceNumber,
-                course.term,
-                currentTime,
-                currentTime,
-                currentTime,
-                JSON.stringify(seat24h),
-                JSON.stringify(seat7d),
-                JSON.stringify(seat28d),
-                wait24h ? JSON.stringify(wait24h) : null,
-                wait7d ? JSON.stringify(wait7d) : null,
-                wait28d ? JSON.stringify(wait28d) : null
-              );
-              continue;
-            }
-
-            if (currentTime - row["24h_timestamp"] >= interval24h) updateHistoryRow(row.seat_24h, course.seatsAvailable, course.courseReferenceNumber, course.term, "seat", "24h");
-            if (currentTime - row["7d_timestamp"] >= interval7d) updateHistoryRow(row.seat_7d, course.seatsAvailable, course.courseReferenceNumber, course.term, "seat", "7d");
-            if (currentTime - row["28d_timestamp"] >= interval28d) updateHistoryRow(row.seat_28d, course.seatsAvailable, course.courseReferenceNumber, course.term, "seat", "28d");
-            if (course.waitCapacity !== 0) {
-              if (currentTime - row["24h_timestamp"] >= interval24h) updateHistoryRow(row.wait_24h, course.waitCount, course.courseReferenceNumber, course.term, "wait", "24h");
-              if (currentTime - row["7d_timestamp"] >= interval7d) updateHistoryRow(row.wait_7d, course.waitCount, course.courseReferenceNumber, course.term, "wait", "7d");
-              if (currentTime - row["28d_timestamp"] >= interval28d) updateHistoryRow(row.wait_28d, course.waitCount, course.courseReferenceNumber, course.term, "wait", "28d");
-            }
+            insertStatement.run(
+              course.courseReferenceNumber,
+              course.term,
+              currentTime,
+              currentTime,
+              currentTime,
+              JSON.stringify(seat24h),
+              JSON.stringify(seat7d),
+              JSON.stringify(seat28d),
+              wait24h ? JSON.stringify(wait24h) : null,
+              wait7d ? JSON.stringify(wait7d) : null,
+              wait28d ? JSON.stringify(wait28d) : null
+            );
+            continue;
           }
 
-          const oldWatchers = db
-            .prepare('SELECT * FROM course_history WHERE "24h_timestamp" < ? OR "7d_timestamp" < ? OR "28d_timestamp" < ?')
-            .all(currentTime - interval24h, currentTime - interval7d, currentTime - interval28d) as CourseHistory[];
-
-          for (const row of oldWatchers) {
-            if (currentTime - row["24h_timestamp"] >= interval24h) updateHistoryRow(row.seat_24h, -1, row.crn, row.term_id, "seat", "24h");
-            if (currentTime - row["7d_timestamp"] >= interval7d) updateHistoryRow(row.seat_7d, -1, row.crn, row.term_id, "seat", "7d");
-            if (currentTime - row["28d_timestamp"] >= interval28d) updateHistoryRow(row.seat_28d, -1, row.crn, row.term_id, "seat", "28d");
-            if (row.wait_24h !== null && row.wait_28d !== null) {
-              if (currentTime - row["24h_timestamp"] >= interval24h) updateHistoryRow(row.wait_24h, -1, row.crn, row.term_id, "wait", "24h");
-              if (currentTime - row["7d_timestamp"] >= interval7d) updateHistoryRow(row.wait_7d, -1, row.crn, row.term_id, "wait", "7d");
-              if (currentTime - row["28d_timestamp"] >= interval28d) updateHistoryRow(row.wait_28d, -1, row.crn, row.term_id, "wait", "28d");
-            }
+          if (currentTime - row["24h_timestamp"] >= interval24h) updateHistoryRow(row.seat_24h, course.seatsAvailable, course.courseReferenceNumber, course.term, "seat", "24h");
+          if (currentTime - row["7d_timestamp"] >= interval7d) updateHistoryRow(row.seat_7d, course.seatsAvailable, course.courseReferenceNumber, course.term, "seat", "7d");
+          if (currentTime - row["28d_timestamp"] >= interval28d) updateHistoryRow(row.seat_28d, course.seatsAvailable, course.courseReferenceNumber, course.term, "seat", "28d");
+          if (course.waitCapacity !== 0) {
+            if (currentTime - row["24h_timestamp"] >= interval24h) updateHistoryRow(row.wait_24h, course.waitCount, course.courseReferenceNumber, course.term, "wait", "24h");
+            if (currentTime - row["7d_timestamp"] >= interval7d) updateHistoryRow(row.wait_7d, course.waitCount, course.courseReferenceNumber, course.term, "wait", "7d");
+            if (currentTime - row["28d_timestamp"] >= interval28d) updateHistoryRow(row.wait_28d, course.waitCount, course.courseReferenceNumber, course.term, "wait", "28d");
           }
+        }
 
-          Log.info(`Updated course history for ${data.length} classes for term ${term}`);
-        })();
+        const oldWatchers = db
+          .prepare('SELECT * FROM course_history WHERE "24h_timestamp" < ? OR "7d_timestamp" < ? OR "28d_timestamp" < ?')
+          .all(currentTime - interval24h, currentTime - interval7d, currentTime - interval28d) as CourseHistory[];
 
-        const classMap = new Map<string, NotificationData>(); // Map<CRN, NotificationData>
+        for (const row of oldWatchers) {
+          if (currentTime - row["24h_timestamp"] >= interval24h) updateHistoryRow(row.seat_24h, -1, row.crn, row.term_id, "seat", "24h");
+          if (currentTime - row["7d_timestamp"] >= interval7d) updateHistoryRow(row.seat_7d, -1, row.crn, row.term_id, "seat", "7d");
+          if (currentTime - row["28d_timestamp"] >= interval28d) updateHistoryRow(row.seat_28d, -1, row.crn, row.term_id, "seat", "28d");
+          if (row.wait_24h !== null && row.wait_28d !== null) {
+            if (currentTime - row["24h_timestamp"] >= interval24h) updateHistoryRow(row.wait_24h, -1, row.crn, row.term_id, "wait", "24h");
+            if (currentTime - row["7d_timestamp"] >= interval7d) updateHistoryRow(row.wait_7d, -1, row.crn, row.term_id, "wait", "7d");
+            if (currentTime - row["28d_timestamp"] >= interval28d) updateHistoryRow(row.wait_28d, -1, row.crn, row.term_id, "wait", "28d");
+          }
+        }
 
-        data.forEach((c) =>
-          classMap.set(c.courseReferenceNumber, {
-            courseReferenceNumber: c.courseReferenceNumber,
-            seatsAvailable: c.seatsAvailable,
-            sequenceNumber: c.sequenceNumber,
-            subject: c.subject,
-            courseNumber: c.courseNumber,
-            term: c.term,
-            waitCount: c.waitCount,
-            waitCapacity: c.waitCapacity
-          })
-        );
-        return classMap;
-      })
-    );
+        Log.info(`Updated course history for ${data.length} classes for term ${mostRecentTerm.termId}`);
+      })();
+
+      const classMap = new Map<string, NotificationData>(); // Map<CRN, NotificationData>
+
+      data.forEach((c) =>
+        classMap.set(c.courseReferenceNumber, {
+          courseReferenceNumber: c.courseReferenceNumber,
+          seatsAvailable: c.seatsAvailable,
+          sequenceNumber: c.sequenceNumber,
+          subject: c.subject,
+          courseNumber: c.courseNumber,
+          term: c.term,
+          waitCount: c.waitCount,
+          waitCapacity: c.waitCapacity
+        })
+      );
+      return classMap;
+    })();
 
     const notificationsToSend = new Map<string, NotificationData[]>();
     const updateLastNotified = db.transaction((crn: string, ownerUuid: string, term: string) =>
@@ -183,8 +180,7 @@ export function watchClassesLoop(): void {
       if (!watcher.is_active) continue;
       if (watcher.last_notified && timeNow() - watcher.last_notified < ENV.NOTIFICATION_COOLDOWN) continue;
 
-      const termIndex = terms.findIndex((term) => term === watcher.term_id);
-      const classData = classes[termIndex]?.get(watcher.crn);
+      const classData = classes?.get(watcher.crn);
 
       if (
         classData &&
@@ -195,7 +191,7 @@ export function watchClassesLoop(): void {
       ) {
         if (!notificationsToSend.has(watcher.owner_uuid)) notificationsToSend.set(watcher.owner_uuid, []);
         updateLastNotified(watcher.crn, watcher.owner_uuid, watcher.term_id);
-        notificationsToSend.get(watcher.owner_uuid)?.push({ ...classes[termIndex].get(watcher.crn), notifyWhen: watcher.notify_when, notifyWhenValue: watcher.notify_when_value } as NotificationData);
+        notificationsToSend.get(watcher.owner_uuid)?.push({ ...classes.get(watcher.crn), notifyWhen: watcher.notify_when, notifyWhenValue: watcher.notify_when_value } as NotificationData);
       }
     }
 

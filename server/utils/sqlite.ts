@@ -187,7 +187,10 @@ export async function refreshConstantData() {
     for (const attribute of specialAttributes) insertAttributeStatement.run(attribute.code, attribute.description, 1);
   })();
 
-  ClientManager.setClients(allTerms.map((term) => term.termId));
+  ClientManager.setClients(
+    primaryTerm.termId,
+    allTerms.map((term) => term.termId)
+  );
   ClientManager.terms = allTerms;
   ClientManager.subjects = subjects.map((subject) => ({ code: subject.code, name: subject.description }));
   ClientManager.attributes = attributes.map((attribute) => ({ code: attribute.code, name: attribute.description, isSpecial: false }));
