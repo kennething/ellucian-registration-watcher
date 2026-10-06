@@ -107,6 +107,9 @@ export class ClientManager {
     Log.debug("internal client request");
     return ClientManager.clients.internal!.enqueue(request);
   }
+  static async refreshInternalClient(): Promise<void> {
+    ClientManager.clients.internal?.refreshCookie();
+  }
 
   /** @returns a promise to await containing the request, and the client ID of the client used */
   static requestExternalClient<T extends AxiosResponse>(termId: string, request: (client: AxiosInstance) => Promise<T>): [Promise<T>, clientId: symbol] {
