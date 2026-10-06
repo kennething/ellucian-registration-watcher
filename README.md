@@ -82,7 +82,7 @@ commands.
 1. Register the commands:
 
    ```sh
-   bun deploy
+   bun run deploy
    ```
 
 You only need to register commands if you change the command's data. Changing
@@ -94,7 +94,7 @@ re-registering.
 2. Unregister the commands:
 
    ```sh
-   bun undeploy
+   bun run undeploy
    ```
 
 # Environment Variables
