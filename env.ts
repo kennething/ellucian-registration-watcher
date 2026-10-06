@@ -59,7 +59,7 @@ const ENV = z
     /** You probably don't have this but the URL to the math course schedule for your school, don't append `/`. */
     MATH_SCHEDULE_URL: UrlSchema.optional(),
     /**
-     * Maximum number of concurrent request clients to use for fetching data from the Banner API.
+     * Maximum number of concurrent request clients per term to use for fetching data from the Banner API.
      *
      * Clients cannot be used concurrently so requests are queued if all are busy.
      * @default 10
