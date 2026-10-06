@@ -82,8 +82,8 @@ export function watchClassesLoop(): void {
 
     const [watchers, error] = tryCatch<
       { owner_uuid: string; last_notified: number | null; is_active: number; term_id: string; crn: string; notify_when: NotificationType; notify_when_value: number }[]
-    >(() => db.prepare(`SELECT owner_uuid, last_notified, is_active, term_id, crn, notify_when, notify_when_value FROM watchers WHERE term_id = ?`).all(mostRecentTerm) as any);
-    if (error) return;
+    >(() => db.prepare(`SELECT owner_uuid, last_notified, is_active, term_id, crn, notify_when, notify_when_value FROM watchers WHERE term_id = ?`).all(mostRecentTerm.termId) as any);
+    if (error) return Log.error(error);
 
     const terms = Array.from(new Set(watchers.map((watcher) => watcher.term_id)));
     const classes = await Promise.all(
