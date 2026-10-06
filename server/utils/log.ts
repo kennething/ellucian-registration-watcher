@@ -20,8 +20,12 @@ export class Log {
   private static formatMessage(message: unknown[]): string {
     return message
       .map((part) => {
-        if (typeof part === "object") return String(part);
-        return part;
+        if (typeof part !== "object") return part;
+
+        const proto = Object.getPrototypeOf(part);
+        if (proto !== null && proto !== Object.prototype && /^class\s/.test(Function.prototype.toString.call(proto.constructor))) return String(part);
+
+        return JSON.stringify(part);
       })
       .join(" ");
   }

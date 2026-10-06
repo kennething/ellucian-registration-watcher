@@ -201,6 +201,7 @@ export async function refreshConstantData() {
   ClientManager.attributes.push(...specialAttributes.map((attribute) => ({ code: attribute.code, name: attribute.description, isSpecial: true })));
   ClientManager.attributes.sort((a, b) => a.name.localeCompare(b.name));
   ClientManager.locations = db.prepare("SELECT DISTINCT short, long FROM locations").all() as { short: string; long: string }[];
+  Log.debug("locations loaded =", ClientManager.locations.length);
 
   Log.info(`Refreshed constant data: ${allTerms.length} terms, ${subjects.length} subjects, ${attributes.length} attributes, ${specialAttributes.length} special attributes`);
 }
