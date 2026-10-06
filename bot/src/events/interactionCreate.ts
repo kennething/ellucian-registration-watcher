@@ -1,8 +1,8 @@
-import { ActionRow, AttachmentBuilder, ComponentType, Events, InteractionReplyOptions, MessageFlags, StringSelectMenuComponent } from "discord.js";
+import { ActionRow, AttachmentBuilder, ComponentType, ContainerBuilder, Events, InteractionReplyOptions, MessageFlags, StringSelectMenuComponent } from "discord.js";
 import { getMeetingDaysString, getMeetingTimeString, getTermString } from "../../../server/utils/functions.ts";
+import { generateFullResponse, generateResponse, getClassData } from "../commands/search.ts";
 import { generateScheduleActionRow, generateScheduleImage } from "../commands/schedule.ts";
 import { searchClasses, tryCatch } from "../../../server/utils/fetch.ts";
-import { generateResponse, getClassData } from "../commands/search.ts";
 import { ErrorCodes, getErrorResponse } from "../util/responses.ts";
 import { ClassData } from "../../../server/utils/types.ts";
 import { db } from "../../../server/utils/sqlite.ts";
@@ -33,31 +33,54 @@ export default {
     } // isAutocomplete
     else if (interaction.isButton()) {
       await interaction.deferUpdate();
+      Log.debug(interaction.customId);
 
       const [command, ...buttonInfo] = interaction.customId.split(":") as ["search" | "schedule", ...string[]];
 
       if (command === "search") {
-        const [type, paginationId] = buttonInfo as ["first" | "prev" | "next" | "last", paginationId: string];
+        const [type, ...moreButtonInfo] = buttonInfo as ["page" | "moreinfo", ...string[]];
 
-        const state = paginationState.get(paginationId);
-        if (!state)
-          return void interaction.followUp({
-            ...(getErrorResponse(ErrorCodes.SEARCH_EXPIRED, "This search has expired.") as InteractionReplyOptions),
+        if (type === "page") {
+          const [type, paginationId] = moreButtonInfo as ["first" | "prev" | "next" | "last", paginationId: string];
+
+          const state = paginationState.get(paginationId);
+          if (!state)
+            return void interaction.followUp({
+              ...(getErrorResponse(ErrorCodes.SEARCH_EXPIRED, "This search has expired.") as InteractionReplyOptions),
+              flags: [MessageFlags.Ephemeral, MessageFlags.IsComponentsV2]
+            });
+          if (state.userId !== interaction.user.id) return;
+
+          const maxPages = Math.ceil(state.total / ENV.SEARCH_PAGE_SIZE);
+
+          if (type === "first") state.page = 1;
+          else if (type === "prev") state.page = Math.max(1, state.page - 1);
+          else if (type === "next") state.page = Math.min(maxPages, state.page + 1);
+          else if (type === "last") state.page = maxPages;
+
+          const offset = (state.page - 1) * ENV.SEARCH_PAGE_SIZE;
+          const [parsedClasses, total] = await getClassData(state.params.term, state.params, offset);
+
+          await interaction.editReply(await generateResponse(state.params.term, state.page, total, parsedClasses, paginationId));
+        } // page
+        else if (type === "moreinfo") {
+          const [term, crn] = moreButtonInfo as [string, string];
+
+          const course = (await getClassData(term, { term, crn: [crn] }, 0))[0][0];
+          if (!course)
+            return void interaction.followUp({
+              ...(getErrorResponse(ErrorCodes.SEARCH_NO_CLASSES, "couldnt fetch the class womp womp") as InteractionReplyOptions),
+              flags: [MessageFlags.Ephemeral, MessageFlags.IsComponentsV2]
+            });
+
+          const response = await generateFullResponse(term, course);
+          if (!(response instanceof ContainerBuilder)) return void interaction.followUp({ ...(response as InteractionReplyOptions), flags: [MessageFlags.Ephemeral, MessageFlags.IsComponentsV2] });
+
+          await interaction.followUp({
+            components: [response],
             flags: [MessageFlags.Ephemeral, MessageFlags.IsComponentsV2]
           });
-        if (state.userId !== interaction.user.id) return;
-
-        const maxPages = Math.ceil(state.total / ENV.SEARCH_PAGE_SIZE);
-
-        if (type === "first") state.page = 1;
-        else if (type === "prev") state.page = Math.max(1, state.page - 1);
-        else if (type === "next") state.page = Math.min(maxPages, state.page + 1);
-        else if (type === "last") state.page = maxPages;
-
-        const offset = (state.page - 1) * ENV.SEARCH_PAGE_SIZE;
-        const [parsedClasses, total] = await getClassData(state.params.term, state.params, offset);
-
-        await interaction.editReply(await generateResponse(state.params.term, state.page, total, parsedClasses, paginationId));
+        } // moreinfo
       } // search
       else if (command === "schedule") {
         const [type, ...moreButtonInfo] = buttonInfo as ["refresh" | "list", ...string[]];
