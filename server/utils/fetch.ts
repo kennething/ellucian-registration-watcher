@@ -173,9 +173,13 @@ export async function searchClasses(
   const data = (await request).data as { data: ClassData[] | null; totalCount: number };
 
   if (data.data === null && !isRetry && !useInternalClient) {
+    Log.debug("external client failed, retrying");
     await ClientManager.refreshExternalClient(id!);
     return await searchClasses(term, params, useInternalClient, offset, limit, true, classes);
-  } else if (data.data === null) return [classes, data.totalCount];
+  } else if (data.data === null) {
+    Log.debug("client failed");
+    return [classes, data.totalCount];
+  }
 
   const dataData = data.data.map((c) => {
     const base = { ...c, courseTitle: decodeHTML(c.courseTitle) };
