@@ -1,5 +1,4 @@
 import express, { Router, Express } from "express";
-import * as events from "./events/index";
 import cookieParser from "cookie-parser";
 import { Log } from "./utils/log";
 import ENV from "../env";
@@ -41,10 +40,4 @@ export async function startServer() {
   await registerRoutes(app, routesDir);
 
   app.listen(ENV.PORT, "0.0.0.0", () => Log.info(`Server running on port ${ENV.PORT}`));
-
-  if (ENV.MATH_SCHEDULE_URL) events.fetchMathScheduleLoop();
-  if (ENV.RMP_SCHOOL_ID) events.fetchProfessorsLoop();
-  events.fetchSearchDataLoop();
-  events.purgeOutdatedLoop();
-  events.watchClassesLoop();
 }
