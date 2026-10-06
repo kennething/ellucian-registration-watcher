@@ -44,8 +44,7 @@ export async function startServer() {
 
   if (ENV.MATH_SCHEDULE_URL) events.fetchMathScheduleLoop();
   if (ENV.RMP_SCHOOL_ID) events.fetchProfessorsLoop();
-  events.purgeOutdatedLoop();
   events.fetchSearchDataLoop();
+  events.purgeOutdatedLoop();
   events.watchClassesLoop();
-  events.watchNewTermsLoop();
 }

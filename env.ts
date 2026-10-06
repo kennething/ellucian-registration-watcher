@@ -147,20 +147,6 @@ const ENV = z
      */
     SEARCH_FETCH_OFFSET: Integer.nonnegative().default(360),
 
-    // * New Term Detection
-    /**
-     * Interval, in seconds, to check for new terms.
-     *
-     * Set to `0` to disable new term detection. Set to `-1` to run once, immediately.
-     * @default 604800 // 7 days
-     */
-    NEW_TERMS_INTERVAL: Integer.min(-1).default(604800),
-    /**
-     * Offset, in seconds, to wait before checking for new terms.
-     * @default 64800 (18 hours)
-     */
-    NEW_TERMS_OFFSET: Integer.nonnegative().default(64800),
-
     // * Purging
     /**
      * Interval, in seconds, to search for outdated watchers and tables.

@@ -1,9 +1,9 @@
+import { db, refreshConstantData } from "../utils/sqlite";
 import { ClientManager } from "../utils/clientManager";
 import { waitForInterval } from "../utils/functions";
 import { botClient } from "../../bot/src/common";
 import { tryCatch } from "../utils/fetch";
 import { timeNow } from "../utils/time";
-import { db } from "../utils/sqlite";
 import { Log } from "../utils/log";
 import ENV from "../../env";
 import path from "path";
@@ -73,5 +73,7 @@ export function purgeOutdatedLoop(): void {
     }
 
     Log.info(`Purging ${outdatedTerms.join(", ")} at ${new Date(timeNow() + ENV.WATCHER_PURGE_NOTICE).toLocaleString()}`);
+
+    refreshConstantData();
   });
 }
