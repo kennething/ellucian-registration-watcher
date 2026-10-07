@@ -152,10 +152,11 @@ re-registering.
 
 ### RateMyProfessors Scraping
 
-| Variable             | Description                                                                                                | Default           | Required |
-| -------------------- | ---------------------------------------------------------------------------------------------------------- | ----------------- | -------- |
-| `RMP_FETCH_INTERVAL` | Interval, in seconds, to fetch new RateMyProfessors data. Set to `0` to disable RateMyProfessors fetching. | `604800` (7 days) |          |
-| `RMP_FETCH_OFFSET`   | Offset, in seconds, to wait before fetching new Rate My Professors data.                                   | `300` (5 minutes) |          |
+| Variable             | Description                                                                                                                                                                                          | Default           | Required |
+| -------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------- | -------- |
+| `RMP_FETCH_INTERVAL` | Interval, in seconds, to fetch new RateMyProfessors data. Set to `0` to disable RateMyProfessors fetching.                                                                                           | `604800` (7 days) |          |
+| `RMP_FETCH_OFFSET`   | Offset, in seconds, to wait before fetching new Rate My Professors data.                                                                                                                             | `300` (5 minutes) |          |
+| `MATCH_THRESHOLD`    | Threshold for matching professor names from Rate My Professors to professor names from Banner. This is a value between `0` and `1`, where `0` requires a perfect match and `1` permisses everything. | `0.3`             |          |
 
 ### Other
 

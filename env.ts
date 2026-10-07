@@ -179,6 +179,13 @@ const ENV = z
      * @default 300 // 5 minutes
      */
     RMP_FETCH_OFFSET: Integer.nonnegative().default(300),
+    /**
+     * Threshold for matching professor names from Rate My Professors to professor names from Banner.
+     *
+     * This is a value between `0` and `1`, where `0` requires a perfect match and `1` permisses everything.
+     * @default 0.3
+     */
+    MATCH_THRESHOLD: z.number().min(0).max(1).default(0.3),
 
     // * Other
     /**

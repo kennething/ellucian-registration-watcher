@@ -35,7 +35,7 @@ export function fetchProfessorsLoop(): void {
         .join(" ")
     }));
 
-    const searcher = new Fuse(rmpProfessors, { useTokenSearch: true, tokenMatch: "all", keys: ["name"], threshold: 0.3, shouldSort: true, ignoreDiacritics: true });
+    const searcher = new Fuse(rmpProfessors, { useTokenSearch: true, tokenMatch: "all", keys: ["name"], threshold: ENV.MATCH_THRESHOLD, shouldSort: true, ignoreDiacritics: true });
 
     const finalProfessors = bingProfessors.map((professor) => {
       const result = searcher.search(professor.description);
@@ -61,6 +61,6 @@ export function fetchProfessorsLoop(): void {
       for (const professor of finalProfessors) statement.run(professor);
     })();
 
-    Log.info(`Fetched ${finalProfessors.length} professors from RMP and Banner`);
+    Log.info(`Fetched ${finalProfessors.length} professors from RMP, matched ${finalProfessors.filter((p) => p.rmp_id).length} professors`);
   });
 }
