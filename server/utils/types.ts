@@ -17,13 +17,17 @@ export enum NotificationType {
 
 export const ClassSearchSchema = z
   .object({
-    term: z.string(),
-    crn: z.array(z.string()),
-    subject: z.string(), // "CS" - subject code
+    term: z.string().max(10),
+    crn: z.array(z.string().max(10)),
+    /** "CS" - subject code */
+    subject: z.string().max(10),
     // too much work // // subject: z.array(z.string()), // "CS" - subject codes
-    courseNumber: z.string(), // "220"
-    courseTitle: z.string(),
-    meetingDays: z.array(z.boolean()).length(7), // bool for each day of the week, starting on sunday; sunday+monday = [true, true, ...false]
+    /** "220" */
+    courseNumber: z.string().max(10),
+    courseTitle: z.string().max(200),
+    /** bool for each day of the week, starting on sunday; sunday+monday = [true, true, ...false] */
+    meetingDays: z.array(z.boolean()).length(7),
+    /** [startHour: number, startMinute: number, startAmpm: "AM" | "PM", endHour: number, endMinute: number, endAmpm: "AM" | "PM"] */
     time: z.tuple([
       z.number().int().min(1).max(12).nullable(),
       z.number().int().min(0).max(59).nullable(),
@@ -31,16 +35,22 @@ export const ClassSearchSchema = z
       z.number().int().min(1).max(12).nullable(),
       z.number().int().min(0).max(59).nullable(),
       z.enum(["AM", "PM"])
-    ]), // [startHour: number, startMinute: number, startAmpm: "AM" | "PM", endHour: number, endMinute: number, endAmpm: "AM" | "PM"]
-    attribute: z.string(), // attribute code
+    ]),
+    /** attribute code */
+    attribute: z.string().max(10),
     // too much work // // attribute: z.array(z.string()), // attribute codes
     // too much work // // professor: z.array(z.string()), // instructor codes
-    creditHours: z.tuple([z.number().int().min(0).max(4), z.number().int().min(0).max(4)]), // [low: number, high: number]; 1-4
+    /** [low: number, high: number]; 1-4 */
+    creditHours: z.tuple([z.number().int().min(0).max(4), z.number().int().min(0).max(4)]),
     // too much work // // openSections: z.boolean(),
     // too much work // // waitlistOpen: z.boolean(),
-    professorRating: z.tuple([z.number().min(0).max(5), z.number().min(0).max(5)]), // [low: number, high: number]; 0-5
+    /** [low: number, high: number]; 0-5 */
+    professorRating: z.tuple([z.number().min(0).max(5), z.number().min(0).max(5)]),
     strictRatingSearch: z.boolean(),
-    location: z.string() // building code
+    /** building code */
+    location: z.string().max(10),
+    /** schedule uuid */
+    avoidConflicts: z.uuidv7()
   })
   .partial()
   .required({ term: true });

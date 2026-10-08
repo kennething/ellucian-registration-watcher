@@ -252,16 +252,16 @@ export default {
     integration_types: [ApplicationIntegrationType.UserInstall],
     options: [
       {
+        name: "public",
+        description: "Publicly share this schedule. If not provided, only you will be able to see it.",
+        type: ApplicationCommandOptionType.Boolean
+      },
+      {
         name: "name",
         description: "The schedule to view. If not provided, your first schedule will be used.",
         max_length: 100,
         type: ApplicationCommandOptionType.String,
         autocomplete: true
-      },
-      {
-        name: "share",
-        description: "Show other people your schedule!",
-        type: ApplicationCommandOptionType.Boolean
       },
       {
         name: "theme",
@@ -287,7 +287,7 @@ export default {
     // @ts-expect-error
     const options = interaction.options as CommandInteractionOptionResolver;
 
-    await interaction.deferReply({ flags: options.getBoolean("share") ? undefined : MessageFlags.Ephemeral });
+    await interaction.deferReply({ flags: options.getBoolean("public") ? undefined : MessageFlags.Ephemeral });
 
     const [user, error] = tryCatch<{ uuid: string }>(() => db.prepare("SELECT uuid FROM users WHERE discord_id = ?").get(interaction.user.id) as any);
     if (!user) return void interaction.editReply(getSignupResponse());
@@ -295,7 +295,7 @@ export default {
 
     const scheduleUuid = options.getString("name");
     const theme = (options.getString("theme") as keyof typeof themes) ?? "dark";
-    const isShared = options.getBoolean("share") ?? false;
+    const isShared = options.getBoolean("public") ?? false;
     const [chosenScheduleUuid, text, attachment] = await generateScheduleImage(scheduleUuid, theme, isShared, user.uuid);
     if (!(attachment instanceof AttachmentBuilder)) return void interaction.editReply(attachment as InteractionEditReplyOptions);
 

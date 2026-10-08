@@ -40,6 +40,7 @@ export function fetchSearchDataLoop(): void {
     end_time       TEXT
 )`
         ).run();
+        db.prepare(`CREATE INDEX IF NOT EXISTS idx_${term.termId}_search_ordering ON "${term.termId}_search_db"(subject, course_number, section)`).run();
         db.prepare(
           `CREATE TABLE "${term.termId}_search_db_attributes" (
           crn TEXT NOT NULL, 
@@ -47,7 +48,7 @@ export function fetchSearchDataLoop(): void {
           PRIMARY KEY (crn, attribute)
         )`
         ).run();
-        db.prepare(`CREATE INDEX idx_${term.termId}_search_db_attributes_attribute ON "${term.termId}_search_db_attributes"(attribute)`).run();
+        db.prepare(`CREATE INDEX IF NOT EXISTS idx_${term.termId}_search_db_attributes_attribute ON "${term.termId}_search_db_attributes"(attribute)`).run();
 
         const insertStatement = db.prepare(
           `INSERT INTO "${term.termId}_search_db" (crn, subject, course_number, section, course_title, credit_hours, professor_name, location, sunday, monday, tuesday, wednesday, thursday, friday, saturday, start_time, end_time) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`

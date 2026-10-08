@@ -113,6 +113,31 @@ export async function searchClassDb(term: string, params: Partial<ClassSearchPar
   )`,
       [Math.round((params.professorRating?.[0] ?? 0) * 100) / 100, Math.round((params.professorRating?.[1] ?? 5) * 100) / 100]
     ]);
+  if (params.avoidConflicts)
+    queries.push([
+      `NOT EXISTS (
+    SELECT 1
+    FROM schedule_crns sc
+    JOIN "${tableName}" s ON sc.crn = s.crn
+    WHERE sc.uuid = ?
+      AND s.start_time IS NOT NULL
+      AND s.end_time IS NOT NULL
+      AND "${tableName}".start_time IS NOT NULL
+      AND "${tableName}".end_time IS NOT NULL
+      AND (
+        ("${tableName}".sunday = 1 AND s.sunday = 1) OR
+        ("${tableName}".monday = 1 AND s.monday = 1) OR
+        ("${tableName}".tuesday = 1 AND s.tuesday = 1) OR
+        ("${tableName}".wednesday = 1 AND s.wednesday = 1) OR
+        ("${tableName}".thursday = 1 AND s.thursday = 1) OR
+        ("${tableName}".friday = 1 AND s.friday = 1) OR
+        ("${tableName}".saturday = 1 AND s.saturday = 1)
+      )
+      AND "${tableName}".start_time < s.end_time
+      AND "${tableName}".end_time > s.start_time
+  )`,
+      [params.avoidConflicts]
+    ]);
 
   const query = `SELECT crn, COUNT(*) OVER () as total FROM "${tableName}" ${queries.length ? `WHERE ${queries.map((query) => query[0]).join(" AND ")}` : ""} ORDER BY subject, course_number, section LIMIT ${limit} OFFSET ${offset}`;
   const [data, error] = tryCatch<{ crn: string; total: number }[]>(() => db.prepare(query).all(...queries.flatMap((query) => query[1])) as any);
@@ -127,7 +152,7 @@ export async function searchClassDb(term: string, params: Partial<ClassSearchPar
 }
 
 /**
- * @param params !! does not handle `professorRating`
+ * @param params !! does not handle `professorRating` or `avoidConflicts`
  * @param limit if set to 500, will recursively fetch classes
  */
 export async function searchClasses(

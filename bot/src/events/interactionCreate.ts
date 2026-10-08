@@ -3,9 +3,11 @@ import { getMeetingDaysString, getMeetingTimeString, getTermString } from "../..
 import { generateFullResponse, generateResponse, getClassData } from "../commands/search.ts";
 import { generateScheduleActionRow, generateScheduleImage } from "../commands/schedule.ts";
 import { searchClasses, tryCatch } from "../../../server/utils/fetch.ts";
+import { ClientManager } from "../../../server/utils/clientManager.ts";
 import { ErrorCodes, getErrorResponse } from "../util/responses.ts";
 import { ClassData } from "../../../server/utils/types.ts";
 import { db } from "../../../server/utils/sqlite.ts";
+import { Term } from "../../../server/utils/term.ts";
 import { Log } from "../../../server/utils/log.ts";
 import { themes } from "../util/scheduleThemes.ts";
 import { loadCommands } from "../util/loaders.ts";
@@ -110,7 +112,7 @@ export default {
 
           interaction.followUp({
             flags: MessageFlags.Ephemeral,
-            content: `## ${getTermString(schedule.term_id)} - ${classes.reduce((acc, course) => acc + course.meetingsFaculty[0]?.meetingTime.creditHourSession || 0, 0)} credits
+            content: `## ${getTermString(schedule.term_id)}${(ClientManager.terms.find((term: Term) => term.termId === schedule.term_id) as Term).isEarly ? " (Early)" : ""} - ${classes.reduce((acc, course) => acc + course.meetingsFaculty[0]?.meetingTime.creditHourSession || 0, 0)} credits
 
 ${classes
   .map((course) => {
@@ -119,7 +121,7 @@ ${classes
     const meetingDays = unfilteredMeetingDays.every((day) => day === undefined) ? undefined : unfilteredMeetingDays;
     const meetingTime = [meeting.beginTime, meeting?.endTime];
 
-    return `-# - **${course.subject} ${course.courseNumber} - ${course.sequenceNumber}** | ${getMeetingDaysString(meetingDays)} ${getMeetingTimeString(meetingTime)} | ${course.meetingsFaculty[0]?.meetingTime.building} ${course.meetingsFaculty[0]?.meetingTime.room}`;
+    return `-# - **${course.subject} ${course.courseNumber} - ${course.sequenceNumber}** | ${getMeetingDaysString(meetingDays)} ${getMeetingTimeString(meetingTime)} | ${course.meetingsFaculty[0]?.meetingTime.building ?? ""} ${course.meetingsFaculty[0]?.meetingTime.room ?? ""}`;
   })
   .join("\n")}`
           });

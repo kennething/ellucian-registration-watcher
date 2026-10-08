@@ -5,7 +5,6 @@ import { CookieJar } from "tough-cookie";
 import { Term, TermId } from "./term";
 import Database from "better-sqlite3";
 import { ClassData } from "./types";
-import { tryCatch } from "./fetch";
 import ENV from "../../env";
 import { Log } from "./log";
 import axios from "axios";
@@ -91,9 +90,15 @@ CREATE TABLE IF NOT EXISTS schedules (
                       REFERENCES users (uuid) ON DELETE CASCADE,
   created_at INTEGER NOT NULL,
   name       TEXT    NOT NULL,
-  term_id    TEXT    NOT NULL,
-  crns       TEXT               -- json array
+  term_id    TEXT    NOT NULL
 );
+CREATE TABLE IF NOT EXISTS schedule_crns (
+    uuid TEXT NOT NULL
+              REFERENCES schedules (uuid) ON DELETE CASCADE,
+    crn  TEXT NOT NULL,
+    PRIMARY KEY (uuid, crn)
+);
+CREATE INDEX IF NOT EXISTS idx_schedule_crns_crn ON schedule_crns(crn);
 
 CREATE TABLE IF NOT EXISTS users (
   uuid       TEXT    NOT NULL

@@ -13,7 +13,7 @@ export function fetchProfessorsLoop(): void {
 
     const rmpProfessors = (await getRMPData()).map((professor) => ({
       ...professor,
-      name: professor.name
+      sortedName: professor.name
         .replaceAll(/,|\.|\-/g, " ")
         .split(" ")
         .filter((w) => w.length > 1)
@@ -27,7 +27,7 @@ export function fetchProfessorsLoop(): void {
       )
     ).data.map((professor) => ({
       ...professor,
-      description: professor.description
+      sortedName: professor.description
         .replaceAll(/,|\.|\-|\([A-Za-z]{1,3}\/[A-Za-z]{1,3}\)/g, " ")
         .split(" ")
         .filter((w) => w.length > 1)
@@ -35,10 +35,10 @@ export function fetchProfessorsLoop(): void {
         .join(" ")
     }));
 
-    const searcher = new Fuse(rmpProfessors, { useTokenSearch: true, tokenMatch: "all", keys: ["name"], threshold: ENV.MATCH_THRESHOLD, shouldSort: true, ignoreDiacritics: true });
+    const searcher = new Fuse(rmpProfessors, { useTokenSearch: true, tokenMatch: "all", keys: ["sortedName"], threshold: ENV.MATCH_THRESHOLD, shouldSort: true, ignoreDiacritics: true });
 
     const finalProfessors = bingProfessors.map((professor) => {
-      const result = searcher.search(professor.description);
+      const result = searcher.search(professor.sortedName);
       const match = result[0]?.item;
 
       return {
