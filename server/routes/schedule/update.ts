@@ -19,10 +19,18 @@ router.patch("/", authController, async (req, res) => {
   const uniqueCrns = Array.from(new Set(schedule.crns));
   if (uniqueCrns.length !== schedule.crns.length) return res.status(400).json({ error: "Duplicate CRNs in schedule" });
 
-  const [, error2] = tryCatch(() =>
-    db.prepare(`UPDATE schedules SET name = ?, crns = ? WHERE uuid = ? AND owner_uuid = ?`).run(schedule.name, JSON.stringify(uniqueCrns), schedule.uuid, req.user.uuid)
-  );
+  const [, error2] = tryCatch(() => db.prepare(`UPDATE schedules SET name = ? WHERE uuid = ? AND owner_uuid = ?`).run(schedule.name, schedule.uuid, req.user.uuid));
   if (error2) return res.sendStatus(500);
+
+  const [, error3] = tryCatch(() =>
+    db.transaction(() => {
+      db.prepare("DELETE FROM schedule_crns WHERE uuid = ?").run(schedule.uuid);
+      if (uniqueCrns.length === 0) return;
+      const insert = db.prepare("INSERT INTO schedule_crns (uuid, crn) VALUES (?, ?)");
+      for (const crn of uniqueCrns) insert.run(schedule.uuid, crn);
+    })()
+  );
+  if (error3) return res.sendStatus(500);
 
   res.sendStatus(200);
 });

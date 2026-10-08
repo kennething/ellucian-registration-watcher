@@ -57,10 +57,9 @@ router.post("/", authController, async (req, res) => {
         watcher.notifyWhen,
         watcher.notifyWhenValue
       );
+      db.prepare("INSERT INTO schedule_crns (uuid, crn) VALUES (?, ?)").run(schedule.uuid, watcher.crn);
     }
   })();
-
-  db.prepare(`UPDATE schedules SET crns = ? WHERE uuid = ? AND owner_uuid = ?`).run(JSON.stringify(uniqueCrns), schedule.uuid, req.user.uuid);
 
   res.status(200).json(
     watchers.map((watcher) => ({

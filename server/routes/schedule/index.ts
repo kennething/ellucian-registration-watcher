@@ -11,7 +11,21 @@ router.get("/:uuid", async (req, res) => {
   if (!uuid || uuid.length !== 36) return res.status(400).json({ error: "Invalid schedule UUID" });
 
   const [schedule, error] = tryCatch<{ uuid: string; owner_uuid: string; term_id: string; name: string; crns: string } | undefined>(
-    () => db.prepare("SELECT uuid, owner_uuid, term_id, name, crns FROM schedules WHERE uuid = ?").get(uuid) as any
+    () =>
+      db
+        .prepare(
+          `SELECT 
+        s.uuid,
+        s.owner_uuid,
+        s.term_id,
+        s.name,
+        COALESCE(json_group_array(sc.crn) FILTER (WHERE sc.crn IS NOT NULL), '[]') AS crns
+    FROM schedules s
+    LEFT JOIN schedule_crns sc ON s.uuid = sc.uuid
+    WHERE s.uuid = ?
+    GROUP BY s.uuid`
+        )
+        .get(uuid) as any
   );
   if (error) return res.sendStatus(500);
   if (!schedule) return res.status(404).json({ error: "Schedule not found" });

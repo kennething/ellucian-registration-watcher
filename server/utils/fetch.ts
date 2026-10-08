@@ -139,16 +139,23 @@ export async function searchClassDb(term: string, params: Partial<ClassSearchPar
       [params.avoidConflicts]
     ]);
 
-  const query = `SELECT crn, COUNT(*) OVER () as total FROM "${tableName}" ${queries.length ? `WHERE ${queries.map((query) => query[0]).join(" AND ")}` : ""} ORDER BY subject, course_number, section LIMIT ${limit} OFFSET ${offset}`;
-  const [data, error] = tryCatch<{ crn: string; total: number }[]>(() => db.prepare(query).all(...queries.flatMap((query) => query[1])) as any);
+  const crnQuery = `SELECT crn FROM "${tableName}" ${queries.length ? `WHERE ${queries.map((query) => query[0]).join(" AND ")}` : ""} ORDER BY subject, course_number, section LIMIT ${limit} OFFSET ${offset}`;
+  const totalQuery = `SELECT COUNT(*) as total FROM "${tableName}" ${queries.length ? `WHERE ${queries.map((query) => query[0]).join(" AND ")}` : ""}`;
+  const [data, error] = tryCatch<{ crn: string }[]>(() => db.prepare(crnQuery).all(...queries.flatMap((query) => query[1])) as any);
   if (error) {
     Log.error(error);
     return [[], 0];
   }
   if (data.length === 0) return [[], 0];
 
+  const [total, error2] = tryCatch<{ total: number }>(() => db.prepare(totalQuery).get(...queries.flatMap((query) => query[1])) as any);
+  if (error2) {
+    Log.error(error2);
+    return [[], 0];
+  }
+
   const [classes] = await searchClasses(term, { crn: data.map((row) => row.crn) });
-  return [classes, data[0].total || 0];
+  return [classes, total.total || 0];
 }
 
 /**

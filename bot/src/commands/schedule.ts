@@ -272,16 +272,19 @@ export default {
     ]
   },
   async autocomplete(interaction) {
-    const [user, error] = tryCatch<{ uuid: string }>(() => db.prepare("SELECT uuid FROM users WHERE discord_id = ?").get(interaction.user.id) as any);
-    if (!user || error) return void interaction.respond([]);
+    const focusedValue = interaction.options.getFocused(true);
 
-    const [schedules, error2] = tryCatch<{ uuid: string; name: string; term_id: string }[]>(() => db.prepare("SELECT uuid, name, term_id FROM schedules WHERE owner_uuid = ?").all(user.uuid) as any);
-    if (error2) return void interaction.respond([]);
-
-    const focusedOption = interaction.options.getFocused(true);
-    const filteredSchedules = schedules.filter((schedule) => schedule.name.toLowerCase().includes(focusedOption.value.toLowerCase()));
-    const choices = filteredSchedules.map((schedule) => ({ name: `${schedule.name} (${getTermString(schedule.term_id)})`, value: schedule.uuid }));
-    interaction.respond(choices.slice(0, 25));
+    const schedules = db.prepare("SELECT uuid, name, term_id FROM schedules WHERE owner_uuid = (SELECT uuid FROM users WHERE discord_id = ?)").all(interaction.user.id) as {
+      uuid: string;
+      name: string;
+      term_id: string;
+    }[];
+    return interaction.respond(
+      schedules
+        .filter((schedule) => (focusedValue.value ? schedule.name.toLowerCase().includes(focusedValue.value.toLowerCase()) : true))
+        .map((schedule) => ({ name: `${schedule.name} (${getTermString(schedule.term_id)})`, value: schedule.uuid }))
+        .slice(0, 25) ?? []
+    );
   },
   async execute(interaction) {
     // @ts-expect-error

@@ -29,8 +29,8 @@ router.post("/", authController, async (req, res) => {
     const scheduleUuid = uuidv7();
     const [, insertError] = tryCatch(() =>
       db
-        .prepare(`INSERT INTO schedules (uuid, owner_uuid, created_at, term_id, name, crns) VALUES (?, ?, ?, ?, ?, ?)`)
-        .run(scheduleUuid, req.user.uuid, timeNow(), schedule.term, schedule.name ?? `Schedule ${num_schedules + 1}`, "[]")
+        .prepare(`INSERT INTO schedules (uuid, owner_uuid, created_at, term_id, name) VALUES (?, ?, ?, ?, ?)`)
+        .run(scheduleUuid, req.user.uuid, timeNow(), schedule.term, schedule.name ?? `Schedule ${num_schedules + 1}`)
     );
     if (insertError) return res.sendStatus(500);
 

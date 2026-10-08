@@ -68,7 +68,8 @@ function getSearchParams(options: CommandInteractionOptionResolver): ClassSearch
     time: parsedStartTime && parsedEndTime ? [...parsedStartTime, ...parsedEndTime] : undefined,
     professorRating: rmpLow && rmpHigh ? [rmpLow, rmpHigh] : undefined,
     strictRatingSearch: options.getBoolean("strict_rating_search") ?? false,
-    creditHours: creditLow && creditHigh ? [creditLow, creditHigh] : undefined
+    creditHours: creditLow && creditHigh ? [creditLow, creditHigh] : undefined,
+    avoidConflicts: options.getString("avoid_conflicts") ?? undefined
   };
 
   return searchParams;
@@ -358,6 +359,12 @@ export default {
         type: ApplicationCommandOptionType.String
       },
       {
+        name: "avoid_conflicts",
+        description: "Filter out classes that conflict with your schedule. The schedule must be the same term as the search term",
+        type: ApplicationCommandOptionType.String,
+        autocomplete: true
+      },
+      {
         name: "sunday",
         description: "Filter by classes that meet on Sunday",
         type: ApplicationCommandOptionType.Boolean
@@ -458,13 +465,25 @@ export default {
           .map((subject) => ({ name: subject.name, value: subject.code }))
           .slice(0, 25) ?? []
       );
-    else if (focusedValue.name === "location") {
+    else if (focusedValue.name === "location")
       return interaction.respond(
         ClientManager.locations
           ?.filter((location) =>
             focusedValue.value ? location.long.toLowerCase().includes(focusedValue.value.toLowerCase()) || location.short.toLowerCase().includes(focusedValue.value.toLowerCase()) : true
           )
           .map((location) => ({ name: `${location.short} - ${location.long}`, value: location.short }))
+          .slice(0, 25) ?? []
+      );
+    else if (focusedValue.name === "avoid_conflicts") {
+      const schedules = db.prepare("SELECT uuid, name, term_id FROM schedules WHERE owner_uuid = (SELECT uuid FROM users WHERE discord_id = ?)").all(interaction.user.id) as {
+        uuid: string;
+        name: string;
+        term_id: string;
+      }[];
+      return interaction.respond(
+        schedules
+          .filter((schedule) => (focusedValue.value ? schedule.name.toLowerCase().includes(focusedValue.value.toLowerCase()) : true))
+          .map((schedule) => ({ name: `${schedule.name} (${getTermString(schedule.term_id)})`, value: schedule.uuid }))
           .slice(0, 25) ?? []
       );
     }
@@ -474,14 +493,23 @@ export default {
   async execute(interaction) {
     await interaction.deferReply();
 
+    // @ts-expect-error
+    const options = interaction.options as CommandInteractionOptionResolver;
+
     const [user, error] = tryCatch<{ uuid: string }>(() => db.prepare("SELECT uuid FROM users WHERE discord_id = ?").get(interaction.user.id) as any);
     if (!user) return void interaction.editReply(getSignupResponse());
     if (error) return void interaction.editReply(getErrorResponse(ErrorCodes.USER_DB_FETCH_FAIL));
 
-    // @ts-expect-error
-    const options = interaction.options as CommandInteractionOptionResolver;
     const [searchParams, searchParamsError] = tryCatch(() => getSearchParams(options));
     if (searchParamsError) return void interaction.editReply(getErrorResponse(ErrorCodes.UNKNOWN));
+
+    if (searchParams.avoidConflicts) {
+      const [schedule, scheduleError] = tryCatch(
+        () => db.prepare("SELECT 1 FROM schedules WHERE uuid = ? AND term_id = ? AND owner_uuid = ?").get(searchParams.avoidConflicts, searchParams.term, user.uuid) as any
+      );
+      if (scheduleError) return void interaction.editReply(getErrorResponse(ErrorCodes.SCHEDULE_DB_FETCH_FAIL));
+      if (!schedule) return void interaction.editReply(getErrorResponse(ErrorCodes.NO_SCHEDULE, "Your schedule for **avoid_conflicts** must be the same term as your search term"));
+    }
 
     const [parsedClasses, total] = await getClassData(searchParams.term, searchParams);
     if (total === 0) return void interaction.editReply(getErrorResponse(ErrorCodes.SEARCH_NO_CLASSES, "No classes found matching your search criteria"));

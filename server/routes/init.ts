@@ -23,7 +23,20 @@ router.get("/", authController, async (req, res) => {
   if (error2) return res.sendStatus(500);
 
   const [schedules, error3] = tryCatch<{ uuid: string; term_id: string; name: string; crns: string }[]>(
-    () => db.prepare("SELECT uuid, term_id, name, crns FROM schedules WHERE owner_uuid = ?").all(req.user.uuid) as any
+    () =>
+      db
+        .prepare(
+          `SELECT 
+        s.uuid,
+        s.term_id,
+        s.name,
+        COALESCE(json_group_array(sc.crn) FILTER (WHERE sc.crn IS NOT NULL), '[]') AS crns
+    FROM schedules s
+    LEFT JOIN schedule_crns sc ON s.uuid = sc.uuid
+    WHERE s.owner_uuid = ?
+    GROUP BY s.uuid`
+        )
+        .all(req.user.uuid) as any
   );
   if (error3) return res.sendStatus(500);
 
