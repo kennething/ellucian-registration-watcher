@@ -9,7 +9,7 @@ const router = Router();
 router.delete("/", authController, async (req, res) => {
   const { data: watcher, error: parseError } = z
     .object({
-      uuid: z.string().length(36)
+      uuid: z.uuidv7()
     })
     .safeParse(req.body);
   if (parseError) return res.status(400).json({ error: "Invalid body" });

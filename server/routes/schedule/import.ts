@@ -13,8 +13,8 @@ const router = Router();
 router.post("/", authController, async (req, res) => {
   const { data: schedule, error: parseError } = z
     .object({
-      uuid: z.string().length(36),
-      crns: z.array(z.string()).min(1).max(ENV.USER_WATCHER_LIMIT)
+      uuid: z.uuidv7(),
+      crns: z.array(z.string().max(10)).min(1).max(ENV.USER_WATCHER_LIMIT)
     })
     .safeParse(req.body);
   if (parseError) return res.status(400).json({ error: "Invalid body" });

@@ -16,7 +16,9 @@ router.get("/:uuid", async (req, res) => {
   if (error) return res.sendStatus(500);
   if (!schedule) return res.status(404).json({ error: "Schedule not found" });
 
-  const classes = await searchClasses(schedule.term_id, { crn: JSON.parse(schedule.crns) });
+  const crns = JSON.parse(schedule.crns) as string[];
+
+  const classes = crns.length === 0 ? ([[], 0] as [[], number]) : await searchClasses(schedule.term_id, { crn: crns });
   const truncatedClasses = Array.from(truncateClassData(classes[0]).values());
 
   const [ownerDiscordId, _error2] = tryCatch<{ discord_id: string }>(() => db.prepare("SELECT discord_id FROM users WHERE uuid = ?").get(schedule.owner_uuid) as any);

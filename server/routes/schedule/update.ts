@@ -9,9 +9,9 @@ const router = Router();
 router.patch("/", authController, async (req, res) => {
   const { data: schedule, error: parseError } = z
     .object({
-      uuid: z.string().length(36),
+      uuid: z.uuidv7(),
       name: z.string().min(1).max(100),
-      crns: z.array(z.string())
+      crns: z.array(z.string().max(10))
     })
     .safeParse(req.body);
   if (parseError) return res.status(400).json({ error: "Invalid body" });

@@ -12,7 +12,7 @@ const router = Router();
 router.post("/", authController, async (req, res) => {
   const { data: schedule, error: parseError } = z
     .object({
-      term: z.string(),
+      term: z.string().max(10),
       name: z.string().min(1).max(100).optional()
     })
     .safeParse(req.body);

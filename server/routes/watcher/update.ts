@@ -9,7 +9,7 @@ const router = Router();
 router.patch("/", authController, async (req, res) => {
   const { data: watcher, error: parseError } = z
     .object({
-      uuid: z.string().length(36),
+      uuid: z.uuidv7(),
       notifyWhen: z.number().int().min(0).max(3),
       notifyWhenValue: z.number().int(),
       isActive: z.boolean()

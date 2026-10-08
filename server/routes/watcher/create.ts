@@ -12,8 +12,8 @@ const router = Router();
 router.post("/", authController, async (req, res) => {
   const { data: watcher, error: parseError } = z
     .object({
-      term: z.string(),
-      crn: z.string(),
+      term: z.string().max(10),
+      crn: z.string().max(10),
       notifyWhen: z.number().int().min(0).max(3),
       notifyWhenValue: z.number().int(),
       isActive: z.boolean()
