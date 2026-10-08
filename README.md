@@ -139,7 +139,7 @@ re-registering.
 
 | Variable                | Description                                                                            | Default           | Required |
 | ----------------------- | -------------------------------------------------------------------------------------- | ----------------- | -------- |
-| `SEARCH_FETCH_INTERVAL` | Interval, in seconds, to fetch new search data. Set to `0` to disable search fetching. | `14400` (4 hours) |          |
+| `SEARCH_FETCH_INTERVAL` | Interval, in seconds, to fetch new search data. Set to `0` to disable search fetching. | `86400` (1 day)   |          |
 | `SEARCH_FETCH_OFFSET`   | Offset, in seconds, to wait before fetching new search data.                           | `360` (6 minutes) |          |
 
 ### Purging

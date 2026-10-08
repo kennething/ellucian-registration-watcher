@@ -138,9 +138,9 @@ const ENV = z
      * Interval, in seconds, to fetch new search data.
      *
      * Set to `0` to disable search fetching. Set to `-1` to run once, immediately.
-     * @default 14400 // 4 hours
+     * @default 86400 // 1 day
      */
-    SEARCH_FETCH_INTERVAL: Integer.min(-1).default(14400),
+    SEARCH_FETCH_INTERVAL: Integer.min(-1).default(86400),
     /**
      * Offset, in seconds, to wait before fetching new search data.
      * @default 360 // 6 minutes
