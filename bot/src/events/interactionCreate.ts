@@ -117,9 +117,17 @@ export default {
 ${classes
   .map((course) => {
     const meeting = course.meetingsFaculty[0]?.meetingTime;
-    const unfilteredMeetingDays = [meeting?.sunday, meeting?.monday, meeting?.tuesday, meeting?.wednesday, meeting?.thursday, meeting?.friday, meeting?.saturday];
+    const unfilteredMeetingDays = [meeting?.sunday, meeting?.monday, meeting?.tuesday, meeting?.wednesday, meeting?.thursday, meeting?.friday, meeting?.saturday] as [
+      boolean,
+      boolean,
+      boolean,
+      boolean,
+      boolean,
+      boolean,
+      boolean
+    ];
     const meetingDays = unfilteredMeetingDays.every((day) => day === undefined) ? undefined : unfilteredMeetingDays;
-    const meetingTime = [meeting.beginTime, meeting?.endTime];
+    const meetingTime = [meeting.beginTime, meeting?.endTime] as [string | null, string | null];
 
     return `-# - **${course.subject} ${course.courseNumber} - ${course.sequenceNumber}** | ${getMeetingDaysString(meetingDays)} ${getMeetingTimeString(meetingTime)} | ${course.meetingsFaculty[0]?.meetingTime.building ?? ""} ${course.meetingsFaculty[0]?.meetingTime.room ?? ""}`;
   })
