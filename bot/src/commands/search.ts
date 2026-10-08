@@ -360,7 +360,7 @@ export default {
       },
       {
         name: "avoid_conflicts",
-        description: "Filter out classes that conflict with your schedule. The schedule must be the same term as the search term",
+        description: "Filter out classes that conflict with your schedule",
         type: ApplicationCommandOptionType.String,
         autocomplete: true
       },
