@@ -202,18 +202,18 @@ export async function searchClasses(
   };
 
   const [request, id] = useInternalClient ? [ClientManager.requestInternalClient(axiosRequest)] : ClientManager.requestExternalClient(term, axiosRequest);
-  const data = (await request).data as { data: ClassData[] | null; totalCount: number };
+  const data = (await request)?.data as { data: ClassData[] | null; totalCount: number } | undefined;
 
-  if (data.data === null && !isRetry) {
+  if ((!data || data.data === null) && !isRetry) {
     Log.debug(`${useInternalClient ? "internal" : "external"} client failed, retrying`);
 
     if (useInternalClient) await ClientManager.refreshInternalClient();
     else await ClientManager.refreshExternalClient(id!);
 
     return await searchClasses(term, params, useInternalClient, offset, limit, true, classes);
-  } else if (data.data === null) {
+  } else if (!data || data.data === null) {
     Log.debug("client failed");
-    return [classes, data.totalCount];
+    return [classes, data?.totalCount ?? 0];
   }
 
   const dataData = data.data.map((c) => {
