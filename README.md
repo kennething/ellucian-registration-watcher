@@ -2,8 +2,8 @@
 
 This is the Express.js server and Discord.js bot for
 [Bad Scheduler](https://bschedule.kennethng.dev) (specifically tailored for
-Binghamton University), but the methods used for fetching data can _probably_
-be applied to any school that uses Ellucian's Banner system.
+Binghamton University), but the methods used for fetching data can _probably_ be
+applied to any school that uses Ellucian's Banner system.
 
 Classes to be fetched are batched together and use a single requester to
 minimize the number of requests sent to the Banner API.
@@ -45,8 +45,8 @@ minimize the number of requests sent to the Banner API.
 
 ### If you WILL be running a frontend using Discord's OAuth2:
 
-4. Under the "OAuth2" tab, copy the Client ID and reset the Client Secret.
-   These will be your `DISCORD_CLIENT_ID` and `DISCORD_CLIENT_SECRET`.
+4. Under the "OAuth2" tab, copy the Client ID and reset the Client Secret. These
+   will be your `DISCORD_CLIENT_ID` and `DISCORD_CLIENT_SECRET`.
 
 5. Create a redirect URL to `<BACKEND_URL>/auth/discord/callback` (with your
    backend URL replaced).
