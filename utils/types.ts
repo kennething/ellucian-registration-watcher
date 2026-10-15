@@ -77,10 +77,10 @@ export type ClassData = {
   waitCapacity: number;
   waitCount: number;
   waitAvailable: number;
-  crossList: any; // TODO:
-  crossListCapacity: any; // TODO:
-  crossListCount: any; // TODO:
-  crossListAvailable: any; // TODO:
+  crossList: any; // ! dunno
+  crossListCapacity: any; // ! dunno
+  crossListCount: any; // ! dunno
+  crossListAvailable: any; // ! dunno
   creditHourHigh: number;
   creditHourLow: number;
   creditHourIndicator: string;
@@ -101,7 +101,7 @@ export type ClassData = {
   faculty: {
     professorLeaked?: true; // custom
     bannerId: string; // professor id
-    category: any; // TODO:
+    category: any; // ! dunno
     class: string;
     courseReferenceNumber: string; // CRN
     displayName: string;
@@ -115,7 +115,7 @@ export type ClassData = {
     courseReferenceNumber: string; // CRN
     faculty: {
       bannerId: string; // professor id
-      category: any; // TODO:
+      category: any; // ! dunno
       class: string;
       courseReferenceNumber: string; // CRN
       displayName: string;

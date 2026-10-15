@@ -6,7 +6,7 @@ import cors from "cors";
 import path from "path";
 import fs from "fs";
 
-async function registerRoutes(app: Express, dir: string, basePath: string = ""): Promise<void> {
+async function registerRoutes(app: Express, dir: string, basePath = ""): Promise<void> {
   const files = fs.readdirSync(dir);
 
   for (const file of files) {
@@ -30,10 +30,8 @@ async function registerRoutes(app: Express, dir: string, basePath: string = ""):
 }
 
 export async function startServer() {
-  const app = express()
-    .use(cors({ origin: ENV.FRONTEND_URL, optionsSuccessStatus: 200, credentials: true }))
-    .use(cookieParser())
-    .use(express.json());
+  const app = express().use(cookieParser()).use(express.json());
+  if (ENV.FRONTEND_URL) app.use(cors({ origin: ENV.FRONTEND_URL, optionsSuccessStatus: 200, credentials: true }));
 
   const projectRoot = process.cwd();
   const routesDir = path.join(projectRoot, "server", "routes");
