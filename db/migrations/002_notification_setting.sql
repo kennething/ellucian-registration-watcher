@@ -1,0 +1,1 @@
+ALTER TABLE users ADD COLUMN default_notifications INTEGER NOT NULL DEFAULT 1;

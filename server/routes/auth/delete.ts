@@ -1,7 +1,7 @@
 import { authController } from "../../controllers/auth";
-import { botClient } from "../../../bot/src/common";
-import { db } from "../../utils/sqlite";
+import { botClient } from "~/bot/common";
 import { Router } from "express";
+import { db } from "~/db";
 
 const router = Router();
 

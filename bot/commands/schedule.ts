@@ -1,16 +1,15 @@
-import { getMeetingTimeString, getTermString } from "../../../server/utils/functions.ts";
-import { ErrorCodes, getErrorResponse, getSignupResponse } from "../util/responses.ts";
-import { searchClasses, tryCatch } from "../../../server/utils/fetch.ts";
-import { ClientManager } from "../../../server/utils/clientManager.ts";
-import { ClassData } from "../../../server/utils/types.ts";
-import { Term } from "../../../server/utils/term.ts";
-import { db } from "../../../server/utils/sqlite.ts";
-import { themes } from "../util/scheduleThemes.ts";
-import { Log } from "../../../server/utils/log.ts";
-import { getCourseColor } from "../util/index.ts";
-import type { Command } from "./index.ts";
+import { ErrorCodes, getErrorResponse, getSignupResponse } from "../util/responses";
+import { getMeetingTimeString, getTermString } from "~/utils/functions";
+import { searchClasses, tryCatch } from "~/utils/fetch";
+import { ClientManager } from "~/utils/clientManager";
+import { themes } from "../util/scheduleThemes";
+import { getCourseColor } from "../util/index";
+import { ClassData } from "~/utils/types";
+import type { Command } from "./index";
 import { createCanvas } from "canvas";
-import ENV from "../../../env.ts";
+import { Log } from "~/utils/log";
+import ENV from "~/utils/env";
+import { db } from "~/db";
 import {
   CommandInteractionOptionResolver,
   ApplicationCommandOptionType,
@@ -221,7 +220,7 @@ export async function generateScheduleImage<T extends string | null>(
   const buffer = isShared ? canvas.toBuffer("image/png") : canvas.toBuffer("image/jpeg");
   return [
     schedule.uuid,
-    `## ${getTermString(schedule.term_id)}${(ClientManager.terms.find((term: Term) => term.termId === schedule.term_id) as Term).isEarly ? " (Early)" : ""} - ${parsedClasses.reduce((acc, curr) => acc + curr.credits, 0)} credits`,
+    `## ${getTermString(schedule.term_id)}${ClientManager.terms.find((term) => term.termId === schedule.term_id)!.isEarly ? " (Early)" : ""} - ${parsedClasses.reduce((acc, curr) => acc + curr.credits, 0)} credits`,
     new AttachmentBuilder(buffer, { name: `${schedule.name}.${isShared ? "png" : "jpg"}` })
   ];
 }

@@ -1,6 +1,6 @@
 import { authController } from "../../controllers/auth";
 import { Router } from "express";
-import ENV from "../../../env";
+import ENV from "~/utils/env";
 import axios from "axios";
 
 const router = Router();

@@ -1,9 +1,9 @@
-import { ClassSearchSchema, TruncatedClassData } from "../../utils/types";
-import { searchClassDb, tryCatch } from "../../utils/fetch";
+import { ClassSearchSchema, TruncatedClassData } from "~/utils/types";
+import { searchClassDb, tryCatch } from "~/utils/fetch";
 import { authController } from "../../controllers/auth";
-import { db } from "../../utils/sqlite";
-import { Log } from "../../utils/log";
+import { Log } from "~/utils/log";
 import { Router } from "express";
+import { db } from "~/db";
 
 const router = Router();
 

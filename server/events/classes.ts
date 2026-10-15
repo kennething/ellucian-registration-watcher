@@ -1,13 +1,13 @@
-import { getTermString, hashToRange, waitForInterval } from "../utils/functions";
-import { ClassData, Mutable, NotificationType } from "../utils/types";
+import { getTermString, hashToRange, waitForInterval } from "~/utils/functions";
+import { ClassData, Mutable, NotificationType } from "~/utils/types";
 import { BaseMessageOptions, ComponentType } from "discord.js";
-import { searchClasses, tryCatch } from "../utils/fetch";
-import { ClientManager } from "../utils/clientManager";
-import { botClient } from "../../bot/src/common";
-import { timeNow } from "../utils/time";
-import { db } from "../utils/sqlite";
-import { Log } from "../utils/log";
-import ENV from "../../env";
+import { searchClasses, tryCatch } from "~/utils/fetch";
+import { ClientManager } from "~/utils/clientManager";
+import { botClient } from "~/bot/common";
+import { timeNow } from "~/utils/time";
+import { Log } from "~/utils/log";
+import ENV from "~/utils/env";
+import { db } from "~/db";
 
 type NotificationData = {
   courseReferenceNumber: ClassData["courseReferenceNumber"];

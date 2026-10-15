@@ -3,9 +3,9 @@ import { decodeHTML } from "entities/decode";
 import { ClassSearchParams } from "./types";
 import * as htmlparser2 from "htmlparser2";
 import { ClassData } from "./types";
-import { db } from "./sqlite";
-import ENV from "../../env";
 import { Log } from "./log";
+import { db } from "~/db";
+import ENV from "./env";
 
 export type Success<T> = [data: T, error: never];
 export type Failure<E> = [data: never, error: E];

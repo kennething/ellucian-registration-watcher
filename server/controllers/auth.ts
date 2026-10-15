@@ -1,9 +1,9 @@
-import { tryCatch } from "../utils/fetch";
+import { tryCatch } from "~/utils/fetch";
 import { RequestHandler } from "express";
-import { db } from "../utils/sqlite";
-import { Log } from "../utils/log";
+import { Log } from "~/utils/log";
 import jwt from "jsonwebtoken";
-import ENV from "../../env";
+import ENV from "~/utils/env";
+import { db } from "~/db";
 
 export const authController: RequestHandler = (req, res, next) => {
   const jwtToken = req.cookies.token;

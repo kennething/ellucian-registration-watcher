@@ -1,20 +1,20 @@
 import { ActionRow, AttachmentBuilder, ComponentType, ContainerBuilder, Events, InteractionReplyOptions, MessageFlags, StringSelectMenuComponent } from "discord.js";
-import { getMeetingDaysString, getMeetingTimeString, getTermString } from "../../../server/utils/functions.ts";
-import { generateFullResponse, generateResponse, getClassData } from "../commands/search.ts";
-import { generateScheduleActionRow, generateScheduleImage } from "../commands/schedule.ts";
-import { searchClasses, tryCatch } from "../../../server/utils/fetch.ts";
-import { ClientManager } from "../../../server/utils/clientManager.ts";
-import { ErrorCodes, getErrorResponse } from "../util/responses.ts";
-import { ClassData } from "../../../server/utils/types.ts";
-import { db } from "../../../server/utils/sqlite.ts";
-import { Term } from "../../../server/utils/term.ts";
-import { Log } from "../../../server/utils/log.ts";
-import { themes } from "../util/scheduleThemes.ts";
-import { loadCommands } from "../util/loaders.ts";
-import { paginationState } from "../common.ts";
-import type { Event } from "./index.ts";
-import ENV from "../../../env.ts";
+import { getMeetingDaysString, getMeetingTimeString, getTermString } from "~/utils/functions";
+import { generateFullResponse, generateResponse, getClassData } from "../commands/search";
+import { generateScheduleActionRow, generateScheduleImage } from "../commands/schedule";
+import { ErrorCodes, getErrorResponse } from "../util/responses";
+import { searchClasses, tryCatch } from "~/utils/fetch";
+import { ClientManager } from "~/utils/clientManager";
+import { themes } from "../util/scheduleThemes";
+import { loadCommands } from "../util/loaders";
+import { paginationState } from "../common";
+import { ClassData } from "~/utils/types";
+import type { Event } from "./index";
+import { Term } from "~/utils/term";
+import { Log } from "~/utils/log";
 import { URL } from "node:url";
+import ENV from "~/utils/env";
+import { db } from "~/db";
 
 const commands = await loadCommands(new URL("../commands/", import.meta.url));
 
@@ -112,7 +112,7 @@ export default {
 
           interaction.followUp({
             flags: MessageFlags.Ephemeral,
-            content: `## ${getTermString(schedule.term_id)}${(ClientManager.terms.find((term: Term) => term.termId === schedule.term_id) as Term).isEarly ? " (Early)" : ""} - ${classes.reduce((acc, course) => acc + course.meetingsFaculty[0]?.meetingTime.creditHourSession || 0, 0)} credits
+            content: `## ${getTermString(schedule.term_id)}${ClientManager.terms.find((term) => term.termId === schedule.term_id)!.isEarly ? " (Early)" : ""} - ${classes.reduce((acc, course) => acc + course.meetingsFaculty[0]?.meetingTime.creditHourSession || 0, 0)} credits
 
 ${classes
   .map((course) => {

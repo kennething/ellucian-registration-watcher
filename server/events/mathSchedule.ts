@@ -1,9 +1,9 @@
-import { ClientManager } from "../utils/clientManager";
-import { waitForInterval } from "../utils/functions";
-import { getMathSchedule } from "../utils/math";
-import { db } from "../utils/sqlite";
-import { Log } from "../utils/log";
-import ENV from "../../env";
+import { ClientManager } from "~/utils/clientManager";
+import { waitForInterval } from "~/utils/functions";
+import { getMathSchedule } from "~/utils/math";
+import { Log } from "~/utils/log";
+import ENV from "~/utils/env";
+import { db } from "~/db";
 
 export function fetchMathScheduleLoop(): void {
   waitForInterval(ENV.MATH_FETCH_INTERVAL, ENV.MATH_FETCH_OFFSET, async () => {

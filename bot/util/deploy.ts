@@ -1,9 +1,9 @@
-import { Log } from "../../../server/utils/log.ts";
 import { API } from "@discordjs/core/http-only";
-import { loadCommands } from "./loaders.ts";
+import { loadCommands } from "./loaders";
+import { Log } from "~/utils/log";
 import { REST } from "discord.js";
-import ENV from "../../../env.ts";
 import { URL } from "node:url";
+import ENV from "~/utils/env";
 
 if (!ENV.DISCORD_TOKEN || !ENV.APPLICATION_ID) {
   Log.error("DISCORD_TOKEN and APPLICATION_ID must be set in the environment variables.");

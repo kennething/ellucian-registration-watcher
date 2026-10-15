@@ -1,17 +1,17 @@
-import { getMeetingDaysString, getMeetingTimeString, getTermString } from "../../../server/utils/functions.ts";
-import { fetchClassDescription, searchClassDb, tryCatch } from "../../../server/utils/fetch.ts";
-import { ErrorCodes, getErrorResponse, getSignupResponse } from "../util/responses.ts";
-import { TruncatedClassData, ClassData } from "../../../server/utils/types.ts";
-import type { ClassSearchParams } from "../../../server/utils/types.ts";
-import { ClientManager } from "../../../server/utils/clientManager.ts";
-import { Term } from "../../../server/utils/term.ts";
-import { db } from "../../../server/utils/sqlite.ts";
-import { Log } from "../../../server/utils/log.ts";
-import { getCourseColor } from "../util/index.ts";
-import { paginationState } from "../common.ts";
-import type { Command } from "./index.ts";
+import { getMeetingDaysString, getMeetingTimeString, getTermString } from "~/utils/functions";
+import { ErrorCodes, getErrorResponse, getSignupResponse } from "../util/responses";
+import { fetchClassDescription, searchClassDb, tryCatch } from "~/utils/fetch";
+import { TruncatedClassData, ClassData } from "~/utils/types";
+import type { ClassSearchParams } from "~/utils/types";
+import { ClientManager } from "~/utils/clientManager";
+import { getCourseColor } from "../util/index";
+import { paginationState } from "../common";
+import type { Command } from "./index";
 import { v7 as uuidv7 } from "uuid";
-import ENV from "../../../env.ts";
+import { Term } from "~/utils/term";
+import { Log } from "~/utils/log";
+import ENV from "~/utils/env";
+import { db } from "~/db";
 import {
   CommandInteractionOptionResolver,
   ApplicationCommandOptionType,
@@ -28,7 +28,7 @@ function getSearchParams(options: CommandInteractionOptionResolver): ClassSearch
   const userTerm = options.getString("term");
   if (!userTerm && !ClientManager.terms) throw new Error("No term provided and no recent terms found");
 
-  const termId = userTerm ?? (ClientManager.terms.find((t: Term) => t.isPrimary) as Term).termId;
+  const termId = userTerm ?? ClientManager.terms.find((t) => t.isPrimary)!.termId;
 
   const meetingDays = [
     options.getBoolean("sunday") ?? false,
@@ -449,8 +449,7 @@ export default {
   async autocomplete(interaction) {
     const focusedValue = interaction.options.getFocused(true);
 
-    if (focusedValue.name === "term")
-      return interaction.respond(ClientManager.terms?.map((term: Term) => ({ name: `${term.getTermString()}${term.isEarly ? " (Early)" : ""}`, value: term.termId })) ?? []);
+    if (focusedValue.name === "term") return interaction.respond(ClientManager.terms?.map((term) => ({ name: `${term.getTermString()}${term.isEarly ? " (Early)" : ""}`, value: term.termId })) ?? []);
     else if (focusedValue.name === "attribute")
       return interaction.respond(
         ClientManager.attributes

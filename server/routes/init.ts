@@ -1,12 +1,12 @@
-import { toCamelCase, truncateClassData } from "../utils/functions";
-import { searchClasses, tryCatch } from "../utils/fetch";
-import { ClientManager } from "../utils/clientManager";
+import { toCamelCase, truncateClassData } from "~/utils/functions";
+import { searchClasses, tryCatch } from "~/utils/fetch";
+import { ClientManager } from "~/utils/clientManager";
 import { authController } from "../controllers/auth";
-import { NotificationType } from "../utils/types";
-import { botClient } from "../../bot/src/common";
-import { db } from "../utils/sqlite";
+import { NotificationType } from "~/utils/types";
+import { botClient } from "~/bot/common";
 import { Router } from "express";
-import ENV from "../../env";
+import ENV from "~/utils/env";
+import { db } from "~/db";
 
 const router = Router();
 

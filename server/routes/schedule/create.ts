@@ -1,10 +1,10 @@
 import { authController } from "../../controllers/auth";
-import { tryCatch } from "../../utils/fetch";
-import { timeNow } from "../../utils/time";
-import { db } from "../../utils/sqlite";
+import { tryCatch } from "~/utils/fetch";
+import { timeNow } from "~/utils/time";
 import { v7 as uuidv7 } from "uuid";
 import { Router } from "express";
-import ENV from "../../../env";
+import ENV from "~/utils/env";
+import { db } from "~/db";
 import * as z from "zod";
 
 const router = Router();

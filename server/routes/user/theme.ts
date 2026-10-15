@@ -1,7 +1,7 @@
 import { authController } from "../../controllers/auth";
-import { tryCatch } from "../../utils/fetch";
-import { db } from "../../utils/sqlite";
+import { tryCatch } from "~/utils/fetch";
 import { Router } from "express";
+import { db } from "~/db";
 import * as z from "zod";
 
 const router = Router();

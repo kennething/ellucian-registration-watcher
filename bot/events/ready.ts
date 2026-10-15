@@ -1,7 +1,7 @@
-import { Log } from "../../../server/utils/log.ts";
-import { botClient } from "../common.ts";
-import type { Event } from "./index.ts";
+import { botClient } from "../common";
+import type { Event } from "./index";
 import { Events } from "discord.js";
+import { Log } from "~/utils/log";
 
 export default {
   name: Events.ClientReady,

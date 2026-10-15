@@ -1,12 +1,13 @@
-import { hashToRange, waitForInterval } from "../utils/functions";
-import { db, refreshConstantData } from "../utils/sqlite";
+import { hashToRange, waitForInterval } from "~/utils/functions";
 import { ButtonStyle, ComponentType } from "discord.js";
-import { ClientManager } from "../utils/clientManager";
-import { botClient } from "../../bot/src/common";
-import { tryCatch } from "../utils/fetch";
-import { timeNow } from "../utils/time";
-import { Log } from "../utils/log";
-import ENV from "../../env";
+import { refreshConstantData } from "~/db/refreshData";
+import { ClientManager } from "~/utils/clientManager";
+import { botClient } from "~/bot/common";
+import { tryCatch } from "~/utils/fetch";
+import { timeNow } from "~/utils/time";
+import { Log } from "~/utils/log";
+import ENV from "~/utils/env";
+import { db } from "~/db";
 import path from "path";
 
 export function purgeOutdatedLoop(): void {
@@ -105,6 +106,6 @@ export function purgeOutdatedLoop(): void {
 
     Log.info(`Purging ${outdatedTerms.map((term) => term.term_id).join(", ")} at ${new Date(purgeTime * 1000).toLocaleString()}`);
 
-    refreshConstantData();
+    refreshConstantData(db);
   });
 }

@@ -1,7 +1,7 @@
-import { searchClasses, tryCatch } from "../../utils/fetch";
+import { searchClasses, tryCatch } from "~/utils/fetch";
 import { authController } from "../../controllers/auth";
-import { db } from "../../utils/sqlite";
 import { Router } from "express";
+import { db } from "~/db";
 import * as z from "zod";
 
 const router = Router();

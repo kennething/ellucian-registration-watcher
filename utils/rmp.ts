@@ -1,5 +1,5 @@
 import { ProfessorSearchResult, Professor, RMPClient } from "ratemyprofessors-client";
-import ENV from "../../env";
+import ENV from "./env";
 
 export async function getRMPData() {
   const client = new RMPClient();

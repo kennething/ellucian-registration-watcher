@@ -1,7 +1,7 @@
 import express, { Router, Express } from "express";
 import cookieParser from "cookie-parser";
-import { Log } from "./utils/log";
-import ENV from "../env";
+import { Log } from "../utils/log";
+import ENV from "../utils/env";
 import cors from "cors";
 import path from "path";
 import fs from "fs";

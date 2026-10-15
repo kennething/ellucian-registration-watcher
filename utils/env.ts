@@ -79,14 +79,14 @@ const ENV = z
      * Path to the SQLite database file.
      *
      * If the database file doesn't exist, a new one will be created.
-     * @default "./server/db.sqlite3"
+     * @default "./db/db.sqlite3"
      */
-    DATABASE_PATH: z.string().default("./server/db.sqlite3"),
+    DATABASE_PATH: z.string().default("./db/db.sqlite3"),
     /**
      * Path to a folder where the database will be backed up before watchers are purged.
-     * @default "./server"
+     * @default "./db/backups/"
      */
-    BACKUP_DATABASE_PATH: z.string().default("./server"),
+    BACKUP_DATABASE_PATH: z.string().default("./db/backups/"),
 
     // * Automation
     /**

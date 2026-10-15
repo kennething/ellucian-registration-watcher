@@ -1,13 +1,13 @@
-import { botClient } from "../../../../bot/src/common";
-import { tryCatch } from "../../../utils/fetch";
-import { timeNow } from "../../../utils/time";
-import { db } from "../../../utils/sqlite";
-import { Log } from "../../../utils/log";
+import { botClient } from "~/bot/common";
+import { tryCatch } from "~/utils/fetch";
+import { timeNow } from "~/utils/time";
 import { v6 as uuidv6 } from "uuid";
-import ENV from "../../../../env";
+import { Log } from "~/utils/log";
 import { Router } from "express";
 import jwt from "jsonwebtoken";
+import ENV from "~/utils/env";
 import axios from "axios";
+import { db } from "~/db";
 
 const router = Router();
 

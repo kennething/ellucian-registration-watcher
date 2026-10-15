@@ -1,4 +1,4 @@
-import { fetchClassDescription, tryCatch } from "../../utils/fetch";
+import { fetchClassDescription, tryCatch } from "~/utils/fetch";
 import { authController } from "../../controllers/auth";
 import { Router } from "express";
 

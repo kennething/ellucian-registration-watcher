@@ -1,6 +1,6 @@
 import { ButtonStyle, ContainerBuilder, InteractionEditReplyOptions, MessageFlags } from "discord.js";
-import { Log } from "../../../server/utils/log.ts";
-import ENV from "../../../env.ts";
+import { Log } from "~/utils/log";
+import ENV from "~/utils/env";
 
 export enum ErrorCodes {
   UNKNOWN = 69,

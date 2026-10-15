@@ -1,7 +1,7 @@
-import { authController } from "../../../../controllers/auth";
-import { Log } from "../../../../utils/log";
-import ENV from "../../../../../env";
+import { authController } from "~/server/controllers/auth";
+import { Log } from "~/utils/log";
 import { Router } from "express";
+import ENV from "~/utils/env";
 
 const router = Router();
 

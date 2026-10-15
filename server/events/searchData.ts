@@ -1,10 +1,10 @@
-import { ClientManager } from "../utils/clientManager";
-import { waitForInterval } from "../utils/functions";
-import { searchClasses } from "../utils/fetch";
+import { ClientManager } from "~/utils/clientManager";
+import { waitForInterval } from "~/utils/functions";
+import { searchClasses } from "~/utils/fetch";
 import { decodeHTML } from "entities";
-import { db } from "../utils/sqlite";
-import { Log } from "../utils/log";
-import ENV from "../../env";
+import { Log } from "~/utils/log";
+import ENV from "~/utils/env";
+import { db } from "~/db";
 
 export function fetchSearchDataLoop(): void {
   waitForInterval(ENV.SEARCH_FETCH_INTERVAL, ENV.SEARCH_FETCH_OFFSET, async () => {

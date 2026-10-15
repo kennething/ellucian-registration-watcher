@@ -1,8 +1,8 @@
-import { searchClasses, tryCatch } from "../../utils/fetch";
-import { truncateClassData } from "../../utils/functions";
-import { botClient } from "../../../bot/src/common";
-import { db } from "../../utils/sqlite";
+import { searchClasses, tryCatch } from "~/utils/fetch";
+import { truncateClassData } from "~/utils/functions";
+import { botClient } from "~/bot/common";
 import { Router } from "express";
+import { db } from "~/db";
 
 const router = Router();
 

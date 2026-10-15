@@ -1,9 +1,9 @@
 import { ActivityType, Client, GatewayIntentBits } from "discord.js";
-import { Log } from "../../server/utils/log.ts";
-import { loadEvents } from "./util/loaders.ts";
+import { loadEvents } from "./util/loaders";
 import { registerFont } from "canvas";
+import { Log } from "~/utils/log";
 import { URL } from "node:url";
-import ENV from "../../env.ts";
+import ENV from "~/utils/env";
 import path from "path";
 
 export async function startBot() {

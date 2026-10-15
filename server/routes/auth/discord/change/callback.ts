@@ -1,12 +1,12 @@
-import { authController } from "../../../../controllers/auth";
-import { botClient } from "../../../../../bot/src/common";
-import { tryCatch } from "../../../../utils/fetch";
-import { db } from "../../../../utils/sqlite";
-import { Log } from "../../../../utils/log";
-import ENV from "../../../../../env";
+import { authController } from "~/server/controllers/auth";
+import { botClient } from "~/bot/common";
+import { tryCatch } from "~/utils/fetch";
+import { Log } from "~/utils/log";
 import { Router } from "express";
 import jwt from "jsonwebtoken";
+import ENV from "~/utils/env";
 import axios from "axios";
+import { db } from "~/db";
 
 const router = Router();
 

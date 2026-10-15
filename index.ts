@@ -1,9 +1,9 @@
-import * as events from "./server/events/index";
 import { startServer } from "./server/app";
-import { startBot } from "./bot/src/index";
-import ENV from "./env";
+import * as events from "./server/events";
+import { startBot } from "./bot";
+import ENV from "./utils/env";
 
-import { db as _ } from "./server/utils/sqlite";
+import { db as _ } from "./db";
 
 if (ENV.DISCORD_TOKEN) await startBot();
 await startServer();

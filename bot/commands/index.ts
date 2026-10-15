@@ -1,5 +1,5 @@
 import type { RESTPostAPIApplicationCommandsJSONBody, CommandInteraction, AutocompleteInteraction } from "discord.js";
-import type { StructurePredicate } from "../util/loaders.ts";
+import type { StructurePredicate } from "../util/loaders";
 import { z } from "zod";
 
 /**

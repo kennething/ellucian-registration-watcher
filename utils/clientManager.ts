@@ -2,8 +2,8 @@ import axios, { AxiosInstance, AxiosResponse } from "axios";
 import { wrapper } from "axios-cookiejar-support";
 import { CookieJar } from "tough-cookie";
 import { Term, TermId } from "./term";
-import ENV from "../../env";
 import { Log } from "./log";
+import ENV from "./env";
 
 class InternalClient {
   requestClient: AxiosInstance;

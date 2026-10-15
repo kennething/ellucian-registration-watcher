@@ -1,8 +1,8 @@
 import { ClassData, TruncatedClassData } from "./types";
 import { tryCatch } from "./fetch";
 import { timeNow } from "./time";
-import { db } from "./sqlite";
 import { Log } from "./log";
+import { db } from "../db";
 
 /** Waits for a specified interval and then calls the callback function
  * @param interval The interval in seconds at which to call the callback function. The first call will be aligned to the nearest interval.

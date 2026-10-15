@@ -1,5 +1,5 @@
 import { DateTime } from "luxon";
-import ENV from "../../env";
+import ENV from "./env";
 
 export function timeNow(getDateTime: true): DateTime;
 export function timeNow(getDateTime?: false): number;

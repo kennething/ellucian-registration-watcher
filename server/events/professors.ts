@@ -1,10 +1,10 @@
-import { ClientManager } from "../utils/clientManager";
-import { waitForInterval } from "../utils/functions";
-import { getRMPData } from "../utils/rmp";
-import { db } from "../utils/sqlite";
-import { Log } from "../utils/log";
-import ENV from "../../env";
+import { ClientManager } from "~/utils/clientManager";
+import { waitForInterval } from "~/utils/functions";
+import { getRMPData } from "~/utils/rmp";
+import { Log } from "~/utils/log";
+import ENV from "~/utils/env";
 import Fuse from "fuse.js";
+import { db } from "~/db";
 
 export function fetchProfessorsLoop(): void {
   waitForInterval(ENV.RMP_FETCH_INTERVAL, ENV.RMP_FETCH_OFFSET, async () => {
