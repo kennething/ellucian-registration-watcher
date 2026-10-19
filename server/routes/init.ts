@@ -10,17 +10,15 @@ import { db } from "~/db";
 const router = Router();
 
 router.get("/", authController, async (req, res) => {
-  const user = await botClient.client?.users.fetch(req.user.discordId);
-
   const [userSettings, error] = tryCatch<{ web_theme: number; notify_new_terms: number; notify_stale_terms: number; notify_default_watchers: number }>(
     () => db.prepare("SELECT * FROM user_settings WHERE uuid = ?").get(req.user.uuid) as any
   );
-  if (error) return res.sendStatus(500);
+  if (error || !userSettings) return res.sendStatus(500);
 
   const [watchers, error2] = tryCatch<{ uuid: string; term_id: string; is_active: number; crn: string; notify_when: NotificationType; notify_when_value: number }[]>(
     () => db.prepare("SELECT uuid, term_id, is_active, crn, notify_when, notify_when_value FROM watchers WHERE owner_uuid = ?").all(req.user.uuid) as any
   );
-  if (error2) return res.sendStatus(500);
+  if (error2 || !watchers) return res.sendStatus(500);
 
   const [schedules, error3] = tryCatch<{ uuid: string; term_id: string; name: string; crns: string }[]>(
     () =>
@@ -38,7 +36,7 @@ router.get("/", authController, async (req, res) => {
         )
         .all(req.user.uuid) as any
   );
-  if (error3) return res.sendStatus(500);
+  if (error3 || !schedules) return res.sendStatus(500);
 
   const terms = Array.from(new Set(watchers.map((watcher) => watcher.term_id)));
   const classes = await Promise.all(
@@ -61,13 +59,14 @@ router.get("/", authController, async (req, res) => {
 
   db.prepare("UPDATE users SET is_installed = 1 WHERE uuid = ?").run(req.user.uuid); // theyll log in again eventually :shipit:
 
+  const discordUser = await botClient.client?.users.fetch(req.user.discordId);
   res.status(200).json({
     user: {
       uuid: req.user.uuid,
       discordId: req.user.discordId,
-      displayName: user?.displayName,
-      username: user?.username,
-      avatar: user?.avatar,
+      displayName: discordUser?.displayName,
+      username: discordUser?.username,
+      avatar: discordUser?.avatar,
       settings: {
         /** 0 = system, 1 = light, 2 = dark */
         theme: userSettings.web_theme,

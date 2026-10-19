@@ -21,8 +21,8 @@ router.put("/", authController, async (req, res) => {
 
   const [, updateError] = tryCatch(() =>
     db
-      .prepare("UPDATE user_settings SET web_theme = ?, new_terms = ?, stale_terms = ?, default_watchers = ? WHERE uuid = ?")
-      .run(settings.theme, settings.notifications.newTerms, settings.notifications.staleTerms, settings.notifications.defaultWatchers, req.user.uuid)
+      .prepare("UPDATE user_settings SET web_theme = ?, notify_new_terms = ?, notify_stale_terms = ?, notify_default_watchers = ? WHERE uuid = ?")
+      .run(settings.theme, Number(settings.notifications.newTerms), Number(settings.notifications.staleTerms), Number(settings.notifications.defaultWatchers), req.user.uuid)
   );
   if (updateError) return res.sendStatus(500);
 
