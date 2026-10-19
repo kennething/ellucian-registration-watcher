@@ -67,6 +67,7 @@ router.get("/", authController, async (req, res) => {
       displayName: discordUser?.displayName,
       username: discordUser?.username,
       avatar: discordUser?.avatar,
+      decoration: discordUser?.avatarDecorationURL({ size: 128 }),
       settings: {
         /** 0 = system, 1 = light, 2 = dark */
         theme: userSettings.web_theme,
