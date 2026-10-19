@@ -1,8 +1,7 @@
-import { rawJsonController } from "~/server/controllers/rawJson";
+import { verifyKeyMiddleware } from "discord-interactions";
 import { tryCatch } from "~/utils/fetch";
 import { Router } from "express";
 import ENV from "~/utils/env";
-import nacl from "tweetnacl";
 import { db } from "~/db";
 
 type DiscordWebhookPayload = {
@@ -23,19 +22,8 @@ type DiscordWebhookPayload = {
 
 const router = Router();
 
-router.post("/", rawJsonController, async (req, res) => {
-  const publicKey = Buffer.from(ENV.DISCORD_PUBLIC_KEY, "hex");
-
-  const signature = req.get("X-Signature-Ed25519");
-  const timestamp = req.get("X-Signature-Timestamp");
-  if (!signature || !/^[0-9a-fA-F]{128}$/.test(signature) || !timestamp || !/^\d+$/.test(timestamp) || !Buffer.isBuffer(req.body)) return res.sendStatus(401);
-
-  const rawBody = req.body as Buffer;
-  const [isValid, error] = tryCatch(() => nacl.sign.detached.verify(Buffer.concat([Buffer.from(timestamp, "utf8"), rawBody]), Buffer.from(signature, "hex"), publicKey));
-  if (!isValid || error) return res.sendStatus(401);
-
-  const [payload, parseError] = tryCatch(() => JSON.parse(rawBody.toString("utf8")) as DiscordWebhookPayload);
-  if (parseError) return res.sendStatus(400);
+router.post("/", verifyKeyMiddleware(ENV.DISCORD_PUBLIC_KEY), async (req, res) => {
+  const payload = req.body as DiscordWebhookPayload;
 
   if (payload.type === 0) return res.status(204).end();
   if (payload.type !== 1 || !payload.event) return res.sendStatus(400);

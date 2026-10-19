@@ -18,6 +18,7 @@
     "chalk": "^6.0.1",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.6",
+    "discord-interactions": "^4.4.0",
     "discord.js": "^14.27.0",
     "dotenv": "^18.0.4",
     "entities": "^8.1.0",
@@ -28,7 +29,6 @@
     "luxon": "^3.7.2",
     "ratemyprofessors-client": "^3.0.0",
     "tough-cookie": "^6.0.2",
-    "tweetnacl": "^1.0.3",
     "uuid": "^14.0.2",
     "zod": "^4.6.5"
   },
