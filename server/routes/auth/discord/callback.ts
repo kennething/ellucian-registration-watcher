@@ -49,7 +49,10 @@ router.get("/", async (req, res) => {
     if (error) return res.sendStatus(500);
 
     const uuid = existingUser ? existingUser.uuid : uuidv6();
-    if (!existingUser) db.prepare("INSERT INTO users (uuid, discord_id, created_at) VALUES (?, ?, ?)").run(uuid, discordId, timeNow());
+    if (!existingUser) {
+      db.prepare("INSERT INTO users (uuid, discord_id, created_at) VALUES (?, ?, ?)").run(uuid, discordId, timeNow());
+      db.prepare("INSERT INTO user_settings (uuid) VALUES (?)").run(uuid);
+    }
 
     const jwtToken = jwt.sign({ uuid, discordId }, ENV.JWT_SECRET as string, { expiresIn: "7d" });
     res.cookie("token", jwtToken, {
