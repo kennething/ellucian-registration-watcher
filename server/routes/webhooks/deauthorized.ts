@@ -36,9 +36,7 @@ router.post("/", verifyKeyMiddleware(ENV.DISCORD_PUBLIC_KEY), async (req, res) =
   const userId = event.data?.user?.id;
   if (!userId) return res.sendStatus(400);
 
-  const [, setError] = tryCatch(() => db.prepare("UPDATE users SET is_installed = 0 WHERE discord_id = ?").run(userId));
-  if (setError) return res.sendStatus(500);
-
+  tryCatch(() => db.prepare("UPDATE users SET is_installed = 0 WHERE discord_id = ?").run(userId));
   return res.status(204).end();
 });
 
