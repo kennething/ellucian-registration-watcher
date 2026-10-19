@@ -19,7 +19,7 @@ export function runMigrations(db: Database) {
   const appliedRows = db.prepare("SELECT name FROM _migrations").all() as { name: string }[];
   const appliedSet = new Set(appliedRows.map((row) => row.name));
 
-  const migrationsDir = path.join(__dirname, "migrations");
+  const migrationsDir = path.join(import.meta.dirname, "migrations");
   if (!fs.existsSync(migrationsDir)) fs.mkdirSync(migrationsDir, { recursive: true });
 
   const migrationFiles = fs
