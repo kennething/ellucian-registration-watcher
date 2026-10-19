@@ -86,7 +86,7 @@ export async function refreshConstantData(db: Database) {
 
   ClientManager.setClients(
     primaryTerm.termId,
-    allTerms.map((term) => term.termId)
+    (db.prepare("SELECT term_id FROM terms").all() as { term_id: string }[]).map((term) => term.term_id as TermId)
   );
   ClientManager.terms = allTerms;
   ClientManager.subjects = subjects.map((subject) => ({ code: subject.code, name: subject.description }));
