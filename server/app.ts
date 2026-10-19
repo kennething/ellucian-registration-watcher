@@ -30,7 +30,11 @@ async function registerRoutes(app: Express, dir: string, basePath = ""): Promise
 }
 
 export async function startServer() {
-  const app = express().use(cookieParser()).use(express.json());
+  const app = express().use(cookieParser());
+  app.use((req, res, next) => {
+    if (req.path === "/webhooks/deauthorized") return next();
+    express.json()(req, res, next);
+  });
   if (ENV.FRONTEND_URL) app.use(cors({ origin: ENV.FRONTEND_URL, optionsSuccessStatus: 200, credentials: true }));
 
   const projectRoot = process.cwd();
