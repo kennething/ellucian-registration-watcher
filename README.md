@@ -169,8 +169,9 @@ re-registering.
 
 | Variable             | Description                                                                               | Default            | Required |
 | -------------------- | ----------------------------------------------------------------------------------------- | ------------------ | -------- |
+| `DISCORD_PUBLIC_KEY` | Public key of your Discord bot.                                                           |                    | yes      |
+| `APPLICATION_ID`     | Application ID of your Discord bot.                                                       |                    | yes      |
 | `DISCORD_TOKEN`      | Token of your Discord bot.                                                                |                    | yes\*    |
-| `APPLICATION_ID`     | Application ID of your Discord bot.                                                       |                    | yes\*    |
 | `PRIMARY_COLOR`      | Hex color code for the primary container color.                                           | `0x065942`         |          |
 | `ERROR_COLOR`        | Hex color code for the error container color.                                             | `0xff0000`         |          |
 | `SEARCH_PAGE_SIZE`   | Number of search results to show per page of `/search`. Max of `25` due to Discord limit. | `4`                |          |
@@ -178,8 +179,7 @@ re-registering.
 
 > \[!NOTE\]
 >
-> These are only required if you want to run the Discord bot. Omit
-> `DISCORD_TOKEN` to skip running the bot.
+> `DISCORD_TOKEN` is required to run the bot. Omit it to skip running the bot.
 
 ## Frontend
 

@@ -10,7 +10,6 @@ import { loadCommands } from "../util/loaders";
 import { paginationState } from "../common";
 import { ClassData } from "~/utils/types";
 import type { Event } from "./index";
-import { Term } from "~/utils/term";
 import { Log } from "~/utils/log";
 import { URL } from "node:url";
 import ENV from "~/utils/env";
@@ -67,6 +66,11 @@ export default {
         } // page
         else if (type === "moreinfo") {
           const [term, crn] = moreButtonInfo as [string, string];
+          if (!ClientManager.terms.some((t) => t.termId === term))
+            return void interaction.followUp({
+              ...(getErrorResponse(ErrorCodes.SEARCH_EXPIRED, "This term is no longer available.") as InteractionReplyOptions),
+              flags: [MessageFlags.Ephemeral, MessageFlags.IsComponentsV2]
+            });
 
           const course = (await getClassData(term, { term, crn: [crn] }, 0))[0][0];
           if (!course)
@@ -145,6 +149,16 @@ ${classes
         try {
           const value = interaction.values[0];
           if (value === "") return;
+          if (value === "all") {
+            db.prepare("UPDATE watchers SET is_active = 0 WHERE owner_uuid = (SELECT uuid FROM users WHERE discord_id = ?)").run(interaction.user.id);
+            await interaction.followUp({
+              content: `All watchers have been disabled.`,
+              ephemeral: true
+            });
+            await interaction.editReply({ components: [interaction.message.components[1]] });
+            return;
+          }
+
           const [term, crn, subject, courseNumber, sequenceNumber] = value.split(":");
 
           db.prepare("UPDATE watchers SET is_active = 0 WHERE owner_uuid = (SELECT uuid FROM users WHERE discord_id = ?) AND term_id = ? AND crn = ?").run(interaction.user.id, term, crn);

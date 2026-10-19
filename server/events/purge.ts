@@ -9,6 +9,7 @@ import { Log } from "~/utils/log";
 import ENV from "~/utils/env";
 import { db } from "~/db";
 import path from "path";
+import fs from "fs";
 
 export function purgeOutdatedLoop(): void {
   waitForInterval(ENV.OUTDATED_PURGE_INTERVAL, ENV.OUTDATED_PURGE_OFFSET, async () => {
@@ -18,6 +19,7 @@ export function purgeOutdatedLoop(): void {
 
     if (termsToDelete.length) {
       const backupPath = path.join(ENV.BACKUP_DATABASE_PATH, `backup_${timeNow()}.sqlite3`);
+      if (!fs.existsSync(backupPath)) fs.mkdirSync(path.dirname(backupPath), { recursive: true });
       await db.backup(backupPath);
       Log.info(`Backed up database before purging to ${backupPath}`);
 
@@ -53,52 +55,80 @@ export function purgeOutdatedLoop(): void {
     const [allTerms, error] = tryCatch<{ term_id: string }[]>(() => db.prepare("SELECT DISTINCT term_id FROM watchers").all() as any);
     if (error) return Log.error(error);
 
-    const outdatedTerms = allTerms.filter((term) => !ClientManager.terms.some((t) => t.termId === term.term_id));
+    let outdatedTerms = allTerms.filter((term) => !ClientManager.terms.some((t) => t.termId === term.term_id));
     if (!outdatedTerms.length) return;
+
+    const alreadyDeletingTerms = db.prepare("SELECT term_id FROM terms WHERE delete_timestamp IS NOT NULL").all() as { term_id: string }[];
+    outdatedTerms = outdatedTerms.filter((term) => !alreadyDeletingTerms.some((t) => t.term_id === term.term_id));
+    if (!outdatedTerms.length) return;
+
     db.prepare("UPDATE terms SET delete_timestamp = ? WHERE term_id IN (" + outdatedTerms.map(() => "?").join(",") + ")").run(
       timeNow() + ENV.WATCHER_PURGE_NOTICE,
       ...outdatedTerms.map((term) => term.term_id)
     );
 
     const [usersToNotify, error2] = tryCatch<{ owner_uuid: string }[]>(
-      () => db.prepare(`SELECT DISTINCT owner_uuid FROM watchers WHERE term_id IN (${outdatedTerms.map(() => "?").join(",")})`).all(...outdatedTerms.map((term) => term.term_id)) as any
+      () =>
+        db
+          .prepare(
+            `SELECT DISTINCT owner_uuid 
+            FROM watchers 
+            WHERE (
+              SELECT notify_stale_terms 
+              FROM user_settings
+              WHERE user_settings.uuid = watchers.owner_uuid
+            ) = 1
+            AND (
+              SELECT is_installed
+              FROM users
+              WHERE users.uuid = watchers.owner_uuid
+            ) = 1
+            AND term_id IN (${outdatedTerms.map(() => "?").join(",")})`
+          )
+          .all(...outdatedTerms.map((term) => term.term_id)) as any
     );
     if (error2) return Log.error(error2);
 
     const purgeTime = timeNow() + ENV.WATCHER_PURGE_NOTICE;
     for (const user of usersToNotify) {
       const [{ discord_id: discordId }, error] = tryCatch<{ discord_id: string }>(() => db.prepare("SELECT discord_id FROM users WHERE uuid = ?").get(user.owner_uuid) as any);
-      if (error) return;
+      if (error) continue;
 
       setTimeout(
         async () => {
           const discordUser = await botClient.client?.users.fetch(discordId);
-          discordUser?.send({
-            embeds: [
-              {
-                title: "Your outdated watchers are being removed",
-                description: `One or more of your watchers is for an outdated term and will be automatically deleted <t:${purgeTime}:R>.\n\nWatchers for the **${mostRecentTermStrings.join(" and ")}** term${mostRecentTermStrings.length > 1 ? "s" : ""} will not be affected.`,
-                color: ENV.ERROR_COLOR,
-                footer: { text: "No action is required from you." },
-                timestamp: new Date().toISOString()
-              }
-            ],
-            components: ENV.FRONTEND_URL
-              ? [
-                  {
-                    type: ComponentType.ActionRow,
-                    components: [
-                      {
-                        type: ComponentType.Button,
-                        style: ButtonStyle.Link,
-                        label: "View your watchers",
-                        url: `${ENV.FRONTEND_URL}/watchers`
-                      }
-                    ]
-                  }
-                ]
-              : undefined
-          });
+          if (!discordUser) return;
+
+          try {
+            await discordUser?.send({
+              embeds: [
+                {
+                  title: "Your outdated watchers are being removed",
+                  description: `One or more of your watchers is for an outdated term and will be automatically deleted <t:${purgeTime}:R>.\n\nWatchers for the **${mostRecentTermStrings.join(" and ")}** term${mostRecentTermStrings.length > 1 ? "s" : ""} will not be affected.`,
+                  color: ENV.ERROR_COLOR,
+                  footer: { text: "No action is required from you" },
+                  timestamp: new Date().toISOString()
+                }
+              ],
+              components: ENV.FRONTEND_URL
+                ? [
+                    {
+                      type: ComponentType.ActionRow,
+                      components: [
+                        {
+                          type: ComponentType.Button,
+                          style: ButtonStyle.Link,
+                          label: "View your watchers",
+                          url: `${ENV.FRONTEND_URL}/watchers`
+                        }
+                      ]
+                    }
+                  ]
+                : undefined
+            });
+          } catch (error) {
+            tryCatch(() => db.prepare("UPDATE users SET is_installed = 0 WHERE discord_id = ?").run(discordId));
+          }
         },
         hashToRange(discordId, ENV.OUTDATED_PURGE_INTERVAL, ENV.NOTIFICATION_BUCKET_SIZE) * 1000
       );
@@ -106,6 +136,55 @@ export function purgeOutdatedLoop(): void {
 
     Log.info(`Purging ${outdatedTerms.map((term) => term.term_id).join(", ")} at ${new Date(purgeTime * 1000).toLocaleString()}`);
 
-    refreshConstantData(db);
+    // * notify new terms
+    {
+      const newTerms = await refreshConstantData(db);
+      if (!newTerms.length) return;
+
+      const [usersToNotify, error] = tryCatch<{ uuid: string; discord_id: string }[]>(
+        () => db.prepare(`SELECT uuid, discord_id FROM users WHERE is_installed = 1 AND (SELECT notify_new_terms FROM user_settings WHERE user_settings.uuid = users.uuid) = 1`).all() as any
+      );
+      if (error) return Log.error(error);
+
+      for (const user of usersToNotify) {
+        setTimeout(
+          async () => {
+            const discordUser = await botClient.client?.users.fetch(user.discord_id);
+            if (!discordUser) return;
+
+            try {
+              discordUser?.send({
+                embeds: [
+                  {
+                    title: `${newTerms.map((term) => term.getTermString()).join(" and ")} ${newTerms.length === 1 ? "is" : "are"} now available early`,
+                    description: `We've been digging in the trash and we found ${newTerms.map((term) => term.getTermString()).join(" and ")} sitting there!`,
+                    color: ENV.PRIMARY_COLOR,
+                    timestamp: new Date().toISOString()
+                  }
+                ],
+                components: ENV.FRONTEND_URL
+                  ? [
+                      {
+                        type: ComponentType.ActionRow,
+                        components: [
+                          {
+                            type: ComponentType.Button,
+                            style: ButtonStyle.Link,
+                            label: "Start scheduling now",
+                            url: `${ENV.FRONTEND_URL}/schedule`
+                          }
+                        ]
+                      }
+                    ]
+                  : undefined
+              });
+            } catch (error) {
+              tryCatch(() => db.prepare("UPDATE users SET is_installed = 0 WHERE discord_id = ?").run(user.discord_id));
+            }
+          },
+          hashToRange(user.discord_id, ENV.OUTDATED_PURGE_INTERVAL, ENV.NOTIFICATION_BUCKET_SIZE) * 1000
+        );
+      }
+    }
   });
 }

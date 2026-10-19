@@ -196,11 +196,11 @@ export function watchClassesLoop(): void {
     }
 
     for (const [uuid, availableClasses] of notificationsToSend) {
-      const [{ discord_id: discordId }, error] = tryCatch<{ discord_id: string }>(() => db.prepare("SELECT discord_id FROM users WHERE uuid = ?").get(uuid) as any);
-      if (error) return Log.debug(error);
+      const [{ discord_id: discordId }, error] = tryCatch<{ discord_id: string }>(() => db.prepare("SELECT discord_id FROM users WHERE uuid = ? AND is_installed = 1").get(uuid) as any);
+      if (error) continue;
 
       const user = await botClient.client?.users.fetch(discordId);
-      if (!user) return;
+      if (!user) continue;
       const allSameTerm = availableClasses.every((c) => c.term === availableClasses[0].term);
 
       const components: Mutable<BaseMessageOptions["components"]> = [
@@ -211,10 +211,14 @@ export function watchClassesLoop(): void {
               type: ComponentType.StringSelect,
               custom_id: "alert",
               placeholder: "Disable a watcher",
-              options: availableClasses.map((c) => ({
-                label: `${allSameTerm ? "" : `(${getTermString(c.term)}) `}${c.subject} ${c.courseNumber} - ${c.sequenceNumber}`,
-                value: `${c.term}:${c.courseReferenceNumber}:${c.subject}:${c.courseNumber}:${c.sequenceNumber}`
-              }))
+              options: [{ label: "All Watchers", value: "all" }]
+                .concat(
+                  availableClasses.map((c) => ({
+                    label: `${allSameTerm ? "" : `(${getTermString(c.term)}) `}${c.subject} ${c.courseNumber} - ${c.sequenceNumber}`,
+                    value: `${c.term}:${c.courseReferenceNumber}:${c.subject}:${c.courseNumber}:${c.sequenceNumber}`
+                  }))
+                )
+                .slice(0, 25)
             }
           ]
         }
@@ -235,27 +239,32 @@ export function watchClassesLoop(): void {
       const currentTime = timeNow();
       setTimeout(
         () => {
-          user?.send({
-            embeds: [
-              {
-                title: `Watcher${availableClasses.length > 1 ? "s" : ""} Triggered`,
-                description:
-                  availableClasses
-                    .map(
-                      (c) =>
-                        `- ${allSameTerm ? "" : `(${getTermString(c.term)}) `}**${c.subject} ${c.courseNumber} - ${c.sequenceNumber}** has ${c.notifyWhen! < 2 ? c.seatsAvailable : c.waitCount} ${c.notifyWhen! < 2 ? `seat${c.seatsAvailable === 1 ? "" : "s"} available` : `waitlist spot${c.waitCount === 1 ? "" : "s"} taken`}`
-                    )
-                    .join("\n") +
-                  `\nTh${availableClasses.length > 1 ? "ese" : "is"} watcher${availableClasses.length > 1 ? "s" : ""} will be able to notify you again <t:${currentTime + ENV.NOTIFICATION_COOLDOWN}:R>`,
-                color: ENV.PRIMARY_COLOR,
-                timestamp: new Date().toISOString()
-              }
-            ],
-            components
-            // flags: availableClasses.every((c) => c.notification_priority === 0) ? MessageFlags.SuppressNotifications : undefined
-          });
+          try {
+            user?.send({
+              embeds: [
+                {
+                  title: `Watcher${availableClasses.length > 1 ? "s" : ""} Triggered`,
+                  description:
+                    availableClasses
+                      .map(
+                        (c) =>
+                          `- ${allSameTerm ? "" : `(${getTermString(c.term)}) `}**${c.subject} ${c.courseNumber} - ${c.sequenceNumber}** has ${c.notifyWhen! < 2 ? c.seatsAvailable : c.waitCount} ${c.notifyWhen! < 2 ? `seat${c.seatsAvailable === 1 ? "" : "s"} available` : `waitlist spot${c.waitCount === 1 ? "" : "s"} taken`}`
+                      )
+                      .join("\n") +
+                    `\nTh${availableClasses.length > 1 ? "ese" : "is"} watcher${availableClasses.length > 1 ? "s" : ""} will be able to notify you again <t:${currentTime + ENV.NOTIFICATION_COOLDOWN}:R>`,
+                  color: ENV.PRIMARY_COLOR,
+                  timestamp: new Date().toISOString()
+                }
+              ],
+              components
+              // flags: availableClasses.every((c) => c.notification_priority === 0) ? MessageFlags.SuppressNotifications : undefined
+            });
+          } catch (error) {
+            tryCatch(() => db.prepare("UPDATE users SET is_installed = 0 WHERE discord_id = ?").run(discordId));
+          }
         },
-        hashToRange(user.id, ENV.CLASS_FETCH_INTERVAL, ENV.NOTIFICATION_BUCKET_SIZE) * 1000
+        // hashToRange(user.id, ENV.CLASS_FETCH_INTERVAL, ENV.NOTIFICATION_BUCKET_SIZE) * 1000
+        0
       );
     }
   });

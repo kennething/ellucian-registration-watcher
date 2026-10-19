@@ -202,10 +202,12 @@ const ENV = z
     MATH_FETCH_OFFSET: Integer.nonnegative().default(32400),
 
     // * Discord Bot
+    /** Public key of your Discord bot. */
+    DISCORD_PUBLIC_KEY: z.string(),
+    /** Application ID of your Discord bot. */
+    APPLICATION_ID: z.string(),
     /** Token of your Discord bot. */
     DISCORD_TOKEN: z.string().optional(),
-    /** Application ID of your Discord bot. */
-    APPLICATION_ID: z.string().optional(),
     /**
      * Hex color code for the primary container color.
      * @default 0x065942

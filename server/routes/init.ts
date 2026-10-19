@@ -5,16 +5,16 @@ import { authController } from "../controllers/auth";
 import { NotificationType } from "~/utils/types";
 import { botClient } from "~/bot/common";
 import { Router } from "express";
-import ENV from "~/utils/env";
 import { db } from "~/db";
 
 const router = Router();
 
 router.get("/", authController, async (req, res) => {
   const user = await botClient.client?.users.fetch(req.user.discordId);
-  if (ENV.DISCORD_TOKEN && !user) return res.status(400).json({ error: "App not authorized on Discord" });
 
-  const [userSettings, error] = tryCatch<{ web_theme: number }>(() => db.prepare("SELECT web_theme FROM users WHERE uuid = ?").get(req.user.uuid) as any);
+  const [userSettings, error] = tryCatch<{ web_theme: number; notify_new_terms: number; notify_stale_terms: number; notify_default_watchers: number }>(
+    () => db.prepare("SELECT * FROM user_settings WHERE uuid = ?").get(req.user.uuid) as any
+  );
   if (error) return res.sendStatus(500);
 
   const [watchers, error2] = tryCatch<{ uuid: string; term_id: string; is_active: number; crn: string; notify_when: NotificationType; notify_when_value: number }[]>(
@@ -59,6 +59,8 @@ router.get("/", authController, async (req, res) => {
     };
   });
 
+  db.prepare("UPDATE users SET is_installed = 1 WHERE uuid = ?").run(req.user.uuid); // theyll log in again eventually :shipit:
+
   res.status(200).json({
     user: {
       uuid: req.user.uuid,
@@ -67,7 +69,16 @@ router.get("/", authController, async (req, res) => {
       username: user?.username,
       avatar: user?.avatar,
       settings: {
-        theme: userSettings.web_theme
+        /** 0 = system, 1 = light, 2 = dark */
+        theme: userSettings.web_theme,
+        notifications: {
+          /** enabled/disabled */
+          newTerms: Boolean(userSettings.notify_new_terms),
+          /** enabled/disabled */
+          staleTerms: Boolean(userSettings.notify_stale_terms),
+          /** enabled/disabled */
+          defaultWatchers: Boolean(userSettings.notify_default_watchers)
+        }
       }
     },
     validTerms: ClientManager.terms.map((term) => ({ termId: term.termId, isEarly: term.isEarly })),

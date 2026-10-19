@@ -11,7 +11,10 @@ import axios from "axios";
 
 /** gets terms, subjects, and attributes from banner
  *
- * stores new values in db and updates `ClientManager` data members */
+ * stores new values in db and updates `ClientManager` data members
+ *
+ * @returns newly added terms
+ */
 export async function refreshConstantData(db: Database) {
   const requestClient = wrapper(axios.create({ jar: new CookieJar() }));
 
@@ -21,8 +24,7 @@ export async function refreshConstantData(db: Database) {
   const primaryTermCode = terms.find((term) => term.code.slice(4) === "20" || term.code.slice(4) === "90")!;
   const primaryTerm = new Term(primaryTermCode.code);
 
-  const offTermCode = terms.indexOf(primaryTermCode) === 0 ? null : terms.find((term) => term.code !== primaryTermCode?.code)!;
-  const offTerm = offTermCode ? new Term(offTermCode.code) : null;
+  const offTerm = new Term(terms.find((term) => term.code !== primaryTermCode?.code)!.code);
 
   let subjects = (
     await requestClient.get<{ code: string; description: string }[]>(`${ENV.BANNER_API_URL}/StudentRegistrationSsb/ssb/classSearch/get_subject?searchTerm=&term=${primaryTerm.termId}&offset=1&max=500`)
@@ -41,7 +43,7 @@ export async function refreshConstantData(db: Database) {
   specialAttributes = specialAttributes.map((attribute) => ({ code: attribute.code, description: attribute.description.split("-").join(" - ") }));
 
   const formData = new FormData();
-  formData.append("term", offTerm ? offTerm.nextCycleTermId() : primaryTerm.nextTermId());
+  formData.append("term", offTerm.nextCycleTermId());
   await requestClient.post(`${ENV.BANNER_API_URL}/StudentRegistrationSsb/ssb/term/search?mode=search`, formData);
   const earlyOffTermCode = (
     await requestClient.get(
@@ -62,6 +64,7 @@ export async function refreshConstantData(db: Database) {
     (term): term is Term => term !== null
   );
 
+  const existingTermIds = (db.prepare("SELECT term_id FROM terms").all() as { term_id: string }[]).map((term) => term.term_id);
   db.transaction(() => {
     db.prepare("DELETE FROM terms WHERE delete_timestamp IS NULL AND term_id NOT IN (SELECT DISTINCT term_id FROM watchers)").run();
 
@@ -94,4 +97,6 @@ export async function refreshConstantData(db: Database) {
   Log.debug("locations loaded =", ClientManager.locations.length);
 
   Log.info(`Refreshed constant data: ${allTerms.length} terms, ${subjects.length} subjects, ${attributes.length} attributes, ${specialAttributes.length} special attributes`);
+
+  return allTerms.filter((term) => !existingTermIds.includes(term.termId));
 }
