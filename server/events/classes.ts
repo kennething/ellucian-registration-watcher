@@ -86,7 +86,7 @@ export function watchClassesLoop(): void {
     if (error) return Log.error(error);
 
     const classes = await (async () => {
-      const data = (await searchClasses(mostRecentTerm.termId, { crn: watchers.filter((watcher) => watcher.term_id === mostRecentTerm.termId).map((watcher) => watcher.crn) }, true))[0];
+      const data = (await searchClasses(mostRecentTerm.termId, { crn: [...new Set(watchers.filter((watcher) => watcher.term_id === mostRecentTerm.termId).map((watcher) => watcher.crn))] }, true))[0];
 
       const getStatement = db.prepare("SELECT * FROM course_history WHERE crn = ? AND term_id = ?");
       const insertStatement = db.prepare(
