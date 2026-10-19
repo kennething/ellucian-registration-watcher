@@ -152,7 +152,7 @@ export function watchClassesLoop(): void {
           }
         }
 
-        Log.info(`Updated course history for ${data.length} classes for term ${mostRecentTerm.termId}`);
+        Log.debug(`Updated course history for ${data.length} classes for term ${mostRecentTerm.termId}`);
       })();
 
       const classMap = new Map<string, NotificationData>(); // Map<CRN, NotificationData>
