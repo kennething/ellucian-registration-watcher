@@ -220,7 +220,7 @@ export async function generateScheduleImage<T extends string | null>(
   const buffer = isShared ? canvas.toBuffer("image/png") : canvas.toBuffer("image/jpeg");
   return [
     schedule.uuid,
-    `## ${getTermString(schedule.term_id)}${ClientManager.terms.find((term) => term.termId === schedule.term_id)!.isEarly ? " (Early)" : ""} - ${parsedClasses.reduce((acc, curr) => acc + curr.credits, 0)} credits`,
+    `## ${getTermString(schedule.term_id)}${ClientManager.terms.find((term) => term.termId === schedule.term_id)?.isEarly ? " (Early)" : ""} - ${parsedClasses.reduce((acc, curr) => acc + curr.credits, 0)} credits`,
     new AttachmentBuilder(buffer, { name: `${schedule.name}.${isShared ? "png" : "jpg"}` })
   ];
 }
