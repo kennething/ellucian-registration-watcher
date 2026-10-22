@@ -130,7 +130,7 @@ export function purgeOutdatedLoop(): void {
             tryCatch(() => db.prepare("UPDATE users SET is_installed = 0 WHERE discord_id = ?").run(discordId));
           }
         },
-        hashToRange(discordId, ENV.OUTDATED_PURGE_INTERVAL, ENV.NOTIFICATION_BUCKET_SIZE) * 1000
+        hashToRange(discordId, ENV.CLASS_FETCH_INTERVAL, ENV.NOTIFICATION_BUCKET_SIZE) * 1000
       );
     }
 
@@ -182,7 +182,7 @@ export function purgeOutdatedLoop(): void {
               tryCatch(() => db.prepare("UPDATE users SET is_installed = 0 WHERE discord_id = ?").run(user.discord_id));
             }
           },
-          hashToRange(user.discord_id, ENV.OUTDATED_PURGE_INTERVAL, ENV.NOTIFICATION_BUCKET_SIZE) * 1000
+          hashToRange(user.discord_id, ENV.CLASS_FETCH_INTERVAL, ENV.NOTIFICATION_BUCKET_SIZE) * 1000
         );
       }
     }

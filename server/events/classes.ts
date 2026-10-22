@@ -263,8 +263,7 @@ export function watchClassesLoop(): void {
             tryCatch(() => db.prepare("UPDATE users SET is_installed = 0 WHERE discord_id = ?").run(discordId));
           }
         },
-        // hashToRange(user.id, ENV.CLASS_FETCH_INTERVAL, ENV.NOTIFICATION_BUCKET_SIZE) * 1000
-        0
+        hashToRange(user.id, ENV.CLASS_FETCH_INTERVAL, ENV.NOTIFICATION_BUCKET_SIZE) * 1000
       );
     }
   });
