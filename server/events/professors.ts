@@ -43,7 +43,7 @@ export function fetchProfessorsLoop(): void {
 
       return {
         school_id: professor.code,
-        school_name: professor.description,
+        school_name: professor.sortedName,
         rmp_id: match?.id ?? null,
         rmp_name: match?.name ?? null,
         overall_rating: match?.overall_rating ?? null,

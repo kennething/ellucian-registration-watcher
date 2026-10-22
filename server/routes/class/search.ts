@@ -24,7 +24,15 @@ router.get("/", authController, async (req, res) => {
     const professor = c.faculty.find((f) => f.primaryIndicator);
     const [rmpData, error] = professor
       ? tryCatch<{ rmp_id: number; overall_rating: number; num_ratings: number; percent_take_again: number; level_of_difficulty: number }>(
-          () => db.prepare("SELECT rmp_id, overall_rating, num_ratings, percent_take_again, level_of_difficulty FROM professors WHERE school_name = ? LIMIT 1").get(professor.displayName) as any
+          () =>
+            db.prepare("SELECT rmp_id, overall_rating, num_ratings, percent_take_again, level_of_difficulty FROM professors WHERE school_name = ? LIMIT 1").get(
+              professor.displayName
+                .replaceAll(/,|\.|\-|\([A-Za-z]{1,3}\/[A-Za-z]{1,3}\)/g, " ")
+                .split(" ")
+                .filter((w) => w.length > 1)
+                .sort()
+                .join(" ")
+            ) as any
         )
       : [];
     if (error) return Log.error(error);
