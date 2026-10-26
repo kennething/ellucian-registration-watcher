@@ -50,7 +50,6 @@ export default {
               ...(getErrorResponse(ErrorCodes.SEARCH_EXPIRED, "This search has expired.") as InteractionReplyOptions),
               flags: [MessageFlags.Ephemeral, MessageFlags.IsComponentsV2]
             });
-          if (state.userId !== interaction.user.id) return;
 
           const maxPages = Math.ceil(state.total / ENV.SEARCH_PAGE_SIZE);
 
@@ -61,6 +60,9 @@ export default {
 
           const offset = (state.page - 1) * ENV.SEARCH_PAGE_SIZE;
           const [parsedClasses, total] = await getClassData(state.params.term, state.params, offset);
+
+          clearTimeout(state.expirationTimeout);
+          state.expirationTimeout = setTimeout(() => paginationState.delete(paginationId), ENV.PAGINATION_TIMEOUT * 1000);
 
           await interaction.editReply(await generateResponse(state.params.term, state.page, total, parsedClasses, paginationId));
         } // page

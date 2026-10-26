@@ -6,4 +6,5 @@ export const botClient = {
   client: null as Client<true> | null
 };
 
-export const paginationState = new Map<string, { userId: string; page: number; total: number; params: ClassSearchParams }>();
+/** `Map<paginationId, { state }>` */
+export const paginationState = new Map<string, { page: number; total: number; params: ClassSearchParams; expirationTimeout: NodeJS.Timeout }>();

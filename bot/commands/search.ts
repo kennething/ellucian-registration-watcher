@@ -522,8 +522,8 @@ export default {
     if (total === 0) return void interaction.editReply(getErrorResponse(ErrorCodes.SEARCH_NO_CLASSES, "No classes found matching your search criteria"));
 
     const paginationId = uuidv7();
-    paginationState.set(paginationId, { userId: interaction.user.id, page: 1, total, params: searchParams });
-    setTimeout(() => paginationState.delete(paginationId), ENV.PAGINATION_TIMEOUT * 1000);
+    const expirationTimeout = setTimeout(() => paginationState.delete(paginationId), ENV.PAGINATION_TIMEOUT * 1000);
+    paginationState.set(paginationId, { page: 1, total, params: searchParams, expirationTimeout });
 
     interaction.editReply(await generateResponse(searchParams.term, 1, total, parsedClasses, paginationId));
   }
