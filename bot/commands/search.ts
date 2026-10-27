@@ -8,7 +8,6 @@ import { getCourseColor } from "../util/index";
 import { paginationState } from "../common";
 import type { Command } from "./index";
 import { v7 as uuidv7 } from "uuid";
-import { Term } from "~/utils/term";
 import { Log } from "~/utils/log";
 import ENV from "~/utils/env";
 import { db } from "~/db";
