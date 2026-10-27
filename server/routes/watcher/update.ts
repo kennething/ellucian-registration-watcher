@@ -1,5 +1,6 @@
 import { searchClasses, tryCatch } from "~/utils/fetch";
 import { authController } from "../../controllers/auth";
+import { timeNow } from "~/utils/time";
 import { Router } from "express";
 import { db } from "~/db";
 import * as z from "zod";
@@ -31,8 +32,8 @@ router.patch("/", authController, async (req, res) => {
 
   const [, error2] = tryCatch(() =>
     db
-      .prepare(`UPDATE watchers SET is_active = ?, notify_when = ?, notify_when_value = ? WHERE uuid = ? AND owner_uuid = ?`)
-      .run(Number(watcher.isActive), watcher.notifyWhen, watcher.notifyWhenValue, watcher.uuid, req.user.uuid)
+      .prepare(`UPDATE watchers SET updated_at = ?, is_active = ?, notify_when = ?, notify_when_value = ? WHERE uuid = ? AND owner_uuid = ?`)
+      .run(timeNow(), Number(watcher.isActive), watcher.notifyWhen, watcher.notifyWhenValue, watcher.uuid, req.user.uuid)
   );
   if (error2) return res.sendStatus(500);
 

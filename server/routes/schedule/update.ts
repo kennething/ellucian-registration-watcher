@@ -1,5 +1,6 @@
 import { authController } from "../../controllers/auth";
 import { tryCatch } from "~/utils/fetch";
+import { timeNow } from "~/utils/time";
 import { Router } from "express";
 import { db } from "~/db";
 import * as z from "zod";
@@ -19,7 +20,7 @@ router.patch("/", authController, async (req, res) => {
   const uniqueCrns = Array.from(new Set(schedule.crns));
   if (uniqueCrns.length !== schedule.crns.length) return res.status(400).json({ error: "Duplicate CRNs in schedule" });
 
-  const [, error2] = tryCatch(() => db.prepare(`UPDATE schedules SET name = ? WHERE uuid = ? AND owner_uuid = ?`).run(schedule.name, schedule.uuid, req.user.uuid));
+  const [, error2] = tryCatch(() => db.prepare(`UPDATE schedules SET name = ?, updated_at = ? WHERE uuid = ? AND owner_uuid = ?`).run(schedule.name, timeNow(), schedule.uuid, req.user.uuid));
   if (error2) return res.sendStatus(500);
 
   const [, error3] = tryCatch(() =>

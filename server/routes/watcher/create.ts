@@ -2,6 +2,7 @@ import { searchClasses, tryCatch } from "~/utils/fetch";
 import { authController } from "../../controllers/auth";
 import { timeNow } from "~/utils/time";
 import { v7 as uuidv7 } from "uuid";
+import { Log } from "~/utils/log";
 import { Router } from "express";
 import ENV from "~/utils/env";
 import { db } from "~/db";
@@ -40,26 +41,36 @@ router.post("/", authController, async (req, res) => {
   if (watcher.notifyWhen < 2 && watcher.notifyWhenValue > course.maximumEnrollment) return res.status(400).json({ error: "Notify when value cannot exceed maximum enrollment" });
   if (watcher.notifyWhen >= 2 && watcher.notifyWhenValue > course.waitCapacity) return res.status(400).json({ error: "Notify when value cannot exceed waitlist capacity" });
 
-  db.transaction(() => {
-    const watcherUuid = uuidv7();
-    const [, insertError] = tryCatch(() =>
-      db
-        .prepare(`INSERT INTO watchers (uuid, owner_uuid, is_active, created_at, term_id, crn, notify_when, notify_when_value) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`)
-        .run(watcherUuid, req.user.uuid, Number(watcher.isActive), timeNow(), watcher.term, watcher.crn, watcher.notifyWhen, watcher.notifyWhenValue)
-    );
-    if (insertError) return res.sendStatus(500);
+  try {
+    db.transaction(() => {
+      const watcherUuid = uuidv7();
+      db.prepare(`INSERT INTO watchers (uuid, owner_uuid, is_active, created_at, updated_at, term_id, crn, notify_when, notify_when_value) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`).run(
+        watcherUuid,
+        req.user.uuid,
+        Number(watcher.isActive),
+        timeNow(),
+        timeNow(),
+        watcher.term,
+        watcher.crn,
+        watcher.notifyWhen,
+        watcher.notifyWhenValue
+      );
 
-    res.status(200).json({
-      uuid: watcherUuid,
-      ownerUuid: req.user.uuid,
-      termId: watcher.term,
-      crn: watcher.crn,
-      notifyWhen: watcher.notifyWhen,
-      notifyWhenValue: watcher.notifyWhenValue,
-      isActive: watcher.isActive,
-      hasData: true
-    });
-  })();
+      res.status(200).json({
+        uuid: watcherUuid,
+        ownerUuid: req.user.uuid,
+        termId: watcher.term,
+        crn: watcher.crn,
+        notifyWhen: watcher.notifyWhen,
+        notifyWhenValue: watcher.notifyWhenValue,
+        isActive: watcher.isActive,
+        hasData: true
+      });
+    })();
+  } catch (error) {
+    Log.error(error);
+    res.sendStatus(500);
+  }
 });
 
 export default router;

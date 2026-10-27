@@ -34,39 +34,39 @@ router.post("/", authController, async (req, res) => {
   const classesArray = Array.from(classes.values());
   if (classesArray.length === 0) return res.status(400).json({ error: "No classes found for the provided CRNs" });
 
-  const watchers = classesArray
-    .filter((c) => missingCrns.includes(c.courseReferenceNumber))
-    .map((c) => ({
-      uuid: uuidv7(),
-      ownerUuid: req.user.uuid,
-      termId: scheduleTerm.term_id,
-      crn: c.courseReferenceNumber,
-      notifyWhen: 1,
-      notifyWhenValue: 1,
-      isActive: false
-    }));
+  const { notify_default_watchers: defaultNotify } = db.prepare("SELECT notify_default_watchers FROM user_settings WHERE uuid = ?").get(req.user.uuid) as { notify_default_watchers: number };
+
+  const watchers = classesArray.map((c) => ({
+    uuid: uuidv7(),
+    ownerUuid: req.user.uuid,
+    termId: scheduleTerm.term_id,
+    crn: c.courseReferenceNumber,
+    isActive: defaultNotify,
+    notifyWhen: 1,
+    notifyWhenValue: 1
+  }));
   db.transaction(() => {
+    db.prepare("UPDATE schedules SET updated_at = ? WHERE uuid = ? AND owner_uuid = ?").run(timeNow(), schedule.uuid, req.user.uuid);
+
+    const insertWatcher = db.prepare("INSERT INTO watchers (uuid, owner_uuid, is_active, created_at, updated_at, term_id, crn, notify_when, notify_when_value) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)");
+    const insertScheduleCrn = db.prepare("INSERT INTO schedule_crns (uuid, crn) VALUES (?, ?)");
+
     for (const watcher of watchers) {
-      db.prepare("INSERT INTO watchers (uuid, owner_uuid, is_active, created_at, term_id, crn, notify_when, notify_when_value) VALUES (?, ?, ?, ?, ?, ?, ?, ?)").run(
-        watcher.uuid,
-        req.user.uuid,
-        Number(watcher.isActive),
-        timeNow(),
-        watcher.termId,
-        watcher.crn,
-        watcher.notifyWhen,
-        watcher.notifyWhenValue
-      );
-      db.prepare("INSERT INTO schedule_crns (uuid, crn) VALUES (?, ?)").run(schedule.uuid, watcher.crn);
+      if (missingCrns.includes(watcher.crn))
+        insertWatcher.run(watcher.uuid, req.user.uuid, watcher.isActive, timeNow(), timeNow(), watcher.termId, watcher.crn, watcher.notifyWhen, watcher.notifyWhenValue);
+      insertScheduleCrn.run(schedule.uuid, watcher.crn);
     }
   })();
 
   res.status(200).json(
-    watchers.map((watcher) => ({
-      ...watcher,
-      isActive: Boolean(watcher.isActive),
-      ...classesArray.find((c) => c.courseReferenceNumber === watcher.crn)
-    }))
+    watchers
+      .filter((watcher) => missingCrns.includes(watcher.crn))
+      .map((watcher) => ({
+        ...watcher,
+        isActive: Boolean(watcher.isActive),
+        ...classesArray.find((c) => c.courseReferenceNumber === watcher.crn),
+        hasData: true
+      }))
   );
 });
 

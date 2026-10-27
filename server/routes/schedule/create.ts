@@ -2,6 +2,7 @@ import { authController } from "../../controllers/auth";
 import { tryCatch } from "~/utils/fetch";
 import { timeNow } from "~/utils/time";
 import { v7 as uuidv7 } from "uuid";
+import { Log } from "~/utils/log";
 import { Router } from "express";
 import ENV from "~/utils/env";
 import { db } from "~/db";
@@ -25,23 +26,30 @@ router.post("/", authController, async (req, res) => {
 
   if (num_schedules + 1 > ENV.USER_SCHEDULE_LIMIT) return res.status(400).json({ error: "Schedule limit exceeded" });
 
-  db.transaction(() => {
-    const scheduleUuid = uuidv7();
-    const [, insertError] = tryCatch(() =>
-      db
-        .prepare(`INSERT INTO schedules (uuid, owner_uuid, created_at, term_id, name) VALUES (?, ?, ?, ?, ?)`)
-        .run(scheduleUuid, req.user.uuid, timeNow(), schedule.term, schedule.name ?? `Schedule ${num_schedules + 1}`)
-    );
-    if (insertError) return res.sendStatus(500);
+  try {
+    db.transaction(() => {
+      const scheduleUuid = uuidv7();
+      db.prepare(`INSERT INTO schedules (uuid, owner_uuid, created_at, updated_at, term_id, name) VALUES (?, ?, ?, ?, ?, ?)`).run(
+        scheduleUuid,
+        req.user.uuid,
+        timeNow(),
+        timeNow(),
+        schedule.term,
+        schedule.name ?? `Schedule ${num_schedules + 1}`
+      );
 
-    res.status(200).json({
-      uuid: scheduleUuid,
-      ownerUuid: req.user.uuid,
-      termId: schedule.term,
-      name: schedule.name ?? `Schedule ${num_schedules + 1}`,
-      crns: []
-    });
-  })();
+      res.status(200).json({
+        uuid: scheduleUuid,
+        ownerUuid: req.user.uuid,
+        termId: schedule.term,
+        name: schedule.name ?? `Schedule ${num_schedules + 1}`,
+        crns: []
+      });
+    })();
+  } catch (error) {
+    Log.error(error);
+    res.sendStatus(500);
+  }
 });
 
 export default router;
