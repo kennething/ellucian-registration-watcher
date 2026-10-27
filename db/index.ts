@@ -15,7 +15,6 @@ if (!fs.existsSync(dbPath)) {
 
 export const db = new Database(dbPath, { fileMustExist: true });
 db.pragma("journal_mode = WAL");
-db.pragma("foreign_keys = ON");
 db.pragma("synchronous = NORMAL");
 
 process.on("exit", () => {
@@ -25,7 +24,9 @@ process.on("exit", () => {
 process.on("SIGINT", () => process.exit());
 process.on("SIGTERM", () => process.exit());
 
+db.pragma("foreign_keys = OFF");
 runMigrations(db);
+db.pragma("foreign_keys = ON");
 await refreshConstantData(db);
 
 Log.debug("initiated db connection");

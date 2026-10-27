@@ -1,5 +1,3 @@
-PRAGMA foreign_keys = 0;
-
 CREATE TABLE temp_table AS SELECT * FROM watchers;
 
 DROP TABLE watchers;
@@ -59,8 +57,7 @@ CREATE TABLE schedules (
     created_at INTEGER NOT NULL,
     updated_at INTEGER NOT NULL,
     name       TEXT    NOT NULL,
-    term_id    TEXT    NOT NULL,
-    crns       ARRAY
+    term_id    TEXT    NOT NULL
 );
 
 INSERT INTO schedules (
@@ -69,18 +66,14 @@ INSERT INTO schedules (
                           created_at,
                           updated_at,
                           name,
-                          term_id,
-                          crns
+                          term_id
                       )
                       SELECT uuid,
                              owner_uuid,
                              created_at,
                              created_at AS updated_at,
                              name,
-                             term_id,
-                             crns
+                             term_id
                         FROM temp_table_2;
 
 DROP TABLE temp_table_2;
-
-PRAGMA foreign_keys = 1;

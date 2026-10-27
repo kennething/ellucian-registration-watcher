@@ -37,6 +37,7 @@ export function runMigrations(db: Database) {
     const sql = fs.readFileSync(filePath, "utf8");
 
     db.transaction(() => {
+      // ! setting pragma foreign_keys in the migration doesnt do shit
       db.exec(sql);
       recordMigration.run(file, timeNow());
     })();
