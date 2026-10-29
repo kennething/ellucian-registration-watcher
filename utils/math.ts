@@ -1,5 +1,6 @@
 import { ClientManager } from "./clientManager";
 import * as htmlparser2 from "htmlparser2";
+import { Log } from "./log";
 import ENV from "./env";
 
 type Element = ReturnType<typeof htmlparser2.DomUtils.getElementsByTagName>[number];
@@ -10,7 +11,11 @@ export async function getMathSchedule(term: string) {
   form.set("schedule", term);
   form.set("listby", "By course name");
 
-  const html = (await ClientManager.requestInternalClient((client) => client.post(`${ENV.MATH_SCHEDULE_URL}/d/cgi-bin/schedule/get_course_schedule.cgi`, form))).data as string;
+  const html = (await ClientManager.requestInternalClient((client) => client.post(`${ENV.MATH_SCHEDULE_URL}/d/cgi-bin/schedule/get_course_schedule.cgi`, form)))?.data as string;
+  if (!html) {
+    Log.error(`Failed to fetch math schedule for term ${term}`);
+    return new Map<string, string>();
+  }
   const dom = htmlparser2.parseDocument(html);
 
   /** `{ [crn]: professor }` */

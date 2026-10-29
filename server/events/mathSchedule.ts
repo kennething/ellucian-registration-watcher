@@ -9,6 +9,7 @@ export function fetchMathScheduleLoop(): void {
   waitForInterval(ENV.MATH_FETCH_INTERVAL, ENV.MATH_FETCH_OFFSET, async () => {
     for (const term of ClientManager.terms ?? []) {
       const professors = await getMathSchedule(term.termId.slice(0, -1));
+      if (professors.size === 0) continue;
 
       db.transaction(() => {
         db.prepare(`DROP TABLE IF EXISTS "${term.termId}_math_schedule"`).run();
