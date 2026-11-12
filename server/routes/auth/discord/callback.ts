@@ -67,7 +67,7 @@ router.get("/", async (req, res) => {
 
     if (!existingUser) {
       const user = await botClient.client?.users.fetch(discordId);
-      user?.send(
+      await user?.send(
         `## Thanks for using [Bad Scheduler](<${ENV.FRONTEND_URL}>) :)\nTo get the most out of the bot, make sure you:\n\n1. **Allow Discord notifications** in your system settings,\n2. **DON'T mute** this DM channel, and\n3. **DON'T set __Do Not Disturb__** as your Discord status\\*\n\n-# \\*If you have __Do Not Disturb__ enabled, you will not receive Discord push notifications while:\n-# a. Discord is open on another device, and/or\n-# b. for a few minutes after opening Discord on any device`
       );
     }

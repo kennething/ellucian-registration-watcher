@@ -238,9 +238,9 @@ export function watchClassesLoop(): void {
 
       const currentTime = timeNow();
       setTimeout(
-        () => {
+        async () => {
           try {
-            user?.send({
+            await user?.send({
               embeds: [
                 {
                   title: `Watcher${availableClasses.length > 1 ? "s" : ""} Triggered`,

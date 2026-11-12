@@ -153,7 +153,7 @@ export function purgeOutdatedLoop(): void {
             if (!discordUser) return;
 
             try {
-              discordUser?.send({
+              await discordUser?.send({
                 embeds: [
                   {
                     title: `${newTerms.map((term) => term.getTermString()).join(" and ")} ${newTerms.length === 1 ? "is" : "are"} now available early`,

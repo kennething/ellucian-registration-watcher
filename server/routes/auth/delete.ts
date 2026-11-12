@@ -14,7 +14,7 @@ router.delete("/", authController, async (req, res) => {
     db.prepare("DELETE FROM users WHERE uuid = ?").run(user.uuid);
 
     const discordUser = await botClient.client?.users.fetch(user.discordId);
-    discordUser?.send(
+    await discordUser?.send(
       `## Sorry to see you go :(\nYour data has now been deleted.\n\n### You can now revoke the Bad Scheduler app's permissions from your Discord account:\n\n1. Go to your user settings\n2. Under *Games & Apps*, go to **Connected Apps**\n3. Deauthorize the Bad Scheduler app`
     );
 
