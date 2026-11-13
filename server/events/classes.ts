@@ -196,8 +196,10 @@ export function watchClassesLoop(): void {
     }
 
     for (const [uuid, availableClasses] of notificationsToSend) {
-      const [{ discord_id: discordId }, error] = tryCatch<{ discord_id: string }>(() => db.prepare("SELECT discord_id FROM users WHERE uuid = ? AND is_installed = 1").get(uuid) as any);
-      if (error) continue;
+      const [{ discord_id: discordId, is_installed: isInstalled }, error] = tryCatch<{ discord_id: string; is_installed: number }>(
+        () => db.prepare("SELECT discord_id, is_installed FROM users WHERE uuid = ?").get(uuid) as any
+      );
+      if (!isInstalled || error) continue;
 
       const user = await botClient.client?.users.fetch(discordId);
       if (!user) continue;
