@@ -109,7 +109,19 @@ export default {
           const [scheduleUuid] = moreButtonInfo as [string];
 
           Log.debug(scheduleUuid);
-          const [schedule, error] = tryCatch(() => db.prepare("SELECT term_id, crns FROM schedules WHERE uuid = ?").get(scheduleUuid) as { term_id: string; crns: string });
+          const [schedule, error] = tryCatch(
+            () =>
+              db
+                .prepare(
+                  `SELECT 
+        s.term_id,
+        COALESCE(json_group_array(sc.crn) FILTER (WHERE sc.crn IS NOT NULL), '[]') AS crns
+    FROM schedules s
+    LEFT JOIN schedule_crns sc ON s.uuid = sc.uuid
+    WHERE s.uuid = ?`
+                )
+                .get(scheduleUuid) as { term_id: string; crns: string }
+          );
           Log.debug(schedule);
           if (error) return void interaction.followUp(getErrorResponse(ErrorCodes.SCHEDULE_DB_FETCH_FAIL, "this schedule doesnt exist dawg") as InteractionReplyOptions);
 

@@ -1,9 +1,8 @@
-import { ClassSearchSchema, TruncatedClassData } from "~/utils/types";
 import { searchClassDb, tryCatch } from "~/utils/fetch";
 import { authController } from "../../controllers/auth";
-import { Log } from "~/utils/log";
+import { truncateClassData } from "~/utils/functions";
+import { ClassSearchSchema } from "~/utils/types";
 import { Router } from "express";
-import { db } from "~/db";
 
 const router = Router();
 
@@ -19,78 +18,7 @@ router.get("/", authController, async (req, res) => {
   const results = await searchClassDb(filters.term, filters, offset, limit);
   const [classes, total] = results;
 
-  const parsedClasses: TruncatedClassData[] = [];
-  classes.forEach((c) => {
-    const professor = c.faculty.find((f) => f.primaryIndicator);
-    const [rmpData, error] = professor
-      ? tryCatch<{ rmp_id: number; overall_rating: number; num_ratings: number; percent_take_again: number; level_of_difficulty: number }>(
-          () =>
-            db.prepare("SELECT rmp_id, overall_rating, num_ratings, percent_take_again, level_of_difficulty FROM professors WHERE school_name = ? LIMIT 1").get(
-              professor.displayName
-                .replaceAll(/,|\.|\-|\([A-Za-z]{1,3}\/[A-Za-z]{1,3}\)/g, " ")
-                .split(" ")
-                .filter((w) => w.length > 1)
-                .sort()
-                .join(" ")
-            ) as any
-        )
-      : [];
-    if (error) return Log.error(error);
-
-    parsedClasses.push({
-      term: c.term,
-      courseReferenceNumber: c.courseReferenceNumber,
-      subject: c.subject,
-      courseNumber: c.courseNumber,
-      courseTitle: c.courseTitle,
-      sequenceNumber: c.sequenceNumber,
-      seatsAvailable: c.seatsAvailable,
-      maximumEnrollment: c.maximumEnrollment,
-      waitCount: c.waitCount,
-      waitCapacity: c.waitCapacity,
-
-      lastUpdated: null,
-      seat24h: null,
-      seat7d: null,
-      seat28d: null,
-      wait24h: null,
-      wait7d: null,
-      wait28d: null,
-
-      credits: c.meetingsFaculty[0]?.meetingTime.creditHourSession ?? 0,
-      meeting: {
-        building: c.meetingsFaculty[0]?.meetingTime.building ?? "",
-        buildingDescription: c.meetingsFaculty[0]?.meetingTime.buildingDescription ?? "",
-        room: c.meetingsFaculty[0]?.meetingTime.room ?? "",
-        campus: c.meetingsFaculty[0]?.meetingTime.campus ?? "",
-        campusDescription: c.meetingsFaculty[0]?.meetingTime.campusDescription ?? "",
-        scheduleType: c.meetingsFaculty[0]?.meetingTime.meetingScheduleType ?? "",
-        instructionalMethodDescription: c.instructionalMethodDescription ?? "",
-        time: [c.meetingsFaculty[0]?.meetingTime.beginTime ?? "", c.meetingsFaculty[0]?.meetingTime.endTime ?? ""],
-        days: [
-          c.meetingsFaculty[0]?.meetingTime.sunday ?? false,
-          c.meetingsFaculty[0]?.meetingTime.monday ?? false,
-          c.meetingsFaculty[0]?.meetingTime.tuesday ?? false,
-          c.meetingsFaculty[0]?.meetingTime.wednesday ?? false,
-          c.meetingsFaculty[0]?.meetingTime.thursday ?? false,
-          c.meetingsFaculty[0]?.meetingTime.friday ?? false,
-          c.meetingsFaculty[0]?.meetingTime.saturday ?? false
-        ]
-      },
-      attributes: c.sectionAttributes.map((a) => a.code),
-
-      professorLeaked: professor?.professorLeaked,
-      professorId: professor?.bannerId ?? "",
-      professorName: professor?.displayName ?? "",
-      rmpId: rmpData?.rmp_id ?? null,
-      rmpRating: rmpData?.overall_rating ?? null,
-      rmpNumRatings: rmpData?.num_ratings ?? null,
-      rmpTakeAgain: rmpData?.percent_take_again ?? null,
-      rmpDifficulty: rmpData?.level_of_difficulty ?? null
-    });
-  });
-
-  return res.status(200).json({ classes: parsedClasses, total });
+  return res.status(200).json({ classes: Array.from(truncateClassData(classes).values()), total });
 });
 
 export default router;

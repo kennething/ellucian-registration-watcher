@@ -1,4 +1,4 @@
-import { getMeetingDaysString, getMeetingTimeString, getTermString } from "~/utils/functions";
+import { getMeetingDaysString, getMeetingTimeString, getTermString, truncateClassData } from "~/utils/functions";
 import { ErrorCodes, getErrorResponse, getSignupResponse } from "../util/responses";
 import { fetchClassDescription, searchClassDb, tryCatch } from "~/utils/fetch";
 import { TruncatedClassData, ClassData } from "~/utils/types";
@@ -8,7 +8,6 @@ import { getCourseColor } from "../util/index";
 import { paginationState } from "../common";
 import type { Command } from "./index";
 import { v7 as uuidv7 } from "uuid";
-import { Log } from "~/utils/log";
 import ENV from "~/utils/env";
 import { db } from "~/db";
 import {
@@ -79,80 +78,7 @@ export async function getClassData(term: string, searchParams: ClassSearchParams
   const classes: ClassData[] = results[0];
   const total = results[1];
 
-  const parsedClasses: TruncatedClassData[] = [];
-  classes.forEach((c) => {
-    const professor = c.faculty.find((f) => f.primaryIndicator);
-    const [rmpData, error] = professor
-      ? tryCatch<{ rmp_id: number; overall_rating: number; num_ratings: number; percent_take_again: number; level_of_difficulty: number }>(
-          () =>
-            db.prepare("SELECT rmp_id, overall_rating, num_ratings, percent_take_again, level_of_difficulty FROM professors WHERE school_name = ? LIMIT 1").get(
-              professor.displayName
-                .replaceAll(/,|\.|\-|\([A-Za-z]{1,3}\/[A-Za-z]{1,3}\)/g, " ")
-                .split(" ")
-                .filter((w) => w.length > 1)
-                .sort()
-                .join(" ")
-            ) as any
-        )
-      : [];
-    if (error) return Log.error(error);
-
-    if (searchParams.strictRatingSearch && (!rmpData || !rmpData.overall_rating)) return;
-    if (searchParams.professorRating && rmpData?.overall_rating && (rmpData.overall_rating < searchParams.professorRating[0] || rmpData.overall_rating > searchParams.professorRating[1])) return;
-
-    parsedClasses.push({
-      term: c.term,
-      courseReferenceNumber: c.courseReferenceNumber,
-      subject: c.subject,
-      courseNumber: c.courseNumber,
-      courseTitle: c.courseTitle,
-      sequenceNumber: c.sequenceNumber,
-      seatsAvailable: c.seatsAvailable,
-      maximumEnrollment: c.maximumEnrollment,
-      waitCount: c.waitCount,
-      waitCapacity: c.waitCapacity,
-
-      lastUpdated: null,
-      seat24h: null,
-      seat7d: null,
-      seat28d: null,
-      wait24h: null,
-      wait7d: null,
-      wait28d: null,
-
-      credits: c.meetingsFaculty[0]?.meetingTime.creditHourSession ?? 0,
-      meeting: {
-        building: c.meetingsFaculty[0]?.meetingTime.building ?? "",
-        buildingDescription: c.meetingsFaculty[0]?.meetingTime.buildingDescription ?? "",
-        room: c.meetingsFaculty[0]?.meetingTime.room ?? "",
-        campus: c.meetingsFaculty[0]?.meetingTime.campus ?? "",
-        campusDescription: c.meetingsFaculty[0]?.meetingTime.campusDescription ?? "",
-        scheduleType: c.meetingsFaculty[0]?.meetingTime.meetingScheduleType ?? "",
-        instructionalMethodDescription: c.instructionalMethodDescription ?? "",
-        time: [c.meetingsFaculty[0]?.meetingTime.beginTime ?? "", c.meetingsFaculty[0]?.meetingTime.endTime ?? ""],
-        days: [
-          c.meetingsFaculty[0]?.meetingTime.sunday ?? false,
-          c.meetingsFaculty[0]?.meetingTime.monday ?? false,
-          c.meetingsFaculty[0]?.meetingTime.tuesday ?? false,
-          c.meetingsFaculty[0]?.meetingTime.wednesday ?? false,
-          c.meetingsFaculty[0]?.meetingTime.thursday ?? false,
-          c.meetingsFaculty[0]?.meetingTime.friday ?? false,
-          c.meetingsFaculty[0]?.meetingTime.saturday ?? false
-        ]
-      },
-      attributes: c.sectionAttributes.map((a) => a.code),
-
-      professorId: professor?.bannerId ?? "",
-      professorName: professor?.displayName.split(",").reverse().join(" ") ?? "",
-      rmpId: rmpData?.rmp_id ?? null,
-      rmpRating: rmpData?.overall_rating ?? null,
-      rmpNumRatings: rmpData?.num_ratings ?? null,
-      rmpTakeAgain: rmpData?.percent_take_again ?? null,
-      rmpDifficulty: rmpData?.level_of_difficulty ?? null
-    });
-  });
-
-  return [parsedClasses, total];
+  return [Array.from(truncateClassData(classes, true).values()), total];
 }
 
 /** generates a full response for a single course */
@@ -169,7 +95,9 @@ export async function generateFullResponse(term: string, course: TruncatedClassD
       let str = `## ${course.courseTitle}\n${course.subject} ${course.courseNumber} - ${course.sequenceNumber} (CRN: ${course.courseReferenceNumber})`;
 
       // * location
-      if (course.meeting.building && course.meeting.room) str += `\n- <:location:1537238636368764948> **Location**: ${course.meeting.building} ${course.meeting.room}`;
+      for (const meeting of course.meeting) {
+        if (meeting.building && meeting.room) str += `\n- <:location:1537238636368764948> **Location**: ${meeting.building} ${meeting.room}`;
+      }
       // * professor
       if (course.professorName) {
         str += "\n- <:professor:1537238698477752451> **Professor**: ";
@@ -180,10 +108,12 @@ export async function generateFullResponse(term: string, course: TruncatedClassD
         str += `${professor}${rating}`;
       }
       // * meeting time
-      if (course.meeting.days.some((d) => !!d) || (course.meeting.time[0] && course.meeting.time[1])) {
-        str += `\n- <:meetingtime:1537238821911920751> **Meeting Time**: `;
-        if (course.meeting.days.some((d) => !!d)) str += `${getMeetingDaysString(course.meeting.days)} `;
-        if (course.meeting.time[0] && course.meeting.time[1]) str += `${getMeetingTimeString(course.meeting.time)}`;
+      for (const meeting of course.meeting) {
+        if (meeting.days.some((d) => !!d) || (meeting.time[0] && meeting.time[1])) {
+          str += `\n- <:meetingtime:1537238821911920751> **Meeting Time**: `;
+          if (meeting.days.some((d) => !!d)) str += `${getMeetingDaysString(meeting.days)} `;
+          if (meeting.time[0] && meeting.time[1]) str += `${getMeetingTimeString(meeting.time)}`;
+        }
       }
       // * seats
       str += `\n- <:seats:1537238779268694117> **Seats Available**: __**${course.seatsAvailable}**__ of ${course.maximumEnrollment}`;
@@ -201,9 +131,9 @@ export async function generateFullResponse(term: string, course: TruncatedClassD
     .addTextDisplayComponents((textDisplay) => {
       let str = `- <:term:1537260458715648041> **Term**: ${getTermString(course.term)}
 - <:credits:1537260545592397996> **Credits**: ${course.credits}
-- <:campus:1537273936646119496> **Campus**: ${course.meeting.campusDescription}${course.meeting.campus === "M" ? " Campus" : ""}
-- <:scheduletype:1537261058635595846> **Schedule Type**: ${course.meeting.scheduleType}
-- <:instructionmethod:1537262270114037845> **Instructional Method**: ${course.meeting.instructionalMethodDescription}`;
+- <:campus:1537273936646119496> **Campus**: ${course.meeting[0].campusDescription}${course.meeting[0].campus === "M" ? " Campus" : ""}
+- <:scheduletype:1537261058635595846> **Schedule Type**: ${course.meeting[0].scheduleType}
+- <:instructionmethod:1537262270114037845> **Instructional Method**: ${course.meeting[0].instructionalMethodDescription}`;
       if (course.attributes.length > 0)
         str += `\n- <:attributes:1537275293738336386> **Attributes**:\n${course.attributes.map((attribute) => `  - ${ClientManager.attributes?.find((a) => a.code === attribute)?.name ?? attribute}`).join("\n")}`;
 
@@ -251,13 +181,17 @@ export async function generateResponse(term: string, currentPage: number, total:
                 str += `${professor}${rating}`;
               }
               // * meeting time
-              if (course.meeting.days.some((d) => !!d) || (course.meeting.time[0] && course.meeting.time[1])) {
-                str += `\n- <:meetingtime:1537238821911920751> **Meeting Time**: `;
-                if (course.meeting.days.some((d) => !!d)) str += `${getMeetingDaysString(course.meeting.days)} `;
-                if (course.meeting.time[0] && course.meeting.time[1]) str += `${getMeetingTimeString(course.meeting.time)}`;
+              for (const meeting of course.meeting) {
+                if (meeting.days.some((d) => !!d) || (meeting.time[0] && meeting.time[1])) {
+                  str += `\n- <:meetingtime:1537238821911920751> **Meeting Time**: `;
+                  if (meeting.days.some((d) => !!d)) str += `${getMeetingDaysString(meeting.days)} `;
+                  if (meeting.time[0] && meeting.time[1]) str += `${getMeetingTimeString(meeting.time)}`;
+                }
               }
               // * location
-              if (course.meeting.building && course.meeting.room) str += `\n- <:location:1537238636368764948> **Location**: ${course.meeting.building} ${course.meeting.room}`;
+              for (const meeting of course.meeting) {
+                if (meeting.building && meeting.room) str += `\n- <:location:1537238636368764948> **Location**: ${meeting.building} ${meeting.room}`;
+              }
               // * seats
               str += `\n- <:seats:1537238779268694117> **Seats Available**: __**${course.seatsAvailable}**__ of ${course.maximumEnrollment}`;
               // * waitlist

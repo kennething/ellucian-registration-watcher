@@ -54,7 +54,7 @@ export function getTermString(term: string) {
   return `${terms[quarter as keyof typeof terms]} ${year}`;
 }
 
-export function getMeetingTimeString(meetingTime: TruncatedClassData["meeting"]["time"]) {
+export function getMeetingTimeString(meetingTime: TruncatedClassData["meeting"][number]["time"]) {
   if (!meetingTime[0] || !meetingTime[1]) return "TBD";
 
   const startTime = Number(meetingTime[0]);
@@ -68,7 +68,7 @@ export function getMeetingTimeString(meetingTime: TruncatedClassData["meeting"][
   return `${startStr} - ${endHour > 12 ? endHour - 12 : endHour}:${meetingTime[1].slice(2)} ${endTime < 1200 ? "AM" : "PM"}`;
 }
 
-export function getMeetingDaysString(meetingDays?: TruncatedClassData["meeting"]["days"]) {
+export function getMeetingDaysString(meetingDays?: TruncatedClassData["meeting"][number]["days"]) {
   const days = ["Su", "M", "T", "W", "Th", "F", "Sa"];
   return (
     meetingDays
@@ -78,7 +78,7 @@ export function getMeetingDaysString(meetingDays?: TruncatedClassData["meeting"]
   );
 }
 
-export function truncateClassData(data: ClassData[]): Map<string, TruncatedClassData> {
+export function truncateClassData(data: ClassData[], skipHistory = false): Map<string, TruncatedClassData> {
   const classMap = new Map<string, TruncatedClassData>(); // Map<CRN, TruncatedClassData>
   data.forEach((c) => {
     const professor = c.faculty.find((f) => f.primaryIndicator);
@@ -97,6 +97,58 @@ export function truncateClassData(data: ClassData[]): Map<string, TruncatedClass
       : [];
     if (error) return Log.error(error);
 
+    const courseData = {
+      term: c.term,
+      courseReferenceNumber: c.courseReferenceNumber,
+      subject: c.subject,
+      courseNumber: c.courseNumber,
+      courseTitle: c.courseTitle,
+      sequenceNumber: c.sequenceNumber,
+      seatsAvailable: c.seatsAvailable,
+      maximumEnrollment: c.maximumEnrollment,
+      waitCount: c.waitCount,
+      waitCapacity: c.waitCapacity,
+
+      lastUpdated: null,
+      seat24h: null,
+      seat7d: null,
+      seat28d: null,
+      wait24h: null,
+      wait7d: null,
+      wait28d: null,
+
+      credits: c.meetingsFaculty[0]?.meetingTime.creditHourSession ?? 0,
+      meeting: c.meetingsFaculty.map((m) => ({
+        building: m.meetingTime.building ?? "",
+        buildingDescription: m.meetingTime.buildingDescription ?? "",
+        room: m.meetingTime.room ?? "",
+        campus: m.meetingTime.campus ?? "",
+        campusDescription: m.meetingTime.campusDescription ?? "",
+        scheduleType: m.meetingTime.meetingScheduleType ?? "",
+        instructionalMethodDescription: c.instructionalMethodDescription ?? "",
+        time: [m.meetingTime.beginTime ?? "", m.meetingTime.endTime ?? ""] as [string, string],
+        days: [
+          m.meetingTime.sunday ?? false,
+          m.meetingTime.monday ?? false,
+          m.meetingTime.tuesday ?? false,
+          m.meetingTime.wednesday ?? false,
+          m.meetingTime.thursday ?? false,
+          m.meetingTime.friday ?? false,
+          m.meetingTime.saturday ?? false
+        ] as [boolean, boolean, boolean, boolean, boolean, boolean, boolean]
+      })),
+      attributes: c.sectionAttributes.map((a) => a.code),
+
+      professorId: professor?.bannerId ?? "",
+      professorName: professor?.displayName ?? "",
+      rmpId: rmpData?.rmp_id ?? null,
+      rmpRating: rmpData?.overall_rating ?? null,
+      rmpNumRatings: rmpData?.num_ratings ?? null,
+      rmpTakeAgain: rmpData?.percent_take_again ?? null,
+      rmpDifficulty: rmpData?.level_of_difficulty ?? null
+    };
+    if (skipHistory) return classMap.set(c.courseReferenceNumber, courseData);
+
     const [history, error2] = tryCatch<{
       "24h_timestamp": number;
       seat_24h: string;
@@ -111,54 +163,14 @@ export function truncateClassData(data: ClassData[]): Map<string, TruncatedClass
     if (error2) return Log.error(error2);
 
     classMap.set(c.courseReferenceNumber, {
-      term: c.term,
-      courseReferenceNumber: c.courseReferenceNumber,
-      subject: c.subject,
-      courseNumber: c.courseNumber,
-      courseTitle: c.courseTitle,
-      sequenceNumber: c.sequenceNumber,
-      seatsAvailable: c.seatsAvailable,
-      maximumEnrollment: c.maximumEnrollment,
-      waitCount: c.waitCount,
-      waitCapacity: c.waitCapacity,
-
+      ...courseData,
       lastUpdated: history?.["24h_timestamp"] ?? null,
       seat24h: history ? JSON.parse(history.seat_24h) : null,
       seat7d: history ? JSON.parse(history.seat_7d) : null,
       seat28d: history ? JSON.parse(history.seat_28d) : null,
       wait24h: history?.wait_24h ? JSON.parse(history.wait_24h) : null,
       wait7d: history?.wait_7d ? JSON.parse(history.wait_7d) : null,
-      wait28d: history?.wait_28d ? JSON.parse(history.wait_28d) : null,
-
-      credits: c.meetingsFaculty[0]?.meetingTime.creditHourSession ?? 0,
-      meeting: {
-        building: c.meetingsFaculty[0]?.meetingTime.building ?? "",
-        buildingDescription: c.meetingsFaculty[0]?.meetingTime.buildingDescription ?? "",
-        room: c.meetingsFaculty[0]?.meetingTime.room ?? "",
-        campus: c.meetingsFaculty[0]?.meetingTime.campus ?? "",
-        campusDescription: c.meetingsFaculty[0]?.meetingTime.campusDescription ?? "",
-        scheduleType: c.meetingsFaculty[0]?.meetingTime.meetingScheduleType ?? "",
-        instructionalMethodDescription: c.instructionalMethodDescription ?? "",
-        time: [c.meetingsFaculty[0]?.meetingTime.beginTime ?? "", c.meetingsFaculty[0]?.meetingTime.endTime ?? ""],
-        days: [
-          c.meetingsFaculty[0]?.meetingTime.sunday ?? false,
-          c.meetingsFaculty[0]?.meetingTime.monday ?? false,
-          c.meetingsFaculty[0]?.meetingTime.tuesday ?? false,
-          c.meetingsFaculty[0]?.meetingTime.wednesday ?? false,
-          c.meetingsFaculty[0]?.meetingTime.thursday ?? false,
-          c.meetingsFaculty[0]?.meetingTime.friday ?? false,
-          c.meetingsFaculty[0]?.meetingTime.saturday ?? false
-        ]
-      },
-      attributes: c.sectionAttributes.map((a) => a.code),
-
-      professorId: professor?.bannerId ?? "",
-      professorName: professor?.displayName ?? "",
-      rmpId: rmpData?.rmp_id ?? null,
-      rmpRating: rmpData?.overall_rating ?? null,
-      rmpNumRatings: rmpData?.num_ratings ?? null,
-      rmpTakeAgain: rmpData?.percent_take_again ?? null,
-      rmpDifficulty: rmpData?.level_of_difficulty ?? null
+      wait28d: history?.wait_28d ? JSON.parse(history.wait_28d) : null
     });
   });
 

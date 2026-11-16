@@ -109,6 +109,7 @@ export type ClassData = {
     primaryIndicator: boolean;
     term: string;
   }[];
+  // ! NOT the same as faculty, this is actually just the meeting times
   meetingsFaculty: {
     category: string;
     class: string;
@@ -183,7 +184,7 @@ export type TruncatedClassData = {
     instructionalMethodDescription: ClassData["instructionalMethodDescription"];
     time: [start: ClassData["meetingsFaculty"][number]["meetingTime"]["beginTime"], end: ClassData["meetingsFaculty"][number]["meetingTime"]["endTime"]];
     days: [sun: boolean, mon: boolean, tue: boolean, wed: boolean, thu: boolean, fri: boolean, sat: boolean];
-  };
+  }[];
   attributes: ClassData["sectionAttributes"][number]["code"][];
   professorLeaked?: true;
   professorId: ClassData["faculty"][number]["bannerId"];

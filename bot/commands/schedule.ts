@@ -78,7 +78,20 @@ export async function generateScheduleImage<T extends string | null>(
 
   if (scheduleUuid === null) {
     const [fetchedSchedule, error2] = tryCatch<{ uuid: string; term_id: string; name: string; crns: string }>(
-      () => db.prepare("SELECT uuid, term_id, name, crns FROM schedules WHERE owner_uuid = ? LIMIT 1").get(userUuid) as any
+      () =>
+        db
+          .prepare(
+            `SELECT 
+        s.uuid,
+        s.term_id,
+        s.name,
+        COALESCE(json_group_array(sc.crn) FILTER (WHERE sc.crn IS NOT NULL), '[]') AS crns
+    FROM schedules s
+    LEFT JOIN schedule_crns sc ON s.uuid = sc.uuid
+    WHERE s.uuid = ?
+    LIMIT 1`
+          )
+          .get(userUuid) as any
     );
     Log.debug(fetchedSchedule);
     if (error2) return [null, null, getErrorResponse(ErrorCodes.SCHEDULE_DB_FETCH_FAIL)];
@@ -86,7 +99,19 @@ export async function generateScheduleImage<T extends string | null>(
     schedule = { ...fetchedSchedule, owner_uuid: userUuid!, crns: JSON.parse(fetchedSchedule.crns) as string[] };
   } else {
     const [fetchedSchedule, error2] = tryCatch<{ term_id: string; owner_uuid: string; name: string; crns: string }>(
-      () => db.prepare("SELECT term_id, owner_uuid, name, crns FROM schedules WHERE uuid = ?").get(scheduleUuid) as any
+      () =>
+        db
+          .prepare(
+            `SELECT 
+        s.uuid,
+        s.term_id,
+        s.name,
+        COALESCE(json_group_array(sc.crn) FILTER (WHERE sc.crn IS NOT NULL), '[]') AS crns
+    FROM schedules s
+    LEFT JOIN schedule_crns sc ON s.uuid = sc.uuid
+    WHERE s.uuid = ?`
+          )
+          .get(scheduleUuid) as any
     );
     if (error2) return [null, null, getErrorResponse(ErrorCodes.SCHEDULE_DB_FETCH_FAIL)];
     if (!fetchedSchedule) return [null, null, getErrorResponse(ErrorCodes.NO_SCHEDULE, "This schedule doesnt exist bro")];
@@ -171,17 +196,17 @@ export async function generateScheduleImage<T extends string | null>(
       ctx.fillText(getTimeLabel(minutes), 10, y);
     }
 
-    for (const course of parsedClasses) {
-      const color = getCourseColor(course);
+    for (const block of parsedClasses.flatMap((course) => course.meetingsFaculty.map((meeting) => ({ ...course, meetingsFaculty: meeting })))) {
+      const color = getCourseColor(block);
 
-      const start = timeToMinutes(course.meetingsFaculty[0]?.meetingTime.beginTime);
-      const end = timeToMinutes(course.meetingsFaculty[0]?.meetingTime.endTime);
+      const start = timeToMinutes(block.meetingsFaculty?.meetingTime.beginTime);
+      const end = timeToMinutes(block.meetingsFaculty?.meetingTime.endTime);
 
       const y = timeToY(start);
       const height = timeToY(end) - y;
 
       DAYS.forEach((day, i) => {
-        if (!course.meetingsFaculty[0]?.meetingTime[day]) return;
+        if (!block.meetingsFaculty?.meetingTime[day]) return;
 
         const x = TIME_WIDTH + i * DAY_WIDTH;
 
@@ -195,24 +220,24 @@ export async function generateScheduleImage<T extends string | null>(
         ctx.font = 'bold 18px "Playpen Sans"';
         ctx.textAlign = "left";
         ctx.textBaseline = "top";
-        ctx.fillText(`${course.subject} ${course.courseNumber} - ${course.sequenceNumber}`, xOffset, yOffset, DAY_WIDTH - 24);
+        ctx.fillText(`${block.subject} ${block.courseNumber} - ${block.sequenceNumber}`, xOffset, yOffset, DAY_WIDTH - 24);
         yOffset += 26;
 
         ctx.font = '14px "Playpen Sans"';
-        const professor = course.faculty[0];
+        const professor = block.faculty[0];
         if (professor) {
-          ctx.fillText(`${professor.displayName.split(",").reverse().join(" ")}${course.rmpRating ? ` (${course.rmpRating.toFixed(1)}/5)` : ""}`, xOffset, yOffset, DAY_WIDTH - 24);
+          ctx.fillText(`${professor.displayName.split(",").reverse().join(" ")}${block.rmpRating ? ` (${block.rmpRating.toFixed(1)}/5)` : ""}`, xOffset, yOffset, DAY_WIDTH - 24);
           yOffset += 20;
         }
 
-        const meeting = course.meetingsFaculty[0]?.meetingTime;
+        const meeting = block.meetingsFaculty?.meetingTime;
         if (meeting) {
           ctx.fillText(getMeetingTimeString([meeting.beginTime, meeting.endTime]), xOffset, yOffset, DAY_WIDTH - 24);
           yOffset += 20;
         }
 
-        if (course.meetingsFaculty[0]?.meetingTime.building && course.meetingsFaculty[0]?.meetingTime.room)
-          ctx.fillText(`${course.meetingsFaculty[0]?.meetingTime.building} ${course.meetingsFaculty[0]?.meetingTime.room}`, xOffset, yOffset, DAY_WIDTH - 24);
+        if (block.meetingsFaculty?.meetingTime.building && block.meetingsFaculty?.meetingTime.room)
+          ctx.fillText(`${block.meetingsFaculty?.meetingTime.building} ${block.meetingsFaculty?.meetingTime.room}`, xOffset, yOffset, DAY_WIDTH - 24);
       });
     }
   })();
